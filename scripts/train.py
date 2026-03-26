@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import argparse
 import random
 from pathlib import Path
@@ -17,7 +24,8 @@ from lidar_perception.utils.logging import setup_logger
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train LiDAR perception model")
-    parser.add_argument("--config", required=True, help="Path to YAML config")
+    parser.add_argument("--config", default="configs/train.yaml", help="Path to YAML config")
+    parser.add_argument("--resume", default=None, help="Optional checkpoint to resume from")
     return parser.parse_args()
 
 
@@ -62,6 +70,7 @@ def main() -> None:
 
     model = build_model(config["model"]).to(device)
     trainer = Trainer(model=model, config=config, logger=logger, device=device)
+    trainer.resume_if_available(args.resume)
     trainer.fit(train_loader, val_loader)
 
 

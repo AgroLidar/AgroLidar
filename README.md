@@ -1,98 +1,89 @@
 # AgroLidar
 
-Production-oriented PyTorch baseline for LiDAR obstacle detection on tractors and agricultural machines operating in difficult field conditions.
+AgroLidar is a **field-first agricultural LiDAR perception platform** for tractors and agricultural machines.
 
-## Features
+It is designed for safety-critical operation in unstructured environments with:
+- uneven terrain
+- sparse returns
+- vegetation clutter
+- dust/rain/low visibility
+- moving people/animals near heavy machinery
 
-- Obstacle detection for `human`, `animal`, `vehicle`, `post`, and `rock`
-- BEV semantic segmentation tuned for unstructured field environments
-- Distance estimation and safety-oriented hazard scoring
-- Terrain-normalized preprocessing and conservative atmospheric denoising
-- Robustness augmentations for dust, rain, low visibility, sparse returns, and partial occlusion
-- Modular architecture with swappable models and API-ready serving
-- Temporal tracking to stabilize detections across consecutive tractor frames
-- Velocity estimation, stop-zone prediction, and temporal occupancy fusion for sequence-aware safety
-- Synthetic agricultural scenario generator for MVP demos before field data arrives
-- Support for `.bin` and `.pcd` point cloud loading
-- Checkpointing, logging, evaluation, and visualization
-- FastAPI starter for future vehicle or edge integration
+> Product philosophy: **no unsafe online self-training in production.**
+> Inference collects uncertainty and failures; learning is handled offline through controlled retraining and promotion.
 
-## Project Structure
+---
+
+## What this repository now includes
+
+- Config-driven **training / validation / testing / inference** pipelines
+- Dedicated **risk and hazard scoring** module (class priority + geometry + confidence + speed)
+- Temporal-aware inference with tracking and stop-zone context
+- **Hard-case mining** and failure manifest generation
+- **Active-learning review queue** builder with reason codes
+- **Offline retraining** entrypoint with hard-case metadata logging
+- **Model comparison + promotion policy** logic
+- Lightweight **model registry/versioning** under `outputs/registry/`
+- Machine-readable and human-readable evaluation reports
+- Tests for core pipeline interfaces
+
+---
+
+## Repository structure
 
 ```text
-lidar_perception/
-  data/
-  models/
-  training/
-  inference/
-  simulation/
-  evaluation/
-  api/
-  utils/
-configs/
-notebooks/
-scripts/
+AgroLidar/
+├── assets/
+├── configs/
+│   ├── base.yaml
+│   ├── train.yaml
+│   ├── eval.yaml
+│   ├── infer.yaml
+│   ├── active_learning.yaml
+│   └── retrain.yaml
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   ├── labels/
+│   ├── hard_cases/
+│   ├── review_queue/
+│   └── manifests/
+├── lidar_perception/
+│   ├── active_learning/
+│   ├── data/
+│   ├── evaluation/
+│   ├── inference/
+│   ├── models/
+│   ├── registry/
+│   ├── risk/
+│   ├── simulation/
+│   ├── training/
+│   └── utils/
+├── scripts/
+├── outputs/
+│   ├── checkpoints/
+│   ├── metrics/
+│   ├── predictions/
+│   ├── reports/
+│   └── registry/
+└── tests/
 ```
 
-## Architecture
+---
 
-The default model is a PointPillars-inspired Bird's Eye View pipeline adapted for agricultural obstacle detection:
+## End-to-end continuous improvement workflow
 
-1. Raw point clouds are cropped to a configurable range.
-2. Agricultural preprocessing estimates local ground, normalizes terrain, and removes likely airborne noise.
-3. Points are voxelized into a BEV feature grid.
-4. A CNN backbone extracts spatial features.
-4. Three task heads run on shared features:
-   - Detection head: class heatmaps, box offsets, sizes, yaw, confidence
-   - Segmentation head: semantic logits per BEV cell
-   - Obstacle head: occupancy and distance regression
-5. Inference produces detections, nearest-obstacle distance, and a hazard score for startup-style safety logic.
-6. A lightweight temporal tracker smooths detections and estimates per-track velocity.
-7. The runtime fuses occupancy across short windows and computes tractor stop-zone risk from vehicle speed.
+1. **Run inference** on new field logs.
+2. **Mine failures / hard cases** (low confidence, near-miss risk, unstable tracks, dangerous misses).
+3. Save structured hard-case artifacts under `data/hard_cases/`.
+4. Build **review queue** for human labeling/verification in `data/review_queue/`.
+5. **Retrain offline** with base data + reviewed hard cases.
+6. **Evaluate candidate model** and compare against production.
+7. Promote candidate only if safety-critical metrics improve and latency regression is controlled.
 
-This design is practical for tractors because BEV convolution is efficient on edge GPUs and does not rely on lane structure or dense urban priors.
+---
 
-## How This Differs From Urban AV Systems
-
-- The scene model assumes irregular terrain and unstructured drivable space rather than lanes or clean roads.
-- Vegetation and uneven ground are treated as persistent nuisance factors, so the synthetic pipeline injects crop clutter, ground undulation, and degraded sensing.
-- Safety prioritizes missed detections of people, animals, rocks, and posts over appearance-heavy classification.
-- Hazard scoring is included in the MVP because agricultural operators need actionable alerts, not just raw boxes.
-- Inference favors forward travel-corridor risk, which matches how tractors actually need to decide when to slow or stop.
-
-## Innovation Layer
-
-1. Hazard-aware obstacle ranking
-   Why it matters:
-   A tractor should stop for a person at medium confidence sooner than for tall grass at high confidence.
-   How to implement:
-   The MVP already computes a hazard score from class priority, confidence, and distance. In V2 this can become a learned risk model tied to stopping distance and implement speed.
-   Stage:
-   MVP now, learned version in V2.
-
-2. Adaptive dust and rain filtering
-   Why it matters:
-   Agricultural LiDAR often suffers from sparse returns and backscatter in dusty or rainy work.
-   How to implement:
-   The MVP simulates attenuation, point dropout, intensity perturbation, and partial occlusion. V2 should add temporal filtering and return-consistency gating across short windows.
-   Stage:
-   MVP augmentations now, temporal filter in V2.
-
-3. Terrain-aware obstacle reasoning
-   Why it matters:
-   Uneven ground and ruts can look like obstacles if the model assumes flat roads.
-   How to implement:
-   The synthetic generator creates rolling terrain; V2 should explicitly estimate local ground planes and fuse them into the obstacle head.
-   Stage:
-   MVP-ready hooks now, stronger module in V2.
-
-Additional roadmap ideas:
-
-- Camera fusion for operator-assist views and ambiguous obstacle verification
-- Self-supervised field adaptation per farm, season, or crop type
-- INT8 TensorRT deployment profile for Jetson/Orin edge compute
-
-## Install
+## Installation
 
 ```bash
 python -m venv .venv
@@ -100,152 +91,93 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Train
+---
 
+## CLI quickstart
+
+### Train
 ```bash
-python scripts/train.py --config configs/base.yaml
+python scripts/train.py --config configs/train.yaml
 ```
 
-## Evaluate
-
+### Evaluate
 ```bash
-python scripts/evaluate.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt
+python scripts/evaluate.py --config configs/eval.yaml --checkpoint outputs/checkpoints/best.pt
 ```
 
-## Inference
-
-Run on a synthetic agricultural sample:
-
+### Infer (single or sequence)
 ```bash
-python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0
+python scripts/infer.py --config configs/infer.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0 --sequence-length 3 --save-json
 ```
 
-Run on a short synthetic sequence to see stabilized tracking:
-
+### Mine hard cases
 ```bash
-python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0 --sequence-length 3
+python scripts/mine_hard_cases.py --config configs/active_learning.yaml --checkpoint outputs/checkpoints/best.pt
 ```
 
-Add tractor speed for stop-zone and TTC logic:
-
+### Build review queue
 ```bash
-python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0 --sequence-length 5 --tractor-speed-mps 3.5
+python scripts/build_review_queue.py --config configs/active_learning.yaml --hard-manifest data/hard_cases/manifest.jsonl
 ```
 
-Run on a real point cloud:
-
+### Retrain offline
 ```bash
-python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --point-cloud /path/to/frame.bin
+python scripts/retrain.py --config configs/retrain.yaml --resume outputs/checkpoints/latest.pt
 ```
 
-Run a demo sequence:
-
+### Compare production vs candidate
 ```bash
-python scripts/demo.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --num-scenes 3
+python scripts/compare_models.py --production-metrics outputs/reports/production_eval.json --candidate-metrics outputs/reports/eval_report.json
 ```
 
-Start the API:
-
+### Register model version
 ```bash
-uvicorn lidar_perception.api.main:app --reload
+python scripts/register_model.py --config configs/train.yaml --checkpoint outputs/checkpoints/best.pt --metrics outputs/reports/eval_report.json --status candidate --version v0.2.0
 ```
 
-Reset tracker state in the API:
+---
 
-```bash
-curl -X POST "http://127.0.0.1:8000/tracking/reset"
-```
+## Core metrics tracked
 
-## Web Demo
-
-Run the interactive web demo:
-
-```bash
-cd /Users/geromendez/Dev/AgroLidar
-PYTHONPATH=/Users/geromendez/Dev/AgroLidar ./.venv/bin/python -m uvicorn lidar_perception.api.main:app --host 127.0.0.1 --port 8010
-```
-
-Then open:
-
-```text
-http://127.0.0.1:8010/
-```
-
-The web demo lets you:
-
-- advance synthetic LiDAR frames
-- reset the tracked sequence
-- change tractor speed
-- inspect tracks, TTC, stop zone, hazard level, and temporal fusion
-
-## Data
-
-### Synthetic
-
-The default configuration uses an agricultural scene simulator with:
-
-- rolling terrain
-- vegetation clutter
-- posts, rocks, humans, animals, and vehicles
-- dust/rain/low-visibility approximations
-
-### Real datasets
-
-You can adapt the folder layout to datasets such as KITTI, nuScenes, and Waymo for initial pretraining, then fine-tune on tractor-collected field data:
-
-- `.bin`: KITTI style `float32` `[x, y, z, intensity]`
-- `.pcd`: Open3D-compatible point cloud files
-
-For production integration, create dataset adapters that emit the same sample dictionary used by the training code. This lets road data bootstrap the detector while preserving a clean path to agricultural domain adaptation.
-
-## Evaluation Priorities
-
-The evaluation pipeline reports:
-
-- `mAP`
-- segmentation IoU
+- detection: mAP / precision / recall
 - obstacle distance MAE
-- precision / recall
-- false negative rate for dangerous classes
-- latency and average inference time
-- robustness under simulated noisy conditions
+- segmentation IoU
+- dangerous false-negative rate
+- latency (ms) and FPS
+- robustness gap under perturbations
 
-## Real Agro Upgrades In This Version
+Safety-critical promotion focuses on recall and dangerous-class misses (`human`, `animal`, `rock`, `post`) before deployment.
 
-- Local ground estimation for uneven terrain so the model sees relative obstacle height rather than raw height.
-- Conservative denoising for likely dust/rain backscatter and other sparse airborne returns.
-- Travel-corridor-aware hazard scoring with `monitor`, `warning`, and `emergency` risk levels.
-- Short-horizon track IDs and smoothing so obstacle alerts do not flicker across consecutive frames.
-- Per-track velocity, time-to-collision, and stop-zone occupancy based on tractor speed.
-- Temporal occupancy fusion across 3-10 frames to reduce flicker from sparse or degraded LiDAR returns.
-- Filtered-vs-raw visualization to inspect whether preprocessing is helping or hiding useful structure.
+---
 
-## Deployment Recommendations
+## Dataset abstraction (future real data ready)
 
-### Edge deployment on tractor
+Current adapters support:
+- synthetic agricultural scenes
+- folder-based `.bin` / `.pcd`
+- manifest-based future tractor logs (`dataset_type: manifest`)
 
-- Export the model with TorchScript or ONNX
-- Optimize with TensorRT for Jetson / Orin-class hardware
-- Run inference inside a ROS2, CAN-integrated, or gRPC microservice with pinned-memory batching and watchdogs
-- Keep latency bounded and fail safe on degraded confidence
-- Log low-confidence or anomalous predictions for safety review
+Manifest format is JSONL with `point_cloud`, optional `sample_id`, and metadata.
 
-### Cloud training pipeline
+---
 
-- Store raw point clouds, environmental metadata, and field labels in object storage
-- Use distributed PyTorch training on GPU nodes
-- Version configs, checkpoints, and metrics through MLflow or Weights & Biases
-- Run scheduled regression suites on held-out weather, crop, and terrain slices
+## Outputs and artifacts
 
-## Next Steps For Real Agricultural Data
+- `outputs/checkpoints/`: latest and best model snapshots
+- `outputs/metrics/`: epoch-level training metrics JSONL
+- `outputs/predictions/`: inference JSON predictions
+- `outputs/reports/`: evaluation and comparison reports
+- `outputs/registry/registry.json`: model lifecycle entries
 
-- Add a dataset adapter for tractor-mounted LiDAR logs with calibration metadata
-- Record weather and implement state during collection for robustness slicing
-- Add temporal tracking to stabilize detections over bumps and sparse returns
-- Tune the hazard score against tractor stopping distance and operator feedback
-- Quantize and benchmark on the target edge computer
+---
 
-## Notes
+## Assumptions and roadmap
 
-- The included detector is a strong startup-MVP scaffold, not a benchmark-tuned production release.
-- For commercial deployment, pair this with field calibration workflows, safety case documentation, and a real agricultural validation campaign.
+This foundation is production-oriented but currently synthetic-first for data availability.
+
+Planned next steps:
+- real tractor log adapters and labeling QA tools
+- stronger temporal consistency scoring from sensor odometry
+- edge deployment packaging (TorchScript/ONNX/TensorRT)
+- richer condition-aware active-learning policies (weather/soil/crop stage)
+

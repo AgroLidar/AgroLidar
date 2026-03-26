@@ -1,0 +1,5 @@
+base_config: configs/base.yaml
+
+inference:
+  save_predictions_dir: outputs/predictions
+  sequence_length: 3

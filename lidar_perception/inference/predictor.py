@@ -7,6 +7,7 @@ import torch
 
 from lidar_perception.data.preprocessing import AgroPreprocessor, BEVVoxelizer
 from lidar_perception.inference.tracker import TemporalDetectionTracker
+from lidar_perception.risk.scoring import HazardScorer, RiskContext
 
 
 @dataclass
@@ -40,6 +41,7 @@ class Predictor:
         self.preprocessor = AgroPreprocessor(config["data"]["point_cloud_range"], config["data"].get("preprocessing", {}))
         self.class_names = config["data"]["class_names"]
         self.hazard_weights = config["data"].get("hazard_weights", {})
+        self.hazard_scorer = HazardScorer(self.hazard_weights, corridor_width_m=float(config["data"].get("preprocessing", {}).get("corridor_width_m", 3.2)))
         preprocessing_config = config["data"].get("preprocessing", {})
         inference_config = config.get("inference", {})
         self.max_candidates_per_class = int(config["model"].get("max_candidates_per_class", 32))
@@ -114,19 +116,20 @@ class Predictor:
         return predictions[: self.config["model"]["max_detections"]]
 
     def compute_hazard_score(self, class_name: str, confidence: float, distance_m: float, relative_position: dict[str, float]) -> float:
-        class_weight = float(self.hazard_weights.get(class_name, 0.5))
-        distance_factor = max(0.1, 1.0 - min(distance_m, 50.0) / 50.0)
-        corridor_factor = 1.0 if abs(relative_position["lateral_m"]) <= self.corridor_width_m else 0.7
-        forward_factor = 1.0 if relative_position["forward_m"] >= 0.0 else 0.4
-        return float(np.clip(class_weight * confidence * (0.5 + 0.5 * distance_factor) * corridor_factor * forward_factor, 0.0, 1.0))
+        return self.hazard_scorer.score(
+            RiskContext(
+                class_name=class_name,
+                confidence=confidence,
+                distance_m=distance_m,
+                forward_m=relative_position["forward_m"],
+                lateral_m=relative_position["lateral_m"],
+                track_consistency=0.8,
+                vehicle_speed_mps=float(self.config.get("inference", {}).get("default_vehicle_speed_mps", 3.0)),
+            )
+        )
 
     def compute_risk_level(self, distance_m: float, hazard_score: float, relative_position: dict[str, float]) -> str:
-        in_corridor = abs(relative_position["lateral_m"]) <= self.corridor_width_m
-        if in_corridor and distance_m <= self.emergency_distance_m and hazard_score >= 0.45:
-            return "emergency"
-        if in_corridor and distance_m <= self.warning_distance_m and hazard_score >= 0.25:
-            return "warning"
-        return "monitor"
+        return self.hazard_scorer.risk_level(hazard_score, distance_m)
 
     def infer(self, points: np.ndarray) -> dict:
         self.model.eval()

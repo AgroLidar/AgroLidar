@@ -1,0 +1,12 @@
+base_config: configs/base.yaml
+
+training:
+  epochs: 12
+  early_stopping:
+    enabled: true
+    patience: 4
+    min_delta: 0.0005
+
+outputs:
+  checkpoint_dir: outputs/checkpoints
+  metrics_dir: outputs/metrics
