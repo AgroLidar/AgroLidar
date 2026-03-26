@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 from lidar_perception.data.augmentations import PointCloudAugmentor
 from lidar_perception.data.io import load_point_cloud
 from lidar_perception.data.preprocessing import AgroPreprocessor, BEVVoxelizer, crop_points
+from lidar_perception.data.hard_case_dataset import ReviewedHardCaseDataset
 from lidar_perception.simulation.agricultural_scene import AgriculturalSceneGenerator
 
 
@@ -143,6 +144,10 @@ def collate_fn(batch: list[dict]) -> dict:
         result["metadata"] = [item["metadata"] for item in batch]
     if "preprocessing_metadata" in batch[0]:
         result["preprocessing_metadata"] = [item["preprocessing_metadata"] for item in batch]
+    if "hard_case_metadata" in batch[0]:
+        result["hard_case_metadata"] = [item["hard_case_metadata"] for item in batch]
+    if "dataset_source" in batch[0]:
+        result["dataset_source"] = [item["dataset_source"] for item in batch]
 
     if "boxes" in batch[0]:
         result["boxes"] = [item["boxes"] for item in batch]
@@ -168,4 +173,6 @@ def build_dataset(config: dict, split: str) -> Dataset:
         return PointCloudFolderDataset(config, split)
     if dataset_type == "manifest":
         return ManifestPointCloudDataset(config, split)
+    if dataset_type in {"reviewed_hard_cases", "hard_cases"}:
+        return ReviewedHardCaseDataset(config, split)
     raise ValueError(f"Unsupported dataset type: {dataset_type}")

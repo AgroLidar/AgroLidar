@@ -82,6 +82,60 @@ def compute_obstacle_distance_error(pred_distance: torch.Tensor, target_distance
     return {"distance_mae": float(error)}
 
 
+
+def compute_per_class_detection_metrics(
+    predictions: list[list[dict]],
+    targets: list[dict],
+    class_names: list[str],
+    iou_threshold: float,
+) -> dict[str, dict[str, float]]:
+    metrics: dict[str, dict[str, float]] = {}
+
+    for class_idx, class_name in enumerate(class_names):
+        tp = 0
+        fp = 0
+        fn = 0
+        distance_errors: list[float] = []
+
+        for pred_list, target in zip(predictions, targets):
+            gt_boxes = target["boxes"].cpu().numpy()
+            gt_labels = target["labels"].cpu().numpy()
+            gt_idx = [i for i, lbl in enumerate(gt_labels) if int(lbl) == class_idx]
+            pred_cls = [pred for pred in pred_list if int(pred.get("label", -1)) == class_idx]
+            matched_gt: set[int] = set()
+
+            for pred in sorted(pred_cls, key=lambda x: x.get("score", 0.0), reverse=True):
+                best_gt = None
+                best_iou = 0.0
+                for gi in gt_idx:
+                    if gi in matched_gt:
+                        continue
+                    iou = bev_iou(pred["box"], gt_boxes[gi])
+                    if iou >= iou_threshold and iou > best_iou:
+                        best_iou = iou
+                        best_gt = gi
+                if best_gt is not None:
+                    matched_gt.add(best_gt)
+                    tp += 1
+                    pred_dist = float(np.linalg.norm(np.asarray(pred["box"][:2], dtype=np.float32)))
+                    gt_dist = float(np.linalg.norm(np.asarray(gt_boxes[best_gt][:2], dtype=np.float32)))
+                    distance_errors.append(abs(pred_dist - gt_dist))
+                else:
+                    fp += 1
+
+            fn += max(len(gt_idx) - len(matched_gt), 0)
+
+        precision = float(tp / max(tp + fp, 1))
+        recall = float(tp / max(tp + fn, 1))
+        fnr = float(fn / max(tp + fn, 1))
+        metrics[class_name] = {
+            "precision": precision,
+            "recall": recall,
+            "false_negative_rate": fnr,
+            "distance_error": float(sum(distance_errors) / len(distance_errors)) if distance_errors else float("inf"),
+        }
+    return metrics
+
 def compute_dangerous_fnr(predictions: list[list[dict]], targets: list[dict], dangerous_labels: set[int], iou_threshold: float) -> dict[str, float]:
     missed = 0
     total = 0

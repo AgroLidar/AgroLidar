@@ -1,34 +1,38 @@
-# Iteration Summary (2026-03-26)
+# Iteration Summary (Hard-Case Learning + Promotion Controls)
 
 ## What was implemented
-- Strengthened failure mining with **ground-truth-aware dangerous miss detection**, **distance anomaly checks**, and **cross-frame tracking instability detection**.
-- Extended hard-case mining script to accept optional `--gt-manifest`, consume configurable failure thresholds, and persist GT context in hard-case records.
-- Upgraded model comparison policy to enforce dangerous-class recall safeguards and emit policy details in reports.
-- Added markdown report generation for model comparison at `outputs/reports/model_comparison.md`.
-- Fixed NumPy 2.x compatibility in AP integration (`np.trapezoid`), unblocking training/evaluation smoke runs.
-- Corrected broken `base_config` references in YAML files that prevented config inheritance resolution.
-- Added regression tests for new failure-mining and model-comparison behaviors.
 
-## What improved
-- Failure collection now captures richer safety-critical failure modes and supports offline GT auditing.
-- Promotion logic now guards against regressions in dangerous subclasses even when aggregate recall improves.
-- Model comparison outputs are now human-readable for review workflows.
-- Training/evaluation scripts run successfully in the current environment after metrics fix.
+- Added `ReviewedHardCaseDataset` for loading hard cases from `data/hard_cases/` and `data/review_queue/` with JSON/JSONL/CSV manifest support.
+- Added `CompositeTrainingDataset` to mix base and hard-case samples with configurable ratio plus hazard/uncertainty weighting and optional dangerous-class oversampling.
+- Upgraded retraining pipeline (`scripts/retrain.py`) to build candidate-only runs, log hard-case usage and class distribution, and persist composition metadata.
+- Upgraded evaluation pipeline to emit safety-critical per-class metrics and dangerous-class aggregate score in JSON + Markdown.
+- Added `scripts/promote_model.py` for registry-aware model promotion/rejection decisions.
+- Strengthened model comparison policy with robustness regression constraints.
+- Added tests for hard-case datasets, retrain integration, and promotion logic.
 
-## What still fails / limitations
-- Active-learning mining with `configs/active_learning.yaml` still requires checkpoint architecture compatibility; demo checkpoint from `configs/demo_quick.yaml` is not shape-compatible with base model settings.
-- Latency and perception metrics are currently synthetic-data based; no real tractor logs were exercised.
-- No formal lint/type-check toolchain is configured in-repo.
+## Dataset integration results
 
-## Risks / assumptions
-- GT manifest format for hard-case mining assumes JSONL entries keyed by `sample_id`, with optional `dangerous_objects` and `expected_min_distance_m`.
-- Cross-frame instability currently uses distance-jump heuristic without ego-motion compensation.
-- Comparison policy assumes per-class recall fields exist as `recall_<class>`; it falls back to global recall if absent.
+- Retraining read hard-case sources and produced a compositional dataset summary.
+- Current run had `hard_cases_used=0` (no reviewed hard labels present in repo data directories), so candidate was trained from base-only samples with the configured composite logic active.
+- Composition captured in `outputs/reports/retrain_metadata.json`.
 
-## Metrics / validation snapshot
-- `pytest`: 10/10 passing.
-- Training smoke (`configs/demo_quick.yaml`) completed 1 epoch and checkpointed.
-- Inference smoke generated sequence predictions with structured JSON outputs.
-- Evaluation smoke generated report metrics.
-- Hard-case mining and review queue scripts executed successfully with demo config.
-- Model comparison generated JSON + markdown reports.
+## Retraining behavior
+
+- Generated a new candidate model run at:
+  - `outputs/candidates/retrain_candidate_20260326T200355Z`
+- Production checkpoint path was not overwritten.
+- Candidate evaluation report generated at:
+  - `outputs/reports/eval_report.json`
+  - `outputs/reports/eval_report.md`
+
+## Metric outcomes / promotion decision
+
+- Candidate dangerous-class recall remained poor (`human/animal/rock/post` recall = `0.0` in this run).
+- `scripts/compare_models.py` returned `promote=false` due to safety and latency policy failures.
+- `scripts/promote_model.py` marked candidate as `rejected` in `outputs/registry/registry.json`.
+
+## Risks and gaps
+
+1. **Real reviewed hard cases are still missing** in local data folders, so retraining cannot yet improve dangerous-class recall.
+2. Candidate latency is far above production baseline in this run.
+3. Current synthetic-heavy training still underperforms safety-critical targets; next iteration must integrate reviewed real-world annotations.

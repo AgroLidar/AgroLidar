@@ -1,7 +1,17 @@
-base_config: train.yaml
+base_config: base.yaml
 
 retrain:
-  hard_case_manifest: data/hard_cases/manifest.jsonl
-  reviewed_only: false
-  hard_case_oversample_ratio: 0.4
   candidate_tag: retrain_candidate
+  hard_case_dirs:
+    - data/hard_cases
+    - data/review_queue
+  hard_case_manifests: []
+  reviewed_only: true
+  only_high_conf_failures: false
+  min_failure_confidence: 0.5
+  hard_case_ratio: 0.3
+  oversample_dangerous_classes: true
+  dangerous_class_weight: 2.0
+  epochs: 1
+  base_train_size_cap: 120
+  base_val_size_cap: 40
