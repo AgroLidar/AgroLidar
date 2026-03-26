@@ -1,4 +1,4 @@
-base_config: configs/base.yaml
+base_config: base.yaml
 
 inference:
   save_predictions_dir: outputs/predictions

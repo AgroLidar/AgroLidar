@@ -70,7 +70,7 @@ def compute_detection_map(predictions: list[list[dict]], targets: list[dict], io
     cum_fp = np.cumsum(fp)
     precision = cum_tp / np.maximum(cum_tp + cum_fp, 1e-6)
     recall = cum_tp / max(total_gt, 1)
-    ap = np.trapz(precision, recall) if len(recall) > 1 else float(precision[0] * recall[0])
+    ap = np.trapezoid(precision, recall) if len(recall) > 1 else float(precision[0] * recall[0])
     return {"mAP": float(ap), "precision": float(precision[-1]), "recall": float(recall[-1])}
 
 

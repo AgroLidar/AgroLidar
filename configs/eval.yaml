@@ -1,6 +1,13 @@
-base_config: configs/base.yaml
+base_config: base.yaml
 
 evaluation:
   split: test
   save_json: outputs/reports/eval_report.json
   save_md: outputs/reports/eval_report.md
+
+comparison:
+  max_latency_regression_ms: 4.0
+  min_recall_gain: 0.01
+  min_fnr_drop: 0.01
+  min_dangerous_class_recall_gain: 0.0
+  dangerous_classes: [human, animal, rock, post]
