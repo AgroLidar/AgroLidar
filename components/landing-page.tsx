@@ -94,7 +94,7 @@ export function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#050b08]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
           <a href="#top" className="flex items-center gap-3">
-            <Image src={logo} alt="AgroLidar logo" className="h-9 w-auto" priority />
+            <Image src={logo} alt="AgroLidar logo" className="h-12 w-auto" priority />
             <span className="text-sm font-medium tracking-[0.18em] text-brand-200">AGROLIDAR</span>
           </a>
           <nav className="hidden items-center gap-7 text-sm text-white/70 lg:flex">
@@ -292,7 +292,7 @@ export function LandingPage() {
             <a className="rounded-full bg-brand-300 px-5 py-3 text-sm font-semibold text-black" href="#top">
               View Project
             </a>
-            <a className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold" href="mailto:contact@agrolidar.ai">
+            <a className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold" href="mailto:geromendez199@gmail.com">
               Contact
             </a>
             <a className="rounded-full border border-brand-200/35 bg-brand-300/10 px-5 py-3 text-sm font-semibold text-brand-100" href="#solution">
