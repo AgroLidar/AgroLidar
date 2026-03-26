@@ -156,6 +156,28 @@ Reset tracker state in the API:
 curl -X POST "http://127.0.0.1:8000/tracking/reset"
 ```
 
+## Web Demo
+
+Run the interactive web demo:
+
+```bash
+cd /Users/geromendez/Dev/AgroLidar
+PYTHONPATH=/Users/geromendez/Dev/AgroLidar ./.venv/bin/python -m uvicorn lidar_perception.api.main:app --host 127.0.0.1 --port 8010
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8010/
+```
+
+The web demo lets you:
+
+- advance synthetic LiDAR frames
+- reset the tracked sequence
+- change tractor speed
+- inspect tracks, TTC, stop zone, hazard level, and temporal fusion
+
 ## Data
 
 ### Synthetic
