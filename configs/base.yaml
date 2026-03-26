@@ -1,0 +1,75 @@
+seed: 42
+device: cuda
+output_dir: outputs
+
+data:
+  dataset_type: synthetic_agriculture
+  root_dir: data/raw
+  train_size: 400
+  val_size: 80
+  test_size: 80
+  num_workers: 0
+  batch_size: 4
+  num_points: 12000
+  class_names: [human, animal, vehicle, post, rock]
+  dangerous_classes: [human, animal, rock, post]
+  segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]
+  point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
+  grid_size: [160, 160]
+  max_objects: 24
+  hazard_weights:
+    human: 1.0
+    animal: 0.95
+    vehicle: 0.8
+    post: 0.65
+    rock: 0.7
+  augmentations:
+    enabled: true
+    rotation_deg: 12.0
+    scale_range: [0.95, 1.05]
+    translation_std: 0.4
+    dropout_ratio: 0.03
+    intensity_noise_std: 0.08
+    weather_attenuation_prob: 0.4
+    weather_attenuation_strength: 0.3
+    occlusion_prob: 0.35
+    terrain_jitter_std: 0.05
+  simulation:
+    terrain_variation: 0.35
+    vegetation_density: 0.25
+    dust_probability: 0.35
+    rain_probability: 0.25
+    night_probability: 0.25
+
+model:
+  name: pointpillars_bev
+  in_channels: 6
+  base_channels: 32
+  num_classes: 5
+  num_segmentation_classes: 6
+  score_threshold: 0.35
+  nms_iou_threshold: 0.2
+  max_detections: 64
+
+training:
+  epochs: 8
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 5.0
+  mixed_precision: false
+  print_every: 10
+  checkpoint_every: 1
+  losses:
+    detection: 1.0
+    segmentation: 1.0
+    obstacle: 0.5
+
+evaluation:
+  iou_threshold: 0.25
+  dangerous_iou_threshold: 0.2
+  latency_warmup: 3
+  latency_iters: 20
+
+visualization:
+  use_open3d: true
+  save_dir: outputs/visualizations
