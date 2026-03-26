@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -91,6 +92,44 @@ class PointCloudFolderDataset(Dataset):
         }
 
 
+class ManifestPointCloudDataset(Dataset):
+    """Dataset wrapper for future real tractor logs via JSONL manifest.
+
+    Each manifest row supports: {"point_cloud": "...bin|pcd", "metadata": {...}}.
+    """
+
+    def __init__(self, config: dict, split: str = "train"):
+        manifest_key = f"{split}_manifest"
+        manifest_path = Path(config.get(manifest_key) or config.get("manifest_path", ""))
+        if not manifest_path.exists():
+            raise FileNotFoundError(f"Manifest not found: {manifest_path}")
+        self.records = [json.loads(line) for line in manifest_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
+        self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
+
+    def __len__(self) -> int:
+        return len(self.records)
+
+    def __getitem__(self, index: int) -> dict:
+        rec = self.records[index]
+        points = load_point_cloud(rec["point_cloud"])
+        points, metadata = self.preprocessor.process(points)
+        bev = self.voxelizer.voxelize(points)
+        return {
+            "sample_id": rec.get("sample_id", f"manifest_{index}"),
+            "path": rec["point_cloud"],
+            "points": torch.from_numpy(points.astype(np.float32)),
+            "bev": torch.from_numpy(bev),
+            "metadata": rec.get("metadata", {}),
+            "preprocessing_metadata": {
+                "filtered_point_count": metadata.filtered_point_count,
+                "original_point_count": metadata.original_point_count,
+                "vegetation_ratio": metadata.vegetation_ratio,
+                "terrain_variation_m": metadata.terrain_variation_m,
+            },
+        }
+
+
 def collate_fn(batch: list[dict]) -> dict:
     bev = torch.stack([item["bev"] for item in batch], dim=0)
     points = [item["points"] for item in batch]
@@ -98,6 +137,10 @@ def collate_fn(batch: list[dict]) -> dict:
 
     if "path" in batch[0]:
         result["path"] = [item["path"] for item in batch]
+    if "sample_id" in batch[0]:
+        result["sample_id"] = [item["sample_id"] for item in batch]
+    if "metadata" in batch[0]:
+        result["metadata"] = [item["metadata"] for item in batch]
     if "preprocessing_metadata" in batch[0]:
         result["preprocessing_metadata"] = [item["preprocessing_metadata"] for item in batch]
 
@@ -123,4 +166,6 @@ def build_dataset(config: dict, split: str) -> Dataset:
         return SyntheticLiDARDataset(config, split)
     if dataset_type == "folder":
         return PointCloudFolderDataset(config, split)
+    if dataset_type == "manifest":
+        return ManifestPointCloudDataset(config, split)
     raise ValueError(f"Unsupported dataset type: {dataset_type}")

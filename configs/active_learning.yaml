@@ -1,0 +1,12 @@
+base_config: configs/base.yaml
+
+active_learning:
+  max_candidates: 200
+  min_score_threshold: 0.2
+  entropy_weight: 1.0
+  low_confidence_weight: 1.0
+  edge_range_weight: 0.5
+  rare_class_weight: 0.8
+  ambiguous_dangerous_weight: 1.2
+  review_queue_dir: data/review_queue
+  manifest_path: data/review_queue/manifest.jsonl

@@ -1,0 +1,6 @@
+base_config: configs/base.yaml
+
+evaluation:
+  split: test
+  save_json: outputs/reports/eval_report.json
+  save_md: outputs/reports/eval_report.md

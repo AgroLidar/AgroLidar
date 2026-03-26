@@ -1,0 +1,7 @@
+base_config: configs/train.yaml
+
+retrain:
+  hard_case_manifest: data/hard_cases/manifest.jsonl
+  reviewed_only: false
+  hard_case_oversample_ratio: 0.4
+  candidate_tag: retrain_candidate
