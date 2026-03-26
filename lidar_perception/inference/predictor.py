@@ -41,10 +41,14 @@ class Predictor:
         self.class_names = config["data"]["class_names"]
         self.hazard_weights = config["data"].get("hazard_weights", {})
         preprocessing_config = config["data"].get("preprocessing", {})
+        inference_config = config.get("inference", {})
+        self.max_candidates_per_class = int(config["model"].get("max_candidates_per_class", 32))
         self.corridor_width_m = float(preprocessing_config.get("corridor_width_m", 3.2))
         self.emergency_distance_m = float(preprocessing_config.get("emergency_distance_m", 8.0))
         self.warning_distance_m = float(preprocessing_config.get("warning_distance_m", 18.0))
-        self.tracker = TemporalDetectionTracker(config["model"].get("temporal_tracking", {}))
+        tracker_config = dict(config["model"].get("temporal_tracking", {}))
+        tracker_config.setdefault("frame_dt_s", inference_config.get("frame_dt_s", 0.2))
+        self.tracker = TemporalDetectionTracker(tracker_config)
 
     def reset_tracking(self) -> None:
         self.tracker.reset()
@@ -77,7 +81,13 @@ class Predictor:
 
         predictions = []
         for cls_idx in range(heatmap.shape[0]):
-            ys, xs = np.where(heatmap[cls_idx] * confidence >= self.config["model"]["score_threshold"])
+            class_scores = heatmap[cls_idx] * confidence
+            candidate_indices = np.argwhere(class_scores >= self.config["model"]["score_threshold"])
+            if candidate_indices.shape[0] > self.max_candidates_per_class:
+                candidate_scores = class_scores[candidate_indices[:, 0], candidate_indices[:, 1]]
+                top_idx = np.argsort(candidate_scores)[-self.max_candidates_per_class :]
+                candidate_indices = candidate_indices[top_idx]
+            ys, xs = candidate_indices[:, 0], candidate_indices[:, 1]
             for gx, gy in zip(ys, xs):
                 center_x = x_min + (gx + offsets[0, gx, gy]) * x_step
                 center_y = y_min + (gy + offsets[1, gx, gy]) * y_step

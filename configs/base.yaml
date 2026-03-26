@@ -63,6 +63,7 @@ model:
   score_threshold: 0.35
   nms_iou_threshold: 0.2
   max_detections: 64
+  max_candidates_per_class: 32
   temporal_tracking:
     enabled: true
     max_track_age: 4
@@ -89,6 +90,16 @@ evaluation:
   dangerous_iou_threshold: 0.2
   latency_warmup: 3
   latency_iters: 20
+
+inference:
+  frame_dt_s: 0.2
+  default_vehicle_speed_mps: 3.0
+  braking_deceleration_mps2: 2.5
+  reaction_time_s: 0.5
+  safety_margin_m: 1.5
+  stop_zone_width_m: 3.2
+  occupancy_fusion_window: 5
+  occupancy_fusion_decay: 0.72
 
 visualization:
   use_open3d: true

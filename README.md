@@ -11,6 +11,7 @@ Production-oriented PyTorch baseline for LiDAR obstacle detection on tractors an
 - Robustness augmentations for dust, rain, low visibility, sparse returns, and partial occlusion
 - Modular architecture with swappable models and API-ready serving
 - Temporal tracking to stabilize detections across consecutive tractor frames
+- Velocity estimation, stop-zone prediction, and temporal occupancy fusion for sequence-aware safety
 - Synthetic agricultural scenario generator for MVP demos before field data arrives
 - Support for `.bin` and `.pcd` point cloud loading
 - Checkpointing, logging, evaluation, and visualization
@@ -46,7 +47,8 @@ The default model is a PointPillars-inspired Bird's Eye View pipeline adapted fo
    - Segmentation head: semantic logits per BEV cell
    - Obstacle head: occupancy and distance regression
 5. Inference produces detections, nearest-obstacle distance, and a hazard score for startup-style safety logic.
-6. A lightweight temporal tracker smooths detections across short frame sequences.
+6. A lightweight temporal tracker smooths detections and estimates per-track velocity.
+7. The runtime fuses occupancy across short windows and computes tractor stop-zone risk from vehicle speed.
 
 This design is practical for tractors because BEV convolution is efficient on edge GPUs and does not rely on lane structure or dense urban priors.
 
@@ -124,6 +126,12 @@ Run on a short synthetic sequence to see stabilized tracking:
 python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0 --sequence-length 3
 ```
 
+Add tractor speed for stop-zone and TTC logic:
+
+```bash
+python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0 --sequence-length 5 --tractor-speed-mps 3.5
+```
+
 Run on a real point cloud:
 
 ```bash
@@ -186,6 +194,8 @@ The evaluation pipeline reports:
 - Conservative denoising for likely dust/rain backscatter and other sparse airborne returns.
 - Travel-corridor-aware hazard scoring with `monitor`, `warning`, and `emergency` risk levels.
 - Short-horizon track IDs and smoothing so obstacle alerts do not flicker across consecutive frames.
+- Per-track velocity, time-to-collision, and stop-zone occupancy based on tractor speed.
+- Temporal occupancy fusion across 3-10 frames to reduce flicker from sparse or degraded LiDAR returns.
 - Filtered-vs-raw visualization to inspect whether preprocessing is helping or hiding useful structure.
 
 ## Deployment Recommendations

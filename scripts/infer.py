@@ -19,6 +19,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--save-path", default=None)
     parser.add_argument("--use-open3d", action="store_true")
     parser.add_argument("--sequence-length", type=int, default=1)
+    parser.add_argument("--tractor-speed-mps", type=float, default=None)
     return parser.parse_args()
 
 
@@ -41,10 +42,21 @@ def main() -> None:
             sources.append(f"synthetic_{sample_index}")
 
     for index, (source, points) in enumerate(zip(sources, points_sequence)):
-        result = runtime.infer_points(points)
+        result = runtime.infer_points(points, vehicle_speed_mps=args.tractor_speed_mps)
         print(f"source={source}")
         print(f"nearest_obstacle_distance_m={result['nearest_obstacle_distance_m']:.2f}")
         print(f"scene_risk_level={result['scene_risk_level']}")
+        print(
+            f"vehicle_speed_mps={result['vehicle_speed_mps']:.2f} "
+            f"stopping_distance_m={result['stopping_distance_m']:.2f} "
+            f"stop_zone_occupied={result['stop_zone']['occupied']} "
+            f"min_ttc_s={result['min_time_to_collision_s']:.2f}"
+        )
+        print(
+            f"occupancy_fusion=history_size={result['occupancy_fusion']['history_size']} "
+            f"window={result['occupancy_fusion']['window']} "
+            f"decay={result['occupancy_fusion']['decay']:.2f}"
+        )
         print(
             "preprocessing="
             f"filtered_points={result['preprocessing']['filtered_point_count']} "
@@ -56,6 +68,8 @@ def main() -> None:
             print(
                 f"label={det['label_name']} score={det['score']:.3f} risk={det['risk_level']} "
                 f"track_id={det['track_id']} track_status={det['track_status']} "
+                f"velocity=({det['velocity_mps']['forward_mps']:.2f},{det['velocity_mps']['lateral_mps']:.2f})mps "
+                f"in_stop_zone={det['in_stop_zone']} ttc_s={det['time_to_collision_s']:.2f} "
                 f"center=({det['box'][0]:.2f}, {det['box'][1]:.2f}) "
                 f"size=({det['box'][3]:.2f}, {det['box'][4]:.2f}, {det['box'][5]:.2f}) "
                 f"distance_m={det['distance_m']:.2f} hazard={det['hazard_score']:.3f}"

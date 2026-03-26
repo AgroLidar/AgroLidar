@@ -16,6 +16,7 @@ class TrackState:
     risk_level: str
     relative_position: dict[str, float]
     distance_m: float
+    velocity_mps: dict[str, float]
     age: int = 0
     hits: int = 1
     time_since_update: int = 0
@@ -30,6 +31,7 @@ class TemporalDetectionTracker:
         self.association_distance_m = float(config.get("association_distance_m", 3.5))
         self.smoothing_factor = float(config.get("smoothing_factor", 0.65))
         self.score_decay = float(config.get("score_decay", 0.92))
+        self.frame_dt_s = float(config.get("frame_dt_s", 0.2))
         self._next_track_id = 1
         self._tracks: list[TrackState] = []
 
@@ -55,6 +57,7 @@ class TemporalDetectionTracker:
 
     def _update_track(self, track: TrackState, detection: dict) -> None:
         alpha = self.smoothing_factor
+        previous_center = track.box[:2].copy()
         track.box = alpha * detection["box"] + (1.0 - alpha) * track.box
         track.score = max(float(detection["score"]), track.score * self.score_decay)
         track.hazard_score = alpha * float(detection["hazard_score"]) + (1.0 - alpha) * track.hazard_score
@@ -62,6 +65,12 @@ class TemporalDetectionTracker:
         track.relative_position = {
             "forward_m": float(track.box[0]),
             "lateral_m": float(track.box[1]),
+        }
+        delta = (track.box[:2] - previous_center) / max(self.frame_dt_s, 1e-6)
+        track.velocity_mps = {
+            "forward_mps": float(delta[0]),
+            "lateral_mps": float(delta[1]),
+            "magnitude_mps": float(np.linalg.norm(delta)),
         }
         track.risk_level = detection["risk_level"]
         track.age += 1
@@ -79,6 +88,7 @@ class TemporalDetectionTracker:
             risk_level=str(detection["risk_level"]),
             relative_position=dict(detection["relative_position"]),
             distance_m=float(detection["distance_m"]),
+            velocity_mps={"forward_mps": 0.0, "lateral_mps": 0.0, "magnitude_mps": 0.0},
         )
         self._next_track_id += 1
         self._tracks.append(track)
@@ -116,6 +126,7 @@ class TemporalDetectionTracker:
             enriched["hazard_score"] = float(matched.hazard_score)
             enriched["distance_m"] = float(matched.distance_m)
             enriched["relative_position"] = dict(matched.relative_position)
+            enriched["velocity_mps"] = dict(matched.velocity_mps)
             updated_outputs.append(enriched)
 
         self._tracks = [track for track in self._tracks if track.time_since_update <= self.max_track_age]

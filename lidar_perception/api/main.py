@@ -15,6 +15,7 @@ class InferenceRequest(BaseModel):
     config_path: str = "configs/base.yaml"
     checkpoint_path: str = "outputs/checkpoints/best.pt"
     reset_tracking: bool = False
+    vehicle_speed_mps: float | None = None
 
 
 app = FastAPI(title="AgroLidar API", version="0.1.0")
@@ -51,7 +52,7 @@ def predict(request: InferenceRequest) -> dict:
     runtime = _get_runtime(request.config_path, request.checkpoint_path)
     if request.reset_tracking:
         runtime.reset_tracking()
-    result = runtime.infer_file(request.point_cloud_path)
+    result = runtime.infer_file(request.point_cloud_path, vehicle_speed_mps=request.vehicle_speed_mps)
     return {
         "detections": [
             {
@@ -65,6 +66,10 @@ def predict(request: InferenceRequest) -> dict:
                 "risk_level": str(item["risk_level"]),
                 "track_id": int(item["track_id"]),
                 "track_status": str(item["track_status"]),
+                "velocity_mps": item["velocity_mps"],
+                "closing_speed_mps": float(item["closing_speed_mps"]),
+                "time_to_collision_s": float(item["time_to_collision_s"]),
+                "in_stop_zone": bool(item["in_stop_zone"]),
             }
             for item in result["detections"]
         ],
@@ -72,4 +77,9 @@ def predict(request: InferenceRequest) -> dict:
         "scene_hazard_score": float(result["scene_hazard_score"]),
         "scene_risk_level": str(result["scene_risk_level"]),
         "preprocessing": result["preprocessing"],
+        "vehicle_speed_mps": float(result["vehicle_speed_mps"]),
+        "stopping_distance_m": float(result["stopping_distance_m"]),
+        "stop_zone": result["stop_zone"],
+        "min_time_to_collision_s": float(result["min_time_to_collision_s"]),
+        "occupancy_fusion": result["occupancy_fusion"],
     }

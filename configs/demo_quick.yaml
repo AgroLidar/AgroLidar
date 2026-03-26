@@ -1,22 +1,22 @@
 seed: 42
-device: cuda
-output_dir: outputs_road_pretrain
+device: cpu
+output_dir: demo_outputs
 
 data:
-  dataset_type: folder
-  root_dir: data/raw/public_road
-  train_size: 400
-  val_size: 80
-  test_size: 80
+  dataset_type: synthetic_agriculture
+  root_dir: data/raw
+  train_size: 16
+  val_size: 4
+  test_size: 4
   num_workers: 0
-  batch_size: 4
-  num_points: 12000
+  batch_size: 2
+  num_points: 3000
   class_names: [human, animal, vehicle, post, rock]
-  dangerous_classes: [human, animal, post, rock]
+  dangerous_classes: [human, animal, rock, post]
   segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]
-  point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
-  grid_size: [160, 160]
-  max_objects: 24
+  point_cloud_range: [-30.0, -20.0, -4.0, 40.0, 20.0, 5.0]
+  grid_size: [80, 80]
+  max_objects: 12
   hazard_weights:
     human: 1.0
     animal: 0.95
@@ -30,13 +30,19 @@ data:
     translation_std: 0.2
     dropout_ratio: 0.02
     intensity_noise_std: 0.05
-    weather_attenuation_prob: 0.2
+    weather_attenuation_prob: 0.25
     weather_attenuation_strength: 0.2
     occlusion_prob: 0.2
-    terrain_jitter_std: 0.02
+    terrain_jitter_std: 0.03
+  simulation:
+    terrain_variation: 0.3
+    vegetation_density: 0.2
+    dust_probability: 0.2
+    rain_probability: 0.15
+    night_probability: 0.15
   preprocessing:
     enabled: true
-    ground_grid_size: [60, 40]
+    ground_grid_size: [30, 20]
     ground_percentile: 12.0
     max_relative_height_m: 3.5
     min_relative_height_m: -1.0
@@ -45,19 +51,19 @@ data:
     vegetation_height_threshold_m: 1.4
     vegetation_intensity_threshold: 0.45
     corridor_width_m: 3.0
-    emergency_distance_m: 8.0
-    warning_distance_m: 18.0
+    emergency_distance_m: 7.0
+    warning_distance_m: 15.0
 
 model:
   name: pointpillars_bev
   in_channels: 6
-  base_channels: 32
+  base_channels: 8
   num_classes: 5
   num_segmentation_classes: 6
-  score_threshold: 0.35
+  score_threshold: 0.2
   nms_iou_threshold: 0.2
-  max_detections: 64
-  max_candidates_per_class: 32
+  max_detections: 16
+  max_candidates_per_class: 8
   temporal_tracking:
     enabled: true
     max_track_age: 4
@@ -67,7 +73,7 @@ model:
     score_decay: 0.92
 
 training:
-  epochs: 8
+  epochs: 1
   learning_rate: 0.001
   weight_decay: 0.0001
   grad_clip_norm: 5.0
@@ -82,8 +88,8 @@ training:
 evaluation:
   iou_threshold: 0.25
   dangerous_iou_threshold: 0.2
-  latency_warmup: 3
-  latency_iters: 20
+  latency_warmup: 1
+  latency_iters: 2
 
 inference:
   frame_dt_s: 0.2
@@ -92,9 +98,10 @@ inference:
   reaction_time_s: 0.5
   safety_margin_m: 1.5
   stop_zone_width_m: 3.0
-  occupancy_fusion_window: 5
+  occupancy_fusion_window: 4
   occupancy_fusion_decay: 0.72
 
 visualization:
-  use_open3d: true
-  save_dir: outputs_road_pretrain/visualizations
+  use_open3d: false
+  save_dir: demo_outputs/visualizations
+  show_filtered_points: true
