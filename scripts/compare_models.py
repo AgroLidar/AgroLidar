@@ -41,6 +41,7 @@ def render_markdown(report: dict) -> str:
         f"| dangerous_fnr_drop | {deltas['dangerous_fnr_drop']:.6f} |",
         f"| distance_mae_delta | {deltas['distance_mae_delta']:.6f} |",
         f"| latency_regression_ms | {deltas['latency_regression_ms']:.6f} |",
+        f"| robustness_gap_regression | {deltas['robustness_gap_regression']:.6f} |",
         "",
         "## Dangerous Class Recall Deltas",
         "",

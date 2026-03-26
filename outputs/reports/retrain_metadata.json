@@ -1,7 +1,23 @@
 {
-  "base_config": "configs/demo_quick.yaml",
-  "hard_case_manifest": null,
-  "hard_case_oversample_ratio": 0.0,
-  "reviewed_only": false,
-  "candidate_tag": "candidate"
+  "base_config": "configs/base.yaml",
+  "candidate_output_dir": "outputs/candidates/retrain_candidate_20260326T200355Z",
+  "hard_cases_used": 0,
+  "hard_case_ratio": 0.3,
+  "oversample_dangerous_classes": true,
+  "dangerous_class_weight": 2.0,
+  "hard_case_class_distribution": {
+    "human": 0,
+    "animal": 0,
+    "vehicle": 0,
+    "post": 0,
+    "rock": 0
+  },
+  "dataset_composition": {
+    "base_samples": 120,
+    "hard_case_samples": 0,
+    "hard_case_ratio": 0.3,
+    "base_ratio": 0.7,
+    "weighted_hard_pool_size": 0,
+    "oversample_dangerous_classes": true
+  }
 }

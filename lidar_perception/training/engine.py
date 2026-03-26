@@ -12,7 +12,13 @@ from tqdm import tqdm
 from lidar_perception.evaluation.robustness import measure_latency, perturb_bev, robustness_gap
 from lidar_perception.inference.predictor import Predictor
 from lidar_perception.training.losses import detection_loss, obstacle_loss, segmentation_loss
-from lidar_perception.training.metrics import compute_dangerous_fnr, compute_detection_map, compute_obstacle_distance_error, compute_segmentation_iou
+from lidar_perception.training.metrics import (
+    compute_dangerous_fnr,
+    compute_detection_map,
+    compute_obstacle_distance_error,
+    compute_per_class_detection_metrics,
+    compute_segmentation_iou,
+)
 from lidar_perception.utils.checkpoint import load_checkpoint, save_checkpoint
 
 
@@ -131,19 +137,29 @@ class Trainer:
                         predictions.append(self.predictor.decode_detections(single_outputs))
                         targets.append({"boxes": batch["boxes"][idx], "labels": batch["labels"][idx]})
 
+        dangerous_names = set(self.config["data"].get("dangerous_classes", []))
+        dangerous_labels = {idx for idx, name in enumerate(self.config["data"]["class_names"]) if name in dangerous_names}
         if predictions and targets:
             map_metrics = compute_detection_map(predictions, targets, self.config["evaluation"]["iou_threshold"])
-            dangerous_names = set(self.config["data"].get("dangerous_classes", []))
-            dangerous_labels = {idx for idx, name in enumerate(self.config["data"]["class_names"]) if name in dangerous_names}
             dangerous_metrics = compute_dangerous_fnr(
                 predictions,
                 targets,
                 dangerous_labels,
                 self.config["evaluation"]["dangerous_iou_threshold"],
             )
+            per_class_metrics = compute_per_class_detection_metrics(
+                predictions,
+                targets,
+                self.config["data"]["class_names"],
+                self.config["evaluation"]["iou_threshold"],
+            )
         else:
             map_metrics = {"mAP": 0.0, "precision": 0.0, "recall": 0.0}
             dangerous_metrics = {"dangerous_fnr": 1.0}
+            per_class_metrics = {
+                cls: {"precision": 0.0, "recall": 0.0, "false_negative_rate": 1.0, "distance_error": float("inf")}
+                for cls in self.config["data"]["class_names"]
+            }
 
         latency_metrics = measure_latency(
             self.model,
@@ -166,6 +182,15 @@ class Trainer:
             "fps": latency_metrics["fps"],
             "robustness_gap": robustness_gap(clean_seg, degraded_seg)["robustness_gap"],
         }
+        dangerous_scores = []
+        for class_name, cls_metrics in per_class_metrics.items():
+            metrics[f"recall_{class_name}"] = float(cls_metrics["recall"])
+            metrics[f"fnr_{class_name}"] = float(cls_metrics["false_negative_rate"])
+            metrics[f"precision_{class_name}"] = float(cls_metrics["precision"])
+            metrics[f"distance_error_{class_name}"] = float(cls_metrics["distance_error"])
+            if class_name in dangerous_names:
+                dangerous_scores.append((cls_metrics["recall"] + (1.0 - cls_metrics["false_negative_rate"])) / 2.0)
+        metrics["dangerous_class_aggregate_score"] = float(sum(dangerous_scores) / max(len(dangerous_scores), 1))
         return metrics
 
     def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> None:

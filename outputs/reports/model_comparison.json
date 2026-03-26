@@ -10,19 +10,43 @@
     "recall_post": 0.68
   },
   "candidate": {
-    "recall": 0.74,
-    "dangerous_fnr": 0.24,
-    "distance_mae": 3.7,
-    "latency_ms": 11.5,
-    "recall_human": 0.75,
-    "recall_animal": 0.73,
-    "recall_rock": 0.68,
-    "recall_post": 0.7
+    "mAP": 0.040892331453403825,
+    "precision": 0.41605839416058393,
+    "recall": 0.08309037900874636,
+    "segmentation_iou": 0.3031712613731816,
+    "distance_mae": 0.13191395923495292,
+    "dangerous_fnr": 1.0,
+    "avg_batch_latency_ms": 2343.987387700099,
+    "latency_ms": 470.46656145003,
+    "fps": 2.125549575548769,
+    "robustness_gap": 0.011873221401819012,
+    "recall_human": 0.0,
+    "fnr_human": 1.0,
+    "precision_human": 0.0,
+    "distance_error_human": Infinity,
+    "recall_animal": 0.0,
+    "fnr_animal": 1.0,
+    "precision_animal": 0.0,
+    "distance_error_animal": Infinity,
+    "recall_vehicle": 0.4318181818181818,
+    "fnr_vehicle": 0.5681818181818182,
+    "precision_vehicle": 0.41605839416058393,
+    "distance_error_vehicle": 0.8865829936245031,
+    "recall_post": 0.0,
+    "fnr_post": 1.0,
+    "precision_post": 0.0,
+    "distance_error_post": Infinity,
+    "recall_rock": 0.0,
+    "fnr_rock": 1.0,
+    "precision_rock": 0.0,
+    "distance_error_rock": Infinity,
+    "dangerous_class_aggregate_score": 0.0
   },
   "policy": {
     "max_latency_regression_ms": 4.0,
     "min_recall_gain": 0.01,
     "min_fnr_drop": 0.01,
+    "max_robustness_gap_regression": 0.02,
     "dangerous_classes": [
       "human",
       "animal",
@@ -32,17 +56,18 @@
     "min_dangerous_class_recall_gain": 0.0
   },
   "deltas": {
-    "recall_gain": 0.040000000000000036,
-    "dangerous_fnr_drop": 0.06,
-    "latency_regression_ms": 1.5,
-    "distance_mae_delta": -0.2999999999999998,
+    "recall_gain": -0.6169096209912536,
+    "dangerous_fnr_drop": -0.7,
+    "latency_regression_ms": 460.46656145003,
+    "distance_mae_delta": -3.8680860407650473,
+    "robustness_gap_regression": 0.011873221401819012,
     "dangerous_class_recall_delta": {
-      "human": 0.030000000000000027,
-      "animal": 0.040000000000000036,
-      "rock": 0.020000000000000018,
-      "post": 0.019999999999999907
+      "human": -0.72,
+      "animal": -0.69,
+      "rock": -0.66,
+      "post": -0.68
     }
   },
-  "promote": true,
-  "decision_reason": "candidate_improves_safety_without_major_latency_regression"
+  "promote": false,
+  "decision_reason": "candidate_does_not_meet_promotion_policy"
 }

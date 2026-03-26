@@ -11,3 +11,5 @@ comparison:
   min_fnr_drop: 0.01
   min_dangerous_class_recall_gain: 0.0
   dangerous_classes: [human, animal, rock, post]
+
+  max_robustness_gap_regression: 0.02

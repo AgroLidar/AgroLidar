@@ -1,45 +1,49 @@
-# Next Iteration Prompt
+# Next Iteration Prompt — AgroLidar
 
 ## Current repo state
-The platform now has end-to-end scripts for training, evaluation, inference, hard-case mining, review queue generation, retraining entrypoint, model comparison, and model registry scaffolding. Failure mining now supports GT-aware missed-dangerous detection and sequence instability checks. Model comparison now enforces dangerous-class recall protection and produces markdown reports.
 
-## Incomplete areas (highest priority)
-1. **Realistic evaluation depth**
-   - Add per-class precision/recall tables and hazard calibration analysis.
-   - Add robustness slices by environment metadata (dust/rain/night/terrain).
-2. **Retraining data composition**
-   - Implement actual dataset mixing of reviewed hard cases with weighting/oversampling (currently metadata only).
-3. **Registry lifecycle automation**
-   - Add promotion/archival transaction script with policy gate + atomic registry updates.
-4. **Inference/failure integration**
-   - Persist unified inference event logs (frame-level + track-level) to make post-hoc mining deterministic.
+AgroLidar now has:
 
-## Biggest weaknesses
-- Synthetic-only validation does not prove field robustness.
-- Retraining pipeline does not yet consume reviewed queue artifacts into dataloaders.
-- No linter/type checker gates in CI-like validation.
+- hard-case dataset integration (`ReviewedHardCaseDataset`, `CompositeTrainingDataset`)
+- retraining pipeline using base + hard-case composition
+- safety-critical per-class evaluation metrics + dangerous aggregate score
+- policy-driven model promotion/rejection script with registry transitions
 
-## Exact next actions
-1. Implement `ReviewedHardCaseDataset` and `CompositeTrainingDataset` in `lidar_perception/data/datasets.py`.
-2. Update `scripts/retrain.py` + train entrypoint to build mixed dataset from `data/review_queue/manifest.jsonl` with oversampling ratio.
-3. Extend `Trainer.evaluate()` outputs with dangerous per-class recall metrics.
-4. Add tests for dataset mixing and per-class metric computation.
-5. Add `scripts/promote_model.py` to apply comparison policy and update registry statuses.
+Validation commands pass and outputs are generated:
 
-## Commands to run
-- `pytest -q`
-- `python scripts/train.py --config configs/demo_quick.yaml`
-- `python scripts/retrain.py --config configs/retrain.yaml --resume outputs/checkpoints/latest.pt`
-- `python scripts/evaluate.py --config configs/eval.yaml --checkpoint outputs/checkpoints/best.pt`
-- `python scripts/compare_models.py --production-metrics outputs/reports/production_eval.json --candidate-metrics outputs/reports/eval_report.json --config configs/eval.yaml`
+- `pytest`
+- `python scripts/retrain.py --config configs/base.yaml`
+- `python scripts/evaluate.py --config configs/base.yaml`
+- `python scripts/compare_models.py --production-metrics outputs/reports/production_eval.json --candidate-metrics outputs/reports/eval_report.json --config configs/eval.yaml --output outputs/reports/model_comparison.json --output-md outputs/reports/model_comparison.md`
+- `python scripts/promote_model.py --candidate-model outputs/candidates/retrain_candidate_20260326T200355Z/checkpoints/best.pt --production-model outputs/checkpoints/best.pt --comparison-report outputs/reports/model_comparison.json`
 
-## Quality expectations
-- No placeholder logic; wire new datasets into real training flow.
-- Backward-compatible configs.
-- All added scripts must be idempotent and produce deterministic artifacts.
-- Add tests that fail without the implemented logic.
+## Biggest weaknesses (focus)
+
+1. **No reviewed real-world hard-case labels in training input yet** (hard-case count stayed zero).
+2. Safety recall for dangerous classes is still insufficient.
+3. Latency/stability optimization for candidate models remains weak.
+
+## Top priorities for next iteration (very important: real-world dataset integration)
+
+1. Add real reviewed hard-case annotations and enforce schema validation.
+2. Create a robust reviewed-data ingestion pipeline (label QA checks, manifest audits, split controls).
+3. Add retraining curriculum controls (stage-in hard cases, adaptive ratio by class deficiency).
+4. Add automated regression gates for dangerous-class recall and latency before candidate export.
+5. Improve model/feature efficiency to reduce latency without dropping safety recall.
 
 ## Constraints
-- Do **not** redo existing failure-mining and comparison-report improvements.
-- Do **not** introduce online learning in inference runtime.
-- Preserve safety-first promotion criteria (dangerous recall + FNR + latency guardrails).
+
+- Do not implement online self-training.
+- Do not remove existing systems.
+- Keep candidate-vs-production separation strict.
+- Keep outputs machine-readable and reproducible.
+
+## Suggested commands
+
+```bash
+pytest
+python scripts/retrain.py --config configs/retrain.yaml
+python scripts/evaluate.py --config configs/base.yaml
+python scripts/compare_models.py --production-metrics outputs/reports/production_eval.json --candidate-metrics outputs/reports/eval_report.json --config configs/eval.yaml --output outputs/reports/model_comparison.json --output-md outputs/reports/model_comparison.md
+python scripts/promote_model.py --candidate-model <candidate_ckpt> --production-model <production_ckpt> --comparison-report outputs/reports/model_comparison.json
+```
