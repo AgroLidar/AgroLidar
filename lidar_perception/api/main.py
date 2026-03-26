@@ -20,7 +20,7 @@ class InferenceRequest(BaseModel):
     checkpoint_path: str = "outputs/checkpoints/best.pt"
 
 
-app = FastAPI(title="AgriLiDAR Guard API", version="0.1.0")
+app = FastAPI(title="AgroLidar API", version="0.1.0")
 
 
 def _load_runtime(config_path: str, checkpoint_path: str):
@@ -48,13 +48,18 @@ def predict(request: InferenceRequest) -> dict:
         "detections": [
             {
                 "label": int(item["label"]),
+                "label_name": str(item["label_name"]),
                 "score": float(item["score"]),
                 "box": np.asarray(item["box"]).tolist(),
-                "distance_m": float(np.linalg.norm(np.asarray(item["box"])[:2])),
+                "distance_m": float(item["distance_m"]),
+                "relative_position": item["relative_position"],
                 "hazard_score": float(item["hazard_score"]),
+                "risk_level": str(item["risk_level"]),
             }
             for item in result["detections"]
         ],
         "nearest_obstacle_distance_m": float(result["nearest_obstacle_distance_m"]),
         "scene_hazard_score": float(result["scene_hazard_score"]),
+        "scene_risk_level": str(result["scene_risk_level"]),
+        "preprocessing": result["preprocessing"],
     }

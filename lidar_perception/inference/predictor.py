@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from lidar_perception.data.preprocessing import BEVVoxelizer
+from lidar_perception.data.preprocessing import AgroPreprocessor, BEVVoxelizer
 
 
 @dataclass
@@ -36,12 +36,27 @@ class Predictor:
         self.config = config
         self.device = device
         self.voxelizer = BEVVoxelizer(config["data"]["point_cloud_range"], config["data"]["grid_size"])
+        self.preprocessor = AgroPreprocessor(config["data"]["point_cloud_range"], config["data"].get("preprocessing", {}))
         self.class_names = config["data"]["class_names"]
         self.hazard_weights = config["data"].get("hazard_weights", {})
+        preprocessing_config = config["data"].get("preprocessing", {})
+        self.corridor_width_m = float(preprocessing_config.get("corridor_width_m", 3.2))
+        self.emergency_distance_m = float(preprocessing_config.get("emergency_distance_m", 8.0))
+        self.warning_distance_m = float(preprocessing_config.get("warning_distance_m", 18.0))
 
-    def preprocess(self, points: np.ndarray) -> torch.Tensor:
-        bev = self.voxelizer.voxelize(points)
-        return torch.from_numpy(bev).unsqueeze(0).to(self.device)
+    def preprocess(self, points: np.ndarray) -> tuple[torch.Tensor, np.ndarray, dict]:
+        filtered_points, metadata = self.preprocessor.process(points)
+        bev = self.voxelizer.voxelize(filtered_points)
+        return (
+            torch.from_numpy(bev).unsqueeze(0).to(self.device),
+            filtered_points,
+            {
+                "filtered_point_count": metadata.filtered_point_count,
+                "original_point_count": metadata.original_point_count,
+                "vegetation_ratio": metadata.vegetation_ratio,
+                "terrain_variation_m": metadata.terrain_variation_m,
+            },
+        )
 
     def decode_detections(self, outputs: dict[str, torch.Tensor]) -> list[dict]:
         det = outputs["detection"]
@@ -67,6 +82,7 @@ class Predictor:
                 box = np.array([center_x, center_y, 0.0, size[0], size[1], size[2], angle], dtype=np.float32)
                 distance = float(np.linalg.norm(box[:2]))
                 label_name = self.class_names[cls_idx]
+                relative_position = {"forward_m": float(center_x), "lateral_m": float(center_y)}
                 predictions.append(
                     {
                         "label": cls_idx,
@@ -74,24 +90,41 @@ class Predictor:
                         "score": score,
                         "box": box,
                         "distance_m": distance,
-                        "hazard_score": self.compute_hazard_score(label_name, score, distance),
+                        "relative_position": relative_position,
+                        "hazard_score": self.compute_hazard_score(label_name, score, distance, relative_position),
                     }
                 )
 
         predictions = circle_nms(predictions, self.config["model"]["nms_iou_threshold"])
         return predictions[: self.config["model"]["max_detections"]]
 
-    def compute_hazard_score(self, class_name: str, confidence: float, distance_m: float) -> float:
+    def compute_hazard_score(self, class_name: str, confidence: float, distance_m: float, relative_position: dict[str, float]) -> float:
         class_weight = float(self.hazard_weights.get(class_name, 0.5))
         distance_factor = max(0.1, 1.0 - min(distance_m, 50.0) / 50.0)
-        return float(np.clip(class_weight * confidence * (0.6 + 0.4 * distance_factor), 0.0, 1.0))
+        corridor_factor = 1.0 if abs(relative_position["lateral_m"]) <= self.corridor_width_m else 0.7
+        forward_factor = 1.0 if relative_position["forward_m"] >= 0.0 else 0.4
+        return float(np.clip(class_weight * confidence * (0.5 + 0.5 * distance_factor) * corridor_factor * forward_factor, 0.0, 1.0))
+
+    def compute_risk_level(self, distance_m: float, hazard_score: float, relative_position: dict[str, float]) -> str:
+        in_corridor = abs(relative_position["lateral_m"]) <= self.corridor_width_m
+        if in_corridor and distance_m <= self.emergency_distance_m and hazard_score >= 0.45:
+            return "emergency"
+        if in_corridor and distance_m <= self.warning_distance_m and hazard_score >= 0.25:
+            return "warning"
+        return "monitor"
 
     def infer(self, points: np.ndarray) -> dict:
         self.model.eval()
         with torch.no_grad():
-            bev = self.preprocess(points)
+            bev, filtered_points, preprocessing_metadata = self.preprocess(points)
             outputs = self.model(bev)
         detections = self.decode_detections(outputs)
+        for detection in detections:
+            detection["risk_level"] = self.compute_risk_level(
+                detection["distance_m"],
+                detection["hazard_score"],
+                detection["relative_position"],
+            )
         seg_logits = outputs["segmentation"][0].detach().cpu()
         obstacle = outputs["obstacle"]
         occupancy = torch.sigmoid(obstacle["occupancy"][0, 0]).detach().cpu()
@@ -99,9 +132,12 @@ class Predictor:
         nearest_distance = float(distance[occupancy > 0.5].min().item()) if (occupancy > 0.5).any() else float("inf")
         return {
             "detections": detections,
+            "filtered_points": filtered_points,
             "segmentation": seg_logits.argmax(dim=0).numpy(),
             "occupancy": occupancy.numpy(),
             "distance_map": distance.numpy(),
             "nearest_obstacle_distance_m": nearest_distance,
             "scene_hazard_score": float(max([item["hazard_score"] for item in detections], default=0.0)),
+            "scene_risk_level": "emergency" if any(item["risk_level"] == "emergency" for item in detections) else ("warning" if any(item["risk_level"] == "warning" for item in detections) else "monitor"),
+            "preprocessing": preprocessing_metadata,
         }

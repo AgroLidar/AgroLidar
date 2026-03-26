@@ -40,6 +40,19 @@ data:
     dust_probability: 0.35
     rain_probability: 0.25
     night_probability: 0.25
+  preprocessing:
+    enabled: true
+    ground_grid_size: [60, 40]
+    ground_percentile: 12.0
+    max_relative_height_m: 3.5
+    min_relative_height_m: -1.0
+    denoise_min_cell_count: 2
+    denoise_low_intensity_threshold: 0.12
+    vegetation_height_threshold_m: 1.4
+    vegetation_intensity_threshold: 0.45
+    corridor_width_m: 3.2
+    emergency_distance_m: 8.0
+    warning_distance_m: 18.0
 
 model:
   name: pointpillars_bev
@@ -73,3 +86,4 @@ evaluation:
 visualization:
   use_open3d: true
   save_dir: outputs/visualizations
+  show_filtered_points: true

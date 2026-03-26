@@ -1,4 +1,4 @@
-# AgriLiDAR Guard
+# AgroLidar
 
 Production-oriented PyTorch baseline for LiDAR obstacle detection on tractors and agricultural machines operating in difficult field conditions.
 
@@ -7,6 +7,7 @@ Production-oriented PyTorch baseline for LiDAR obstacle detection on tractors an
 - Obstacle detection for `human`, `animal`, `vehicle`, `post`, and `rock`
 - BEV semantic segmentation tuned for unstructured field environments
 - Distance estimation and safety-oriented hazard scoring
+- Terrain-normalized preprocessing and conservative atmospheric denoising
 - Robustness augmentations for dust, rain, low visibility, sparse returns, and partial occlusion
 - Modular architecture with swappable models and API-ready serving
 - Synthetic agricultural scenario generator for MVP demos before field data arrives
@@ -36,7 +37,7 @@ scripts/
 The default model is a PointPillars-inspired Bird's Eye View pipeline adapted for agricultural obstacle detection:
 
 1. Raw point clouds are cropped to a configurable range.
-2. Robust preprocessing suppresses field noise while preserving obstacle cues.
+2. Agricultural preprocessing estimates local ground, normalizes terrain, and removes likely airborne noise.
 3. Points are voxelized into a BEV feature grid.
 4. A CNN backbone extracts spatial features.
 4. Three task heads run on shared features:
@@ -53,6 +54,7 @@ This design is practical for tractors because BEV convolution is efficient on ed
 - Vegetation and uneven ground are treated as persistent nuisance factors, so the synthetic pipeline injects crop clutter, ground undulation, and degraded sensing.
 - Safety prioritizes missed detections of people, animals, rocks, and posts over appearance-heavy classification.
 - Hazard scoring is included in the MVP because agricultural operators need actionable alerts, not just raw boxes.
+- Inference favors forward travel-corridor risk, which matches how tractors actually need to decide when to slow or stop.
 
 ## Innovation Layer
 
@@ -163,6 +165,13 @@ The evaluation pipeline reports:
 - false negative rate for dangerous classes
 - latency and average inference time
 - robustness under simulated noisy conditions
+
+## Real Agro Upgrades In This Version
+
+- Local ground estimation for uneven terrain so the model sees relative obstacle height rather than raw height.
+- Conservative denoising for likely dust/rain backscatter and other sparse airborne returns.
+- Travel-corridor-aware hazard scoring with `monitor`, `warning`, and `emergency` risk levels.
+- Filtered-vs-raw visualization to inspect whether preprocessing is helping or hiding useful structure.
 
 ## Deployment Recommendations
 

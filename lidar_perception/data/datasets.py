@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 
 from lidar_perception.data.augmentations import PointCloudAugmentor
 from lidar_perception.data.io import load_point_cloud
-from lidar_perception.data.preprocessing import BEVVoxelizer, crop_points
+from lidar_perception.data.preprocessing import AgroPreprocessor, BEVVoxelizer, crop_points
 from lidar_perception.simulation.agricultural_scene import AgriculturalSceneGenerator
 
 
@@ -20,6 +20,7 @@ class SyntheticLiDARDataset(Dataset):
         self.num_points = int(config["num_points"])
         self.class_names = list(config["class_names"])
         self.max_objects = int(config["max_objects"])
+        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
         self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
         self.augmentor = PointCloudAugmentor(config["augmentations"]) if split == "train" else None
         self.rng = np.random.default_rng(42 + {"train": 0, "val": 1000, "test": 2000}[split])
@@ -38,6 +39,7 @@ class SyntheticLiDARDataset(Dataset):
         if self.augmentor is not None:
             points, boxes = self.augmentor(points, boxes)
             points = crop_points(points, self.config["point_cloud_range"])
+        points, preprocessing_metadata = self.preprocessor.process(points)
 
         bev = self.voxelizer.voxelize(points)
         detection_target = self.voxelizer.build_detection_targets(boxes, labels, num_classes=len(self.class_names))
@@ -52,12 +54,19 @@ class SyntheticLiDARDataset(Dataset):
             "detection_target": detection_target,
             "segmentation_target": segmentation_target,
             "obstacle_target": obstacle_target,
+            "preprocessing_metadata": {
+                "filtered_point_count": preprocessing_metadata.filtered_point_count,
+                "original_point_count": preprocessing_metadata.original_point_count,
+                "vegetation_ratio": preprocessing_metadata.vegetation_ratio,
+                "terrain_variation_m": preprocessing_metadata.terrain_variation_m,
+            },
         }
 
 
 class PointCloudFolderDataset(Dataset):
     def __init__(self, config: dict, split: str = "test"):
         self.root_dir = Path(config["root_dir"])
+        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
         self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
         self.files = sorted([p for p in self.root_dir.glob("**/*") if p.suffix.lower() in {".bin", ".pcd"}])
         self.split = split
@@ -67,12 +76,18 @@ class PointCloudFolderDataset(Dataset):
 
     def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
         path = self.files[index]
-        points = crop_points(load_point_cloud(path), self.voxelizer.point_cloud_range)
+        points, preprocessing_metadata = self.preprocessor.process(load_point_cloud(path))
         bev = self.voxelizer.voxelize(points)
         return {
             "path": str(path),
             "points": torch.from_numpy(points.astype(np.float32)),
             "bev": torch.from_numpy(bev),
+            "preprocessing_metadata": {
+                "filtered_point_count": preprocessing_metadata.filtered_point_count,
+                "original_point_count": preprocessing_metadata.original_point_count,
+                "vegetation_ratio": preprocessing_metadata.vegetation_ratio,
+                "terrain_variation_m": preprocessing_metadata.terrain_variation_m,
+            },
         }
 
 
@@ -83,6 +98,8 @@ def collate_fn(batch: list[dict]) -> dict:
 
     if "path" in batch[0]:
         result["path"] = [item["path"] for item in batch]
+    if "preprocessing_metadata" in batch[0]:
+        result["preprocessing_metadata"] = [item["preprocessing_metadata"] for item in batch]
 
     if "boxes" in batch[0]:
         result["boxes"] = [item["boxes"] for item in batch]
