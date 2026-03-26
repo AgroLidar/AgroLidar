@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from lidar_perception.data.preprocessing import AgroPreprocessor, BEVVoxelizer
+from lidar_perception.inference.tracker import TemporalDetectionTracker
 
 
 @dataclass
@@ -43,6 +44,10 @@ class Predictor:
         self.corridor_width_m = float(preprocessing_config.get("corridor_width_m", 3.2))
         self.emergency_distance_m = float(preprocessing_config.get("emergency_distance_m", 8.0))
         self.warning_distance_m = float(preprocessing_config.get("warning_distance_m", 18.0))
+        self.tracker = TemporalDetectionTracker(config["model"].get("temporal_tracking", {}))
+
+    def reset_tracking(self) -> None:
+        self.tracker.reset()
 
     def preprocess(self, points: np.ndarray) -> tuple[torch.Tensor, np.ndarray, dict]:
         filtered_points, metadata = self.preprocessor.process(points)
@@ -125,6 +130,7 @@ class Predictor:
                 detection["hazard_score"],
                 detection["relative_position"],
             )
+        detections = self.tracker.update(detections)
         seg_logits = outputs["segmentation"][0].detach().cpu()
         obstacle = outputs["obstacle"]
         occupancy = torch.sigmoid(obstacle["occupancy"][0, 0]).detach().cpu()

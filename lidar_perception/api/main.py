@@ -1,49 +1,57 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Lock
 
 import numpy as np
-import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from lidar_perception.data.io import load_point_cloud
-from lidar_perception.inference.predictor import Predictor
-from lidar_perception.models.factory import build_model
-from lidar_perception.utils.checkpoint import load_checkpoint
-from lidar_perception.utils.config import load_config
+from lidar_perception.inference.runtime import InferenceRuntime
 
 
 class InferenceRequest(BaseModel):
     point_cloud_path: str
     config_path: str = "configs/base.yaml"
     checkpoint_path: str = "outputs/checkpoints/best.pt"
+    reset_tracking: bool = False
 
 
 app = FastAPI(title="AgroLidar API", version="0.1.0")
+_runtime_cache: dict[tuple[str, str], InferenceRuntime] = {}
+_runtime_lock = Lock()
 
 
-def _load_runtime(config_path: str, checkpoint_path: str):
-    config = load_config(config_path)
-    device = torch.device("cuda" if config.get("device") == "cuda" and torch.cuda.is_available() else "cpu")
-    model = build_model(config["model"]).to(device)
-    load_checkpoint(checkpoint_path, model, device=device)
-    predictor = Predictor(model, config, device)
-    return predictor
+def _get_runtime(config_path: str, checkpoint_path: str) -> InferenceRuntime:
+    key = (config_path, checkpoint_path)
+    with _runtime_lock:
+        runtime = _runtime_cache.get(key)
+        if runtime is None:
+            runtime = InferenceRuntime(config_path=config_path, checkpoint_path=checkpoint_path)
+            _runtime_cache[key] = runtime
+        return runtime
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "cached_runtimes": str(len(_runtime_cache))}
+
+
+@app.post("/tracking/reset")
+def reset_tracking(config_path: str = "configs/base.yaml", checkpoint_path: str = "outputs/checkpoints/best.pt") -> dict[str, str]:
+    runtime = _get_runtime(config_path, checkpoint_path)
+    runtime.reset_tracking()
+    return {"status": "tracking_reset"}
 
 
 @app.post("/predict")
 def predict(request: InferenceRequest) -> dict:
     if not Path(request.point_cloud_path).exists():
         raise HTTPException(status_code=404, detail="Point cloud file not found")
-    predictor = _load_runtime(request.config_path, request.checkpoint_path)
-    points = load_point_cloud(request.point_cloud_path)
-    result = predictor.infer(points)
+    runtime = _get_runtime(request.config_path, request.checkpoint_path)
+    if request.reset_tracking:
+        runtime.reset_tracking()
+    result = runtime.infer_file(request.point_cloud_path)
     return {
         "detections": [
             {
@@ -55,6 +63,8 @@ def predict(request: InferenceRequest) -> dict:
                 "relative_position": item["relative_position"],
                 "hazard_score": float(item["hazard_score"]),
                 "risk_level": str(item["risk_level"]),
+                "track_id": int(item["track_id"]),
+                "track_status": str(item["track_status"]),
             }
             for item in result["detections"]
         ],

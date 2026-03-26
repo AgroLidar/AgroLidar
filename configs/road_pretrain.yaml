@@ -57,6 +57,13 @@ model:
   score_threshold: 0.35
   nms_iou_threshold: 0.2
   max_detections: 64
+  temporal_tracking:
+    enabled: true
+    max_track_age: 4
+    min_confirmed_hits: 2
+    association_distance_m: 3.5
+    smoothing_factor: 0.65
+    score_decay: 0.92
 
 training:
   epochs: 8

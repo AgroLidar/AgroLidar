@@ -10,6 +10,7 @@ Production-oriented PyTorch baseline for LiDAR obstacle detection on tractors an
 - Terrain-normalized preprocessing and conservative atmospheric denoising
 - Robustness augmentations for dust, rain, low visibility, sparse returns, and partial occlusion
 - Modular architecture with swappable models and API-ready serving
+- Temporal tracking to stabilize detections across consecutive tractor frames
 - Synthetic agricultural scenario generator for MVP demos before field data arrives
 - Support for `.bin` and `.pcd` point cloud loading
 - Checkpointing, logging, evaluation, and visualization
@@ -45,6 +46,7 @@ The default model is a PointPillars-inspired Bird's Eye View pipeline adapted fo
    - Segmentation head: semantic logits per BEV cell
    - Obstacle head: occupancy and distance regression
 5. Inference produces detections, nearest-obstacle distance, and a hazard score for startup-style safety logic.
+6. A lightweight temporal tracker smooths detections across short frame sequences.
 
 This design is practical for tractors because BEV convolution is efficient on edge GPUs and does not rely on lane structure or dense urban priors.
 
@@ -116,6 +118,12 @@ Run on a synthetic agricultural sample:
 python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0
 ```
 
+Run on a short synthetic sequence to see stabilized tracking:
+
+```bash
+python scripts/infer.py --config configs/base.yaml --checkpoint outputs/checkpoints/best.pt --sample-index 0 --sequence-length 3
+```
+
 Run on a real point cloud:
 
 ```bash
@@ -132,6 +140,12 @@ Start the API:
 
 ```bash
 uvicorn lidar_perception.api.main:app --reload
+```
+
+Reset tracker state in the API:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/tracking/reset"
 ```
 
 ## Data
@@ -171,6 +185,7 @@ The evaluation pipeline reports:
 - Local ground estimation for uneven terrain so the model sees relative obstacle height rather than raw height.
 - Conservative denoising for likely dust/rain backscatter and other sparse airborne returns.
 - Travel-corridor-aware hazard scoring with `monitor`, `warning`, and `emergency` risk levels.
+- Short-horizon track IDs and smoothing so obstacle alerts do not flicker across consecutive frames.
 - Filtered-vs-raw visualization to inspect whether preprocessing is helping or hiding useful structure.
 
 ## Deployment Recommendations

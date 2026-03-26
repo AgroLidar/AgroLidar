@@ -3,12 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import torch
-
 from lidar_perception.data.datasets import build_dataset
-from lidar_perception.inference.predictor import Predictor
-from lidar_perception.models.factory import build_model
-from lidar_perception.utils.checkpoint import load_checkpoint
+from lidar_perception.inference.runtime import InferenceRuntime
 from lidar_perception.utils.config import load_config
 from lidar_perception.utils.visualization import visualize_bev
 
@@ -18,31 +14,42 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--num-scenes", type=int, default=3)
+    parser.add_argument("--sequence-length", type=int, default=3)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
-    device = torch.device("cuda" if config.get("device") == "cuda" and torch.cuda.is_available() else "cpu")
-    model = build_model(config["model"]).to(device)
-    load_checkpoint(args.checkpoint, model, device=device)
-    predictor = Predictor(model, config, device)
+    runtime = InferenceRuntime(args.config, args.checkpoint)
     dataset = build_dataset(config["data"], split="test")
     output_dir = Path(config["visualization"]["save_dir"]) / "demo"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for index in range(min(args.num_scenes, len(dataset))):
-        sample = dataset[index]
-        result = predictor.infer(sample["points"].numpy())
+        runtime.reset_tracking()
+        last_sample = None
+        last_result = None
+        for frame_offset in range(args.sequence_length):
+            sample_index = min(index + frame_offset, len(dataset) - 1)
+            sample = dataset[sample_index]
+            last_sample = sample
+            last_result = runtime.infer_points(sample["points"].numpy())
+            print(
+                f"scene={index} frame={frame_offset} detections={len(last_result['detections'])} "
+                f"nearest_distance_m={last_result['nearest_obstacle_distance_m']:.2f} "
+                f"scene_risk_level={last_result['scene_risk_level']}"
+            )
+
         save_path = output_dir / f"scene_{index}.png"
-        visualize_bev(sample["points"].numpy(), result["detections"], save_path=save_path)
-        print(
-            f"scene={index} detections={len(result['detections'])} "
-            f"nearest_distance_m={result['nearest_obstacle_distance_m']:.2f} "
-            f"scene_hazard_score={result['scene_hazard_score']:.3f} "
-            f"saved={save_path}"
+        visualize_bev(
+            last_sample["points"].numpy(),
+            last_result["detections"],
+            save_path=save_path,
+            filtered_points=last_result["filtered_points"] if config["visualization"].get("show_filtered_points", True) else None,
+            corridor_width_m=config["data"].get("preprocessing", {}).get("corridor_width_m"),
         )
+        print(f"scene={index} final_hazard={last_result['scene_hazard_score']:.3f} saved={save_path}")
 
 
 if __name__ == "__main__":
