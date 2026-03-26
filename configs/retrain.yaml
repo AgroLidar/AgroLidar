@@ -1,4 +1,4 @@
-base_config: configs/train.yaml
+base_config: train.yaml
 
 retrain:
   hard_case_manifest: data/hard_cases/manifest.jsonl

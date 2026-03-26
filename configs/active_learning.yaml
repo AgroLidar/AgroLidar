@@ -1,4 +1,4 @@
-base_config: configs/base.yaml
+base_config: base.yaml
 
 active_learning:
   max_candidates: 200
@@ -10,3 +10,9 @@ active_learning:
   ambiguous_dangerous_weight: 1.2
   review_queue_dir: data/review_queue
   manifest_path: data/review_queue/manifest.jsonl
+
+  failure_thresholds:
+    low_confidence: 0.25
+    near_miss_distance_m: 8.0
+    distance_error_m: 5.0
+    track_distance_jump_m: 6.0

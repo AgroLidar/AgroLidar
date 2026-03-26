@@ -1,0 +1,7 @@
+{
+  "base_config": "configs/demo_quick.yaml",
+  "hard_case_manifest": null,
+  "hard_case_oversample_ratio": 0.0,
+  "reviewed_only": false,
+  "candidate_tag": "candidate"
+}

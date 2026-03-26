@@ -1,0 +1,1 @@
+{"recall": 0.7, "dangerous_fnr": 0.3, "distance_mae": 4.0, "latency_ms": 10.0, "recall_human": 0.72, "recall_animal": 0.69, "recall_rock": 0.66, "recall_post": 0.68}
