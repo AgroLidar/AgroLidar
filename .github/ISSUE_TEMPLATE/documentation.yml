@@ -1,0 +1,24 @@
+name: Documentation improvement
+description: Suggest improvements for docs clarity, accuracy, or onboarding
+title: "[Docs] "
+labels: ["documentation"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Affected page or file
+      placeholder: docs/usage.md
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is unclear or incorrect?
+    validations:
+      required: true
+  - type: textarea
+    id: recommendation
+    attributes:
+      label: Proposed improvement
+    validations:
+      required: true

@@ -1,32 +1,44 @@
-## Description
-<!-- What does this PR do? Why? -->
+## Summary
 
-## Type of Change
-- [ ] Bug fix (non-breaking)
-- [ ] New feature (non-breaking)
+<!-- Describe what this PR changes and why. -->
+
+## Type of change
+
+- [ ] Bug fix
+- [ ] Feature
+- [ ] Documentation
+- [ ] CI/CD
+- [ ] Refactor
 - [ ] Breaking change
-- [ ] Pipeline/CI change
-- [ ] Model architecture change
-- [ ] Config change
 
-## Safety Impact
-<!-- Does this change affect safety-critical behavior? -->
+## Validation
+
+- [ ] `make lint`
+- [ ] `make test`
+- [ ] `pre-commit run --all-files`
+- [ ] (If applicable) `npm run build`
+- [ ] (If applicable) safety/evaluation reports updated
+
+## Backward compatibility
+
+- [ ] No breaking changes
+- [ ] Breaking changes documented in `CHANGELOG.md` and migration guidance included
+
+## Documentation
+
+- [ ] README/docs updated for behavior changes
+- [ ] API or config changes documented
+
+## Risk and safety impact
+
 - [ ] No safety impact
-- [ ] Affects detection logic → requires eval report comparison
-- [ ] Affects promotion policy → requires senior review
-- [ ] Affects dangerous class handling → requires safety sign-off
+- [ ] Safety-sensitive logic changed and reviewed
+- [ ] Promotion policy or threshold changed with rationale
 
-## Checklist
-- [ ] `make lint` passes locally
-- [ ] `make test` passes locally
-- [ ] `pre-commit run --all-files` passes
-- [ ] If model change: eval report attached or linked
-- [ ] If config change: configs/README updated
-- [ ] If new dependency: requirements.txt pinned version added
-- [ ] No `.pt` files accidentally staged
+## Attachments
 
-## Eval Report (if applicable)
-<!-- Paste or link outputs/reports/eval_report.md here -->
+- Relevant logs, screenshots, or report excerpts:
 
-## Related Issues
+## Linked issues
+
 Closes #

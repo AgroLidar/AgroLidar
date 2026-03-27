@@ -1,0 +1,54 @@
+name: Repository Hygiene
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate YAML files
+        run: |
+          pip install pyyaml
+          python - <<'PY'
+          import pathlib, yaml
+          failures = []
+          for path in pathlib.Path('.').rglob('*'):
+              if path.suffix.lower() in {'.yaml', '.yml'} and '.git' not in path.parts:
+                  try:
+                      yaml.safe_load(path.read_text(encoding='utf-8'))
+                  except Exception as exc:
+                      failures.append((str(path), str(exc)))
+          if failures:
+              for f, e in failures:
+                  print(f"INVALID YAML: {f}\n  {e}")
+              raise SystemExit(1)
+          print('YAML validation passed.')
+          PY
+
+      - name: Markdown lint (advisory)
+        run: |
+          npm install -g markdownlint-cli
+          markdownlint '**/*.md' '#node_modules' || true
+
+      - name: Check repository standards files
+        run: |
+          test -f LICENSE
+          test -f SECURITY.md
+          test -f CONTRIBUTING.md
+          test -f CODE_OF_CONDUCT.md
+          test -f CHANGELOG.md
+          test -f .editorconfig
+          test -f .gitattributes
+          echo "Core governance files are present."

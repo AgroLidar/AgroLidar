@@ -1,10 +1,21 @@
-# Por default, geromendez199 es owner de todo
-*                                   @geromendez199
+# CODEOWNERS for AgroLidar
+# Replace placeholders below with active maintainers as governance evolves.
 
-# Scripts críticos de safety requieren review explícita
-scripts/promote_model.py            @geromendez199
-scripts/evaluate.py                 @geromendez199
-configs/base.yaml                   @geromendez199
+# Default ownership
+*                                        @AgroLidar
 
-# Inference server requiere review de seguridad
-inference_server/                   @geromendez199
+# Safety-critical policies and promotion logic
+configs/safety_policy.yaml               @AgroLidar
+scripts/safety_gate.py                   @AgroLidar
+scripts/promote_model.py                 @AgroLidar
+
+# Inference surfaces
+inference_server/                        @AgroLidar
+lidar_perception/api/                    @AgroLidar
+
+# CI/CD and release automation
+.github/workflows/                       @AgroLidar
+
+# Documentation and governance
+README.md                                @AgroLidar
+docs/                                    @AgroLidar

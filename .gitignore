@@ -1,18 +1,52 @@
-# dependencies
-node_modules
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
 
-# next.js
+# ML artifacts and local outputs
+outputs/checkpoints/
+outputs/candidates/
+outputs/onnx/
+outputs/inference/
+outputs/review_queue/
+outputs/hard_cases/
+*.pt
+*.onnx
+*.engine
+mlruns/
+mlflow.db
+
+# Node / Next.js
+node_modules/
 .next/
 out/
 
-# production
+# Build artifacts
 build/
+dist/
+*.egg-info/
 
-# misc
+# Editors / OS
 .DS_Store
-*.log
+.idea/
+.vscode/
 
-# env
-.env*
-mlruns/
-mlflow.db
+# Logs and temp
+*.log
+*.tmp
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Docs build
+site/
