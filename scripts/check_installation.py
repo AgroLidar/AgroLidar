@@ -82,8 +82,8 @@ class InstallationChecker:
         for module in modules:
             try:
                 importlib.import_module(module)
-            except Exception:
-                missing.append(module)
+            except Exception as exc:
+                missing.append(f"{module} ({exc.__class__.__name__}: {exc})")
 
         ok = len(missing) == 0
         msg = "All key packages import successfully." if ok else f"Missing imports: {missing}"
@@ -238,11 +238,11 @@ class InstallationChecker:
             resp = httpx.get("http://127.0.0.1:8000/health", timeout=1.5)
             ok = resp.status_code in {200, 503}
             self.add("/health endpoint", ok, f"Server responded with HTTP {resp.status_code}")
-        except Exception:
+        except Exception as exc:
             self.add(
                 "/health endpoint",
                 True,
-                "Server not running locally; skipped live health probe.",
+                f"Server not running locally; skipped live health probe ({exc}).",
                 warn=True,
             )
 

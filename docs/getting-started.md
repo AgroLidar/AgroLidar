@@ -18,6 +18,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+> `open3d` is constrained to Python `<3.12` in `requirements.txt` because prebuilt wheels are not consistently available on 3.12 in this project baseline.
+
 ## Verify your environment
 
 ```bash

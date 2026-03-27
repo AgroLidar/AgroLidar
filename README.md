@@ -65,6 +65,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+> Notes:
+> - Python `3.11` is the primary supported runtime for full feature parity.
+> - `open3d` is installed only for Python `<3.12` due to upstream wheel availability.
+
 ### 2) Validate environment
 
 ```bash
@@ -129,6 +133,7 @@ AgroLidar is in active development toward an enterprise-ready `v1.0.0` release.
 ## Security
 
 Please review [SECURITY.md](SECURITY.md) for vulnerability reporting and disclosure expectations.
+Dependency audit behavior (including `requirements.audit.txt` and narrow temporary advisory ignores) is documented in [SECURITY_NOTES.md](SECURITY_NOTES.md).
 
 ## Contributing
 
