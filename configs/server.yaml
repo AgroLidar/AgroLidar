@@ -1,0 +1,21 @@
+server:
+  host: 0.0.0.0
+  port: 8000
+  workers: 1
+  reload: false
+  log_level: info
+
+model:
+  checkpoint_path: outputs/checkpoints/best.pt
+  config_path: configs/base.yaml
+  device: cpu
+  warmup_runs: 3
+
+limits:
+  max_batch_size: 16
+  rate_limit_per_second: 100
+  max_payload_mb: 50
+
+health:
+  p95_latency_threshold_ms: 200
+  min_healthy_inferences: 10

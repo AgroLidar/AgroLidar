@@ -1,4 +1,4 @@
-.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list
+.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker
 
 install:
 	pip install -r requirements.txt
@@ -54,3 +54,13 @@ mlflow-ui:
 
 mlflow-list:
 	mlflow runs list --experiment-name agrolidar-bev-detection
+
+serve:
+	uvicorn inference_server.main:app --host 0.0.0.0 --port 8000
+
+serve-dev:
+	uvicorn inference_server.main:app --reload --port 8000
+
+serve-docker:
+	docker build -f Dockerfile.server -t agrolidar-server . && \
+	docker run -p 8000:8000 -v $(pwd)/outputs:/app/outputs agrolidar-server
