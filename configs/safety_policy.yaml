@@ -1,0 +1,20 @@
+policy_version: "1.0"
+policy_name: "AgroLidar Field Safety Policy"
+
+# Límites absolutos (nunca negociables)
+dangerous_fnr_hard_limit: 0.10
+human_recall_minimum: 0.90
+animal_recall_minimum: 0.85
+minimum_val_samples: 50
+
+# Tolerancias de regresión vs producción
+regression_tolerance: 0.02
+latency_regression_tolerance: 0.20
+map_regression_tolerance: 0.05
+
+# Política para --strict flag
+strict:
+  dangerous_fnr_hard_limit: 0.05
+  human_recall_minimum: 0.95
+  animal_recall_minimum: 0.92
+  regression_tolerance: 0.01
