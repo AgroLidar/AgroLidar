@@ -1,19 +1,27 @@
-# Next Iteration Prompt
+# Next Iteration Prompt — Public-Facing Upgrade
 
-## Highest-value next gap
-Implement a **real sensor ingest adapter** that converts ROS bag or PCAP LiDAR streams into AgroLidar BEVFrameInput payloads compatible with `POST /predict`.
+## Recommended Focus
+Implement **release automation** as the next highest-value upgrade after repository identity/credibility improvements.
 
-## Why this first
-The current system is strong in offline pipeline, safety gating, and API serving, but still depends on synthetic BEV generation. Real-world pilot progress is blocked without ingesting native LiDAR captures.
+## Goal
+Automate versioned releases so every tagged version publishes consistent artifacts and public notes with minimal manual effort.
 
-## Suggested scope
-1. Add `scripts/ingest_pcap_to_bev.py` (and/or ROS bag variant).
-2. Implement transform + projection mapping from sensor frame to BEV tensor contract in `docs/DATA_SCHEMA.md`.
-3. Add calibration parameter ingestion from `configs/platforms/*.yaml`.
-4. Add integration tests with fixture packets/bags.
-5. Add ingestion troubleshooting docs and sample replay command.
+## Scope
+1. Add a GitHub Actions workflow that triggers on `v*` tags.
+2. Validate repository health before release (lint/test/smoke checks already present can be reused).
+3. Create a GitHub Release automatically with notes sourced from `RELEASE_NOTES.md` (or generated changelog fallback).
+4. Attach key build artifacts where applicable (model/report bundles if available in pipeline outputs).
+5. Ensure release workflow fails clearly if required files are missing.
+6. Document release process in `docs/README.md` and/or root `README.md`.
 
-## Follow-on iterations
-- Jetson Orin edge deployment hardening.
-- API authentication layer (mTLS/API key).
-- ROS 2 perception node with health and diagnostics topics.
+## Acceptance Criteria
+- Pushing tag `vX.Y.Z` creates a GitHub Release automatically.
+- Release title/body is professional and deterministic.
+- Workflow permissions are least-privilege.
+- Manual release effort is reduced to tag creation + push.
+- Documentation includes a short “How to cut a release” section.
+
+## Constraints
+- Do not alter core model logic.
+- Keep CI signal clean and avoid duplicating existing jobs.
+- Preserve deployment-readiness narrative for external visitors.

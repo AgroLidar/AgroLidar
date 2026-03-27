@@ -1,3 +1,13 @@
+[![CI](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.2-orange.svg)](https://pytorch.org/)
+[![ONNX](https://img.shields.io/badge/ONNX-1.16-purple.svg)](https://onnx.ai/)
+[![MLflow](https://img.shields.io/badge/MLflow-2.14-blue.svg)](https://mlflow.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com/)
+[![Docs](https://img.shields.io/badge/docs-deployment%20ready-brightgreen.svg)](docs/README.md)
+[![Safety Gate](https://img.shields.io/badge/safety%20gate-enabled-critical.svg)](docs/SAFETY_AND_LIMITATIONS.md)
+
 # AgroLidar
 
 AgroLidar is a **field-first LiDAR perception stack for agricultural machines**.
