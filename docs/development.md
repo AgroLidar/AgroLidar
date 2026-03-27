@@ -15,6 +15,7 @@ pre-commit run --all-files
 ```bash
 npm ci
 npm run dev
+npm run typecheck
 ```
 
 ## CI expectations

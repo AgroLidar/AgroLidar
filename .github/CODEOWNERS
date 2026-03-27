@@ -1,21 +1,15 @@
-# CODEOWNERS for AgroLidar
-# Replace placeholders below with active maintainers as governance evolves.
-
 # Default ownership
-*                                        @AgroLidar
+* @AgroLidar/maintainers
 
-# Safety-critical policies and promotion logic
-configs/safety_policy.yaml               @AgroLidar
-scripts/safety_gate.py                   @AgroLidar
-scripts/promote_model.py                 @AgroLidar
-
-# Inference surfaces
-inference_server/                        @AgroLidar
-lidar_perception/api/                    @AgroLidar
-
-# CI/CD and release automation
-.github/workflows/                       @AgroLidar
+# Safety-critical pipeline and model logic
+/lidar_perception/ @AgroLidar/ml-core
+/inference_server/ @AgroLidar/ml-core
+/scripts/ @AgroLidar/ml-core
+/configs/ @AgroLidar/ml-core
 
 # Documentation and governance
-README.md                                @AgroLidar
-docs/                                    @AgroLidar
+/docs/ @AgroLidar/docs
+README.md @AgroLidar/docs
+SECURITY.md @AgroLidar/security
+SECURITY_NOTES.md @AgroLidar/security
+.github/workflows/ @AgroLidar/devops
