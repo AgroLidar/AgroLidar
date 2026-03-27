@@ -1,60 +1,22 @@
+# Config base mínima y funcional para evaluación en CPU.
+# Incluye los campos solicitados y compatibilidad con los scripts actuales.
+
+# Semilla global para reproducibilidad.
 seed: 42
-device: cuda
+
+# Dispositivo preferido. "cpu" evita dependencia de GPU en GitHub runners.
+device: cpu
+
+# Directorio raíz de salidas (checkpoints, reportes, métricas, etc.).
 output_dir: outputs
 
-data:
-  dataset_type: synthetic_agriculture
-  root_dir: data/raw
-  train_size: 400
-  val_size: 80
-  test_size: 80
-  num_workers: 0
-  batch_size: 4
-  num_points: 12000
-  class_names: [human, animal, vehicle, post, rock]
-  dangerous_classes: [human, animal, rock, post]
-  segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]
-  point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
-  grid_size: [160, 160]
-  max_objects: 24
-  hazard_weights:
-    human: 1.0
-    animal: 0.95
-    vehicle: 0.8
-    post: 0.65
-    rock: 0.7
-  augmentations:
-    enabled: true
-    rotation_deg: 12.0
-    scale_range: [0.95, 1.05]
-    translation_std: 0.4
-    dropout_ratio: 0.03
-    intensity_noise_std: 0.08
-    weather_attenuation_prob: 0.4
-    weather_attenuation_strength: 0.3
-    occlusion_prob: 0.35
-    terrain_jitter_std: 0.05
-  simulation:
-    terrain_variation: 0.35
-    vegetation_density: 0.25
-    dust_probability: 0.35
-    rain_probability: 0.25
-    night_probability: 0.25
-  preprocessing:
-    enabled: true
-    ground_grid_size: [60, 40]
-    ground_percentile: 12.0
-    max_relative_height_m: 3.5
-    min_relative_height_m: -1.0
-    denoise_min_cell_count: 2
-    denoise_low_intensity_threshold: 0.12
-    vegetation_height_threshold_m: 1.4
-    vegetation_intensity_threshold: 0.45
-    corridor_width_m: 3.2
-    emergency_distance_m: 8.0
-    warning_distance_m: 18.0
-
 model:
+  # Campo solicitado: checkpoint por defecto usado por el pipeline/evaluación.
+  checkpoint: outputs/checkpoints/best.pt
+  # Campo solicitado: dispositivo explícito para el modelo.
+  device: cpu
+
+  # Campos requeridos por build_model()/Trainer.
   name: pointpillars_bev
   in_channels: 6
   base_channels: 32
@@ -64,44 +26,68 @@ model:
   nms_iou_threshold: 0.2
   max_detections: 64
   max_candidates_per_class: 32
-  temporal_tracking:
-    enabled: true
-    max_track_age: 4
-    min_confirmed_hits: 2
-    association_distance_m: 3.5
-    smoothing_factor: 0.65
-    score_decay: 0.92
 
-training:
-  epochs: 8
-  learning_rate: 0.001
-  weight_decay: 0.0001
-  grad_clip_norm: 5.0
-  mixed_precision: false
-  print_every: 10
-  checkpoint_every: 1
-  losses:
-    detection: 1.0
-    segmentation: 1.0
-    obstacle: 0.5
+data:
+  # Tipo de dataset sintético para no depender de archivos reales durante CI.
+  dataset_type: synthetic_agriculture
+
+  # Campo solicitado: ruta de validación (documentada para datasets reales).
+  val_dir: data/val/
+
+  # Rutas/tamaños base del generador sintético.
+  root_dir: data/val/
+  train_size: 32
+  val_size: 16
+  test_size: 16
+  num_workers: 0
+
+  # Campo solicitado: batch_size para evaluación.
+  batch_size: 8
+
+  # Parámetros requeridos por SyntheticLiDARDataset.
+  num_points: 12000
+  class_names: [human, animal, rock, post, vehicle]
+  dangerous_classes: [human, animal, rock, post, vehicle]
+  segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]
+  point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
+  grid_size: [160, 160]
+  max_objects: 24
+  augmentations:
+    enabled: false
+  preprocessing:
+    enabled: true
+
+metrics:
+  # Campo solicitado: clases consideradas de mayor riesgo.
+  dangerous_classes: [human, animal, rock, post, vehicle]
+  # Campo solicitado: umbral máximo permitido de FNR en clases peligrosas.
+  dangerous_fnr_threshold: 0.05
+  # Campo solicitado: umbral de latencia en milisegundos.
+  latency_threshold_ms: 100
+
+# Compatibilidad con compare_models.py (política de promoción opcional).
+comparison:
+  min_recall_gain: 0.0
+  min_dangerous_fnr_drop: 0.0
+  max_latency_regression_ms: 100.0
+  max_robustness_gap_regression: 1.0
 
 evaluation:
+  # IoU usado para mAP global.
   iou_threshold: 0.25
+  # IoU más estricto para clases peligrosas.
   dangerous_iou_threshold: 0.2
+  # Warmup de benchmark de latencia.
   latency_warmup: 3
+  # Iteraciones de benchmark de latencia.
   latency_iters: 20
+  # Salida JSON de evaluación.
+  save_json: outputs/reports/eval_report.json
+  # Salida Markdown de evaluación.
+  save_md: outputs/reports/eval_report.md
 
-inference:
-  frame_dt_s: 0.2
-  default_vehicle_speed_mps: 3.0
-  braking_deceleration_mps2: 2.5
-  reaction_time_s: 0.5
-  safety_margin_m: 1.5
-  stop_zone_width_m: 3.2
-  occupancy_fusion_window: 5
-  occupancy_fusion_decay: 0.72
-
-visualization:
-  use_open3d: true
-  save_dir: outputs/visualizations
-  show_filtered_points: true
+output:
+  # Campo solicitado: directorio para reportes.
+  report_dir: outputs/reports/
+  # Campo solicitado: nombre base de reporte.
+  report_name: eval_report

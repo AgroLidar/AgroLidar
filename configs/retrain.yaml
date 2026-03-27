@@ -1,17 +1,43 @@
-base_config: base.yaml
+# Config mínima para retraining offline.
+# Incluye campos solicitados y compatibilidad con scripts actuales.
+
+# Campo solicitado por el enunciado.
+extends: configs/train.yaml
+# Campo usado por el loader interno para herencia real.
+base_config: train.yaml
+
+# Campos solicitados (nivel raíz para documentación).
+hard_case_ratio: 0.3
+oversample_dangerous_classes: true
+dangerous_class_weight: 2.5
+reviewed_only: true
+only_high_conf_failures: false
 
 retrain:
-  candidate_tag: retrain_candidate
+  # Los mismos campos en el bloque que consume scripts/retrain.py.
+  hard_case_ratio: 0.3
+  oversample_dangerous_classes: true
+  dangerous_class_weight: 2.5
+  reviewed_only: true
+  only_high_conf_failures: false
+  min_failure_confidence: 0.5
+
+  # Directorios de hard-cases revisados.
   hard_case_dirs:
     - data/hard_cases
     - data/review_queue
   hard_case_manifests: []
-  reviewed_only: true
-  only_high_conf_failures: false
-  min_failure_confidence: 0.5
-  hard_case_ratio: 0.3
-  oversample_dangerous_classes: true
-  dangerous_class_weight: 2.0
+
+  # Etiqueta base del candidato generado.
+  candidate_tag: retrain_candidate
+
+  # Límites para mantener retraining rápido en CI.
   epochs: 1
   base_train_size_cap: 120
   base_val_size_cap: 40
+
+output:
+  # Campo solicitado: directorio de candidatos.
+  candidate_dir: outputs/candidates/
+  # Campo solicitado: metadata de retraining.
+  metadata_file: outputs/reports/retrain_metadata.json

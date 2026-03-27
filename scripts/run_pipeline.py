@@ -19,6 +19,12 @@ class PipelineError(RuntimeError):
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run full AgroLidar training-to-promotion pipeline")
     parser.add_argument("--config-dir", default="configs", help="Directory containing train.yaml/retrain.yaml/eval.yaml")
+    parser.add_argument("--dry-run", action="store_true", help="Run pipeline without promotion/registry writes")
+    parser.add_argument(
+        "--candidate-tag",
+        default=None,
+        help="Optional candidate tag to evaluate/promote from outputs/candidates/<tag>/checkpoints/best.pt",
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable DEBUG logging")
     return parser.parse_args()
 
@@ -162,6 +168,12 @@ def main() -> int:
 
         candidate_output_dir = Path(str(retrain_meta.get("candidate_output_dir", "")))
         candidate_checkpoint = candidate_output_dir / "checkpoints" / "best.pt"
+        if args.candidate_tag:
+            tagged_candidate = Path("outputs/candidates") / args.candidate_tag / "checkpoints" / "best.pt"
+            if not tagged_candidate.exists():
+                raise PipelineError(f"Requested candidate tag not found: {tagged_candidate}")
+            candidate_checkpoint = tagged_candidate
+            LOGGER.info("using tagged candidate checkpoint: %s", candidate_checkpoint)
         if not candidate_checkpoint.exists():
             raise PipelineError(f"Candidate checkpoint not found after retrain: {candidate_checkpoint}")
 
@@ -222,22 +234,26 @@ def main() -> int:
         )
         summarize_compare(Path("outputs/reports/model_comparison.json"))
 
-        run_step(
-            "promote",
-            [
-                sys.executable,
-                "scripts/promote_model.py",
-                "--candidate-model",
-                str(candidate_checkpoint),
-                "--production-model",
-                str(production_checkpoint),
-                "--comparison-report",
-                "outputs/reports/model_comparison.json",
-                "--registry-dir",
-                "outputs/registry",
-            ],
-        )
-        promoted_entry = summarize_promote(Path("outputs/registry/registry.json"), str(candidate_checkpoint))
+        if args.dry_run:
+            LOGGER.info("dry-run enabled: skipping promote step to avoid registry writes")
+            promoted_entry = None
+        else:
+            run_step(
+                "promote",
+                [
+                    sys.executable,
+                    "scripts/promote_model.py",
+                    "--candidate-model",
+                    str(candidate_checkpoint),
+                    "--production-model",
+                    str(production_checkpoint),
+                    "--comparison-report",
+                    "outputs/reports/model_comparison.json",
+                    "--registry-dir",
+                    "outputs/registry",
+                ],
+            )
+            promoted_entry = summarize_promote(Path("outputs/registry/registry.json"), str(candidate_checkpoint))
 
     except PipelineError as exc:
         LOGGER.error("pipeline failed: %s", exc)
