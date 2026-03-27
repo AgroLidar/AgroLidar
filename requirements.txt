@@ -1,8 +1,8 @@
-numpy>=1.24
-PyYAML>=6.0
-torch>=2.2
-matplotlib>=3.8
-tqdm>=4.66
-fastapi>=0.115
-uvicorn>=0.30
-open3d>=0.18; platform_system != "Linux" or platform_machine != "aarch64"
+numpy==1.26.4
+PyYAML==6.0.2
+torch==2.2.2
+matplotlib==3.8.4
+tqdm==4.66.4
+fastapi==0.115.0
+uvicorn==0.30.6
+open3d==0.18.0; platform_system != "Linux" or platform_machine != "aarch64"
