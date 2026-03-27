@@ -1,0 +1,72 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  pr-quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install tools
+        run: pip install pre-commit ruff pytest
+
+      - name: Install dependencies (CPU torch wheels)
+        run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+      - name: Check no .pt files in PR
+        run: |
+          if git diff origin/main...HEAD --name-only | grep -q "\.pt$"; then
+            echo "ERROR: PR contains .pt checkpoint files. Remove them."
+            exit 1
+          fi
+
+      - name: Check no secrets in diff
+        run: |
+          if git diff origin/main...HEAD | grep -iE "(api_key|secret|password|token)\s*=\s*['\"][^'\"]{8,}"; then
+            echo "ERROR: Possible secret detected in diff."
+            exit 1
+          fi
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Validate all YAML configs
+        run: |
+          python -c "
+          import glob
+          import yaml
+
+          for f in glob.glob('configs/*.yaml'):
+              yaml.safe_load(open(f))
+          print('All configs valid')
+          "
+
+      - name: Check PR has description
+        run: |
+          PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q .body)
+          if [ -z "$PR_BODY" ] || [ "$PR_BODY" = "null" ]; then
+            echo "ERROR: PR description is empty. Fill out the PR template."
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

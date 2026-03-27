@@ -1,0 +1,70 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.9
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        files: "^(lidar_perception|inference_server|scripts)/"
+        args: ["--ignore-missing-imports", "--no-strict-optional"]
+        additional_dependencies:
+          - "pydantic>=2.0"
+          - "torch"
+          - "numpy"
+
+  - repo: local
+    hooks:
+      - id: pytest-smoke
+        name: Run smoke tests
+        entry: python -m pytest tests/ -x -q --tb=short
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: check-checkpoint-not-staged
+        name: Block accidental checkpoint staging
+        entry: "bash -c 'if git diff --cached --name-only | grep -q \"\\.pt$\"; then echo \"ERROR: .pt checkpoint staged. Use Git LFS or add to .gitignore.\"; exit 1; fi'"
+        language: system
+        pass_filenames: false
+
+      - id: check-config-validity
+        name: Validate YAML configs
+        entry: |
+          python -c "
+          import yaml, sys, glob
+          errors = []
+          for f in glob.glob('configs/*.yaml'):
+              try:
+                  yaml.safe_load(open(f))
+              except yaml.YAMLError as e:
+                  errors.append(f'{f}: {e}')
+          if errors:
+              print('Invalid YAML configs:')
+              [print(e) for e in errors]
+              sys.exit(1)
+          print(f'All {len(list(glob.glob(\"configs/*.yaml\")))} config files valid')
+          "
+        language: system
+        pass_filenames: false
+        files: "^configs/.*\\.yaml$"
