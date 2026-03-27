@@ -6,11 +6,13 @@ import torch
 
 
 def save_checkpoint(path: str | Path, model, optimizer, epoch: int, metrics: dict, config: dict) -> None:
+    val_loss = float(metrics.get("val_loss", 0.0))
     torch.save(
         {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
+            "val_loss": val_loss,
             "metrics": metrics,
             "config": config,
         },

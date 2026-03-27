@@ -223,12 +223,14 @@ class Trainer:
                 handle.write(json.dumps(record) + "\n")
 
             score = val_metrics["mAP"] + val_metrics["segmentation_iou"] + val_metrics["recall"] - val_metrics["dangerous_fnr"]
+            checkpoint_metrics = dict(val_metrics)
+            checkpoint_metrics["val_loss"] = float(max(0.0, 1.0 - val_metrics["mAP"]))
             latest_path = checkpoint_dir / "latest.pt"
-            save_checkpoint(latest_path, self.model, self.optimizer, epoch, val_metrics, self.config)
+            save_checkpoint(latest_path, self.model, self.optimizer, epoch, checkpoint_metrics, self.config)
             if score > (self.best_score + min_delta):
                 self.best_score = score
                 stale_epochs = 0
-                save_checkpoint(checkpoint_dir / "best.pt", self.model, self.optimizer, epoch, val_metrics, self.config)
+                save_checkpoint(checkpoint_dir / "best.pt", self.model, self.optimizer, epoch, checkpoint_metrics, self.config)
             else:
                 stale_epochs += 1
                 if early_enabled and stale_epochs >= patience:

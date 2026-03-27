@@ -13,19 +13,19 @@ model:
 
   # Campos reales requeridos por build_model().
   name: pointpillars_bev
-  in_channels: 6
+  in_channels: 4
   base_channels: 32
   num_segmentation_classes: 6
 
 training:
   # Campo solicitado: número de épocas.
-  epochs: 50
+  epochs: 1
   # Campo solicitado: learning rate.
   lr: 0.001
   # Alias efectivo usado por Trainer.
   learning_rate: 0.001
   # Campo solicitado: batch size de entrenamiento (documental).
-  batch_size: 8
+  batch_size: 2
   # Campo solicitado: ruta de checkpoints.
   checkpoint_dir: outputs/checkpoints/
 
@@ -44,18 +44,23 @@ data:
   # Campo solicitado: directorio de val.
   val_dir: data/val/
   # Campo solicitado: batch size.
-  batch_size: 8
+  batch_size: 2
 
   # Campos efectivos para el dataset actual.
-  dataset_type: synthetic_agriculture
+  dataset_type: bev_frame
   root_dir: data/
-  train_size: 64
-  val_size: 24
+  train_size: 0
+  val_size: 0
   num_workers: 0
-  num_points: 12000
+  num_points: 0
   point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
-  grid_size: [160, 160]
+  grid_size: [128, 128]
   max_objects: 24
+  bev_channels: 4
+  bev_height: 512
+  bev_width: 512
+  model_height: 128
+  model_width: 128
   class_names: [human, animal, rock, post, vehicle]
   dangerous_classes: [human, animal, rock, post, vehicle]
   segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]

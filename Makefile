@@ -1,4 +1,4 @@
-.PHONY: install lint test train mine queue full-loop retrain evaluate compare promote pipeline
+.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline
 
 install:
 	pip install -r requirements.txt
@@ -12,6 +12,14 @@ test:
 
 train:
 	python scripts/train.py --config configs/train.yaml
+
+generate-data:
+	python scripts/generate_synthetic_data.py
+
+train-smoke:
+	python scripts/generate_synthetic_data.py --train-samples 20 --val-samples 5
+	python scripts/train.py --config configs/train.yaml
+	python scripts/evaluate.py --config configs/base.yaml
 
 
 mine:

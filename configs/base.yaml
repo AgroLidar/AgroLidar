@@ -18,7 +18,7 @@ model:
 
   # Campos requeridos por build_model()/Trainer.
   name: pointpillars_bev
-  in_channels: 6
+  in_channels: 4
   base_channels: 32
   num_classes: 5
   num_segmentation_classes: 6
@@ -29,29 +29,37 @@ model:
 
 data:
   # Tipo de dataset sintético para no depender de archivos reales durante CI.
-  dataset_type: synthetic_agriculture
+  dataset_type: bev_frame
 
   # Campo solicitado: ruta de validación (documentada para datasets reales).
   val_dir: data/val/
 
   # Rutas/tamaños base del generador sintético.
-  root_dir: data/val/
-  train_size: 32
-  val_size: 16
-  test_size: 16
+  root_dir: data/
+  train_size: 0
+  val_size: 0
+  test_size: 0
   num_workers: 0
 
   # Campo solicitado: batch_size para evaluación.
-  batch_size: 8
+  batch_size: 2
 
   # Parámetros requeridos por SyntheticLiDARDataset.
-  num_points: 12000
+  num_points: 0
   class_names: [human, animal, rock, post, vehicle]
   dangerous_classes: [human, animal, rock, post, vehicle]
   segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]
   point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
-  grid_size: [160, 160]
+  grid_size: [128, 128]
   max_objects: 24
+  train_dir: data/train/
+  val_dir: data/val/
+  test_dir: data/val/
+  bev_channels: 4
+  bev_height: 512
+  bev_width: 512
+  model_height: 128
+  model_width: 128
   augmentations:
     enabled: false
   preprocessing:
