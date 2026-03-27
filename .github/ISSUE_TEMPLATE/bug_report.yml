@@ -1,18 +1,26 @@
 name: Bug report
-description: Report a reproducible defect in code, pipeline, or tooling
+description: Report a reproducible defect in code, pipeline, inference, or tooling
 title: "[Bug] "
-labels: ["bug"]
+labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug. Please provide enough detail for us to reproduce and fix it.
+        Thanks for reporting a bug. Please include enough detail to reproduce the issue.
   - type: input
     id: summary
     attributes:
       label: Summary
-      description: One-line description of the problem
-      placeholder: API returns 500 during inference with valid payload
+      description: One-sentence problem description
+      placeholder: "Inference API returns HTTP 500 for valid payload"
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected and how severe is this issue?
+      placeholder: "Blocks model rollout to staging; no production customer impact yet."
     validations:
       required: true
   - type: textarea
@@ -21,8 +29,8 @@ body:
       label: Steps to reproduce
       placeholder: |
         1. Run `make serve`
-        2. POST sample payload to /predict
-        3. Observe stack trace
+        2. Send POST /predict request from docs/API_INTEGRATION_GUIDE.md
+        3. Observe traceback in server logs
     validations:
       required: true
   - type: textarea
@@ -34,16 +42,26 @@ body:
   - type: textarea
     id: environment
     attributes:
-      label: Environment details
+      label: Environment
       placeholder: |
         - OS:
         - Python version:
-        - CUDA/CPU runtime:
+        - Node version (if frontend-related):
+        - Runtime: CPU / CUDA
         - Commit SHA:
     validations:
       required: true
   - type: textarea
-    id: logs
+    id: evidence
     attributes:
-      label: Logs / tracebacks / artifacts
-      description: Paste relevant logs or attach report files.
+      label: Logs, screenshots, artifacts
+      description: Paste logs and attach `outputs/reports/*` or screenshots when applicable.
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-flight checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I can reproduce this on the latest `main` branch.
+          required: false

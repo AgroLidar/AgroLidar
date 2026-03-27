@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Security vulnerability report
+  - name: Security vulnerability report (private)
     url: mailto:security@agro-lidar.com
-    about: Please report vulnerabilities privately and do not open a public issue.
+    about: Report vulnerabilities privately under SECURITY.md policy. Do not open public security issues.
   - name: Support and usage questions
     url: https://github.com/AgroLidar/AgroLidar/discussions
-    about: Use GitHub Discussions for questions and integration guidance.
+    about: Use Discussions for setup, integration, or operational Q&A.

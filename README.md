@@ -1,7 +1,10 @@
-[![CI](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml)
-[![Docs](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs.yml)
-[![Repository Hygiene](https://github.com/AgroLidar/AgroLidar/actions/workflows/repo-hygiene.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/repo-hygiene.yml)
+[![Continuous Integration](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml)
+[![Docs Validation](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs.yml)
+[![GitHub Pages](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs-pages.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs-pages.yml)
 [![Release](https://github.com/AgroLidar/AgroLidar/actions/workflows/release.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/release.yml)
+[![Security](https://github.com/AgroLidar/AgroLidar/actions/workflows/security.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/security.yml)
+[![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Version](https://img.shields.io/badge/version-0.9.0-informational.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 <p align="center">
@@ -16,10 +19,10 @@ It combines training, evaluation, model registry, safety gating, ONNX export, an
 
 ## Why AgroLidar
 
-- **Field-first safety posture**: designed around hard classes like humans, animals, rocks, and posts.
-- **Governed model promotion**: explicit candidate-vs-production comparisons before rollout.
-- **Operationally practical**: includes server APIs, deployment docs, and platform adaptation configs.
-- **Continuous learning loop**: mine hard cases, review, retrain, evaluate, and promote with policy checks.
+- **Field-first safety posture** for hard classes like humans, animals, rocks, and posts.
+- **Governed model promotion** with explicit candidate-vs-production comparisons before rollout.
+- **Operationally practical** delivery: APIs, deployment docs, and platform adaptation configs.
+- **Continuous learning loop** to mine hard cases, review, retrain, evaluate, and promote with policy checks.
 
 ## Core Features
 
@@ -37,14 +40,6 @@ Data -> Train/Retrain -> Evaluate -> Compare -> Safety Gate -> Promote
   |                                                |
   +-> Hard-case mining + review queue              +-> Registry + reports
 ```
-
-### Architecture Components
-
-- `lidar_perception/`: model, data, inference, risk, evaluation, and registry logic.
-- `scripts/`: CLI automation for train/eval/retrain/promotion/export.
-- `inference_server/`: serving layer for online inference.
-- `configs/`: base, training, evaluation, inference, safety, and platform profiles.
-- `docs/`: deployment, operations, regulatory, and integration guides.
 
 ## Repository Structure
 
@@ -92,36 +87,25 @@ make serve
 # API: http://localhost:8000
 ```
 
-## Usage Examples
+## Release & Versioning
 
-### Train a baseline model
+- AgroLidar follows **Semantic Versioning**.
+- Canonical release metadata is kept in `VERSION`, `lidar_perception.__version__`, and `package.json`.
+- Changelog-first release discipline: see [CHANGELOG.md](CHANGELOG.md).
+- Release process: [docs/release-process.md](docs/release-process.md).
+- Pre-flight release checks: [docs/release-checklist.md](docs/release-checklist.md).
 
-```bash
-python scripts/train.py --config configs/train.yaml
-```
+## Documentation
 
-### Retrain with hard-case emphasis
+- **Docs home**: [docs/index.md](docs/index.md)
+- **MkDocs config**: [mkdocs.yml](mkdocs.yml)
+- **Getting Started**: [docs/getting-started.md](docs/getting-started.md)
+- **Architecture**: [docs/architecture.md](docs/architecture.md)
+- **Operations Manual**: [docs/OPERATIONS_MANUAL.md](docs/OPERATIONS_MANUAL.md)
+- **Safety & Limitations**: [docs/SAFETY_AND_LIMITATIONS.md](docs/SAFETY_AND_LIMITATIONS.md)
+- **Roadmap**: [docs/roadmap.md](docs/roadmap.md)
 
-```bash
-python scripts/retrain.py --config configs/retrain.yaml
-```
-
-### Compare candidate vs production
-
-```bash
-python scripts/compare_models.py \
-  --production-metrics outputs/reports/production_eval.json \
-  --candidate-metrics outputs/reports/eval_report.json
-```
-
-### Attempt controlled promotion
-
-```bash
-python scripts/promote_model.py \
-  --candidate-model outputs/candidates/<run>/checkpoints/best.pt \
-  --production-model outputs/checkpoints/best.pt \
-  --comparison-report outputs/reports/model_comparison.json
-```
+> After GitHub Pages is enabled, docs are published from the Pages workflow.
 
 ## Development
 
@@ -132,27 +116,11 @@ make test
 pre-commit run --all-files
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow, branch strategy, and PR quality expectations.
-
-## Documentation
-
-- [Documentation Home](docs/index.md)
-- [Getting Started](docs/getting-started.md)
-- [Architecture](docs/architecture.md)
-- [Usage Guide](docs/usage.md)
-- [Development Guide](docs/development.md)
-- [Roadmap](docs/roadmap.md)
-- [Operations Manual](docs/OPERATIONS_MANUAL.md)
-- [Safety and Limitations](docs/SAFETY_AND_LIMITATIONS.md)
-
-## Demo / Screenshots
-
-- Product demo placeholder: `docs/assets/demo.gif` (to be added once a stabilized demo capture is available).
-- API example payloads and workflows are documented in [docs/API_INTEGRATION_GUIDE.md](docs/API_INTEGRATION_GUIDE.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branch strategy, testing, and PR quality expectations.
 
 ## Project Status
 
-AgroLidar is in active development toward an enterprise-ready v1.0 release.
+AgroLidar is in active development toward an enterprise-ready `v1.0.0` release.
 
 - Current baseline line: `0.9.x`
 - Planned release discipline: Semantic Versioning + changelog-driven releases
@@ -160,18 +128,16 @@ AgroLidar is in active development toward an enterprise-ready v1.0 release.
 
 ## Security
 
-Please review [SECURITY.md](SECURITY.md) for vulnerability reporting and disclosure policy.
+Please review [SECURITY.md](SECURITY.md) for vulnerability reporting and disclosure expectations.
 
 ## Contributing
 
-Community and team contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+Community and team contributions are welcome. Start with:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [SECURITY.md](SECURITY.md)
 
 ## License
 
 This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
-
-## Organization Contact
-
-- GitHub: https://github.com/AgroLidar
-- Security: security@agro-lidar.com
-- General contact: contact@agro-lidar.com

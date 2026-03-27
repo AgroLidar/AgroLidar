@@ -5,9 +5,18 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   validate-release:
+    name: Validate Release Inputs
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,6 +25,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
@@ -23,20 +33,35 @@ jobs:
       - name: Run core tests
         run: pytest tests/ -q --tb=short
 
-      - name: Validate changelog has release section
+      - name: Validate changelog and release notes
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           grep -q "## \[$VERSION\]" CHANGELOG.md || { echo "Missing CHANGELOG entry for $VERSION"; exit 1; }
+          grep -q "Release date:" RELEASE_NOTES.md || { echo "RELEASE_NOTES.md must include release date"; exit 1; }
+
+      - name: Archive release metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-metadata-${{ github.ref_name }}
+          path: |
+            CHANGELOG.md
+            RELEASE_NOTES.md
+            VERSION
 
   create-github-release:
+    name: Publish GitHub Release
     needs: validate-release
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
           draft: false
           prerelease: false
+          generate_release_notes: true
+          body_path: RELEASE_NOTES.md

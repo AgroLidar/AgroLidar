@@ -1,23 +1,24 @@
-## Release Summary
+## AgroLidar vX.Y.Z
 
-- Version:
-- Release date:
-- Highlights:
+Release date: YYYY-MM-DD
 
-## Added
+### Highlights
+- 
 
--
+### Safety and governance changes
+- 
 
-## Changed
+### Developer and CI improvements
+- 
 
--
+### Documentation updates
+- 
 
-## Fixed
+### Upgrade notes
+- Breaking changes: `none` / describe
+- Migration steps: `none` / describe
 
--
-
-## Safety & Operations Notes
-
-- Safety gate policy updates:
-- Deployment compatibility notes:
-- Known limitations:
+### Verification evidence
+- CI workflow run:
+- Docs workflow run:
+- Security workflow run:

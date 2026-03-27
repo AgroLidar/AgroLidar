@@ -105,6 +105,6 @@ A quality PR should include:
 
 - AgroLidar follows Semantic Versioning.
 - Any breaking change must be clearly marked in PR title/body and documented in `CHANGELOG.md`.
-- For release prep, follow the release checklist in `docs/development.md`.
+- For release prep, follow `docs/release-process.md` and `docs/release-checklist.md`.
 
 We appreciate thoughtful contributions that improve safety, reliability, and operator trust.

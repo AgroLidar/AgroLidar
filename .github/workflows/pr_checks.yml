@@ -1,25 +1,36 @@
-name: PR Checks
+name: Pull Request Quality Gate
 
 on:
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   pr-quality-gate:
+    name: PR Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Checkout (full history)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
 
       - name: Install tools
         run: pip install pre-commit ruff pytest
@@ -34,7 +45,7 @@ jobs:
             exit 1
           fi
 
-      - name: Check no secrets in diff
+      - name: Check no secrets in diff (lightweight)
         run: |
           if git diff origin/main...HEAD | grep -iE "(api_key|secret|password|token)\s*=\s*['\"][^'\"]{8,}"; then
             echo "ERROR: Possible secret detected in diff."

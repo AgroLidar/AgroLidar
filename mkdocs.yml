@@ -4,6 +4,12 @@ site_url: https://agrolidar.github.io/AgroLidar/
 repo_url: https://github.com/AgroLidar/AgroLidar
 repo_name: AgroLidar/AgroLidar
 docs_dir: docs
+exclude_docs: /README.md
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
 
 theme:
   name: material
@@ -24,6 +30,28 @@ nav:
   - Architecture: architecture.md
   - Usage: usage.md
   - Development: development.md
-  - Roadmap: roadmap.md
-  - Safety & Limitations: SAFETY_AND_LIMITATIONS.md
   - Operations Manual: OPERATIONS_MANUAL.md
+  - Safety & Limitations: SAFETY_AND_LIMITATIONS.md
+  - Release Process: release-process.md
+  - Release Checklist: release-checklist.md
+  - Roadmap: roadmap.md
+  - Deployment:
+      - Installation & Commissioning: INSTALLATION_AND_COMMISSIONING.md
+      - Hardware Deployment Guide: HARDWARE_DEPLOYMENT_GUIDE.md
+      - Sensor Calibration: SENSOR_CALIBRATION.md
+      - Vehicle Compatibility Guide: VEHICLE_COMPATIBILITY_GUIDE.md
+      - Platform Adaptation Matrix: PLATFORM_ADAPTATION_MATRIX.md
+      - Reference Architectures: REFERENCE_ARCHITECTURES.md
+  - Integration:
+      - API Integration Guide: API_INTEGRATION_GUIDE.md
+      - Configuration Reference: CONFIGURATION_REFERENCE.md
+      - Data Schema: DATA_SCHEMA.md
+      - Sandbox & Demo Mode: SANDBOX_AND_DEMO_MODE.md
+  - Governance:
+      - Data Collection & Retraining: DATA_COLLECTION_AND_RETRAINING.md
+      - Regulatory & Compliance: REGULATORY_AND_COMPLIANCE.md
+      - Buyer Checklist: BUYER_CHECKLIST.md
+      - Project Changelog (docs): CHANGELOG.md
+      - Contributing (docs): CONTRIBUTING.md
+  - Assets:
+      - Assets README: assets/README.md

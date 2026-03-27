@@ -1,43 +1,54 @@
 ## Summary
 
-<!-- Describe what this PR changes and why. -->
+<!-- Explain the problem and what this PR changes. -->
 
-## Type of change
+## Change type
 
 - [ ] Bug fix
 - [ ] Feature
 - [ ] Documentation
-- [ ] CI/CD
+- [ ] CI/CD or tooling
 - [ ] Refactor
 - [ ] Breaking change
 
-## Validation
+## Scope
+
+- Affected areas:
+  - [ ] Training / evaluation pipeline
+  - [ ] Inference API / server
+  - [ ] Safety gate / promotion logic
+  - [ ] Docs / templates / governance
+  - [ ] Frontend / landing
+
+## Validation evidence
 
 - [ ] `make lint`
 - [ ] `make test`
-- [ ] `pre-commit run --all-files`
-- [ ] (If applicable) `npm run build`
-- [ ] (If applicable) safety/evaluation reports updated
+- [ ] `mkdocs build --strict` (if docs changed)
+- [ ] `npm run lint && npm run build` (if web changed)
+- [ ] Additional scenario checks (describe below)
 
-## Backward compatibility
+### Commands and outputs
 
-- [ ] No breaking changes
-- [ ] Breaking changes documented in `CHANGELOG.md` and migration guidance included
+```text
+# Paste concise command output or link CI job
+```
 
-## Documentation
+## Documentation and changelog
 
 - [ ] README/docs updated for behavior changes
-- [ ] API or config changes documented
+- [ ] `CHANGELOG.md` updated (or explicitly not required)
+- [ ] Migration notes added for any compatibility impact
 
-## Risk and safety impact
+## Security, safety, and compatibility
 
-- [ ] No safety impact
-- [ ] Safety-sensitive logic changed and reviewed
-- [ ] Promotion policy or threshold changed with rationale
+- [ ] No new security-sensitive surface introduced
+- [ ] Safety-sensitive logic changed and reviewed with rationale
+- [ ] Backward compatibility preserved, or breaking change clearly documented
 
-## Attachments
+## Screenshots / logs / artifacts (if relevant)
 
-- Relevant logs, screenshots, or report excerpts:
+<!-- Include UI screenshots, report paths, or API logs when helpful. -->
 
 ## Linked issues
 
