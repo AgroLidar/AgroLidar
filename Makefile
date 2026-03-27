@@ -1,7 +1,18 @@
-.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export
+.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export
 
 install:
 	pip install -r requirements.txt
+
+setup: install pre-commit-install
+
+pre-commit-install:
+	pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+
+pre-commit-run:
+	pre-commit run --all-files
+
+pre-commit-update:
+	pre-commit autoupdate
 
 lint:
 	@command -v ruff >/dev/null 2>&1 || pip install ruff

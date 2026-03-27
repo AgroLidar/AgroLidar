@@ -1,0 +1,10 @@
+# Por default, geromendez199 es owner de todo
+*                                   @geromendez199
+
+# Scripts críticos de safety requieren review explícita
+scripts/promote_model.py            @geromendez199
+scripts/evaluate.py                 @geromendez199
+configs/base.yaml                   @geromendez199
+
+# Inference server requiere review de seguridad
+inference_server/                   @geromendez199
