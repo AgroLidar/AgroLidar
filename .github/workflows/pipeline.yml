@@ -1,0 +1,157 @@
+name: Pipeline (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Pipeline mode to execute"
+        type: choice
+        options:
+          - full
+          - retrain-only
+          - evaluate-only
+        default: evaluate-only
+      candidate_tag:
+        description: "Optional candidate tag for targeted promotion"
+        required: false
+        type: string
+      dry_run:
+        description: "If true, avoid registry writes and destructive promotion actions"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  evaluate-only:
+    if: ${{ inputs.run_mode == 'evaluate-only' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies (CPU torch wheels)
+        run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+      - name: Evaluate model
+        run: python scripts/evaluate.py --config configs/base.yaml
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-reports
+          path: outputs/reports/
+          if-no-files-found: warn
+
+      - name: Pipeline Summary
+        if: always()
+        run: |
+          if [ -f outputs/registry/registry.json ]; then
+            echo "=== outputs/registry/registry.json ==="
+            cat outputs/registry/registry.json
+          else
+            echo "No registry summary found at outputs/registry/registry.json"
+          fi
+
+  retrain-only:
+    if: ${{ inputs.run_mode == 'retrain-only' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies (CPU torch wheels)
+        run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+      - name: Retrain candidate
+        run: python scripts/retrain.py --config configs/retrain.yaml
+
+      - name: Evaluate candidate
+        run: python scripts/evaluate.py --config configs/base.yaml
+
+      - name: Compare models
+        run: |
+          python scripts/compare_models.py \
+            --production-metrics outputs/reports/production_eval.json \
+            --candidate-metrics outputs/reports/eval_report.json \
+            --config configs/base.yaml \
+            --output outputs/reports/model_comparison.json \
+            --output-md outputs/reports/model_comparison.md
+
+      - name: Upload reports and candidates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-artifacts
+          path: |
+            outputs/reports/
+            outputs/candidates/
+          if-no-files-found: warn
+
+      - name: Pipeline Summary
+        if: always()
+        run: |
+          if [ -f outputs/registry/registry.json ]; then
+            echo "=== outputs/registry/registry.json ==="
+            cat outputs/registry/registry.json
+          else
+            echo "No registry summary found at outputs/registry/registry.json"
+          fi
+
+  full:
+    if: ${{ inputs.run_mode == 'full' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies (CPU torch wheels)
+        run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+      - name: Run full pipeline
+        run: |
+          CMD="python scripts/run_pipeline.py --config-dir configs/"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            CMD="$CMD --dry-run"
+          fi
+          if [ -n "${{ inputs.candidate_tag }}" ]; then
+            CMD="$CMD --candidate-tag ${{ inputs.candidate_tag }}"
+          fi
+          echo "Running: $CMD"
+          eval "$CMD"
+
+      - name: Upload pipeline outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-pipeline-outputs
+          path: outputs/
+          if-no-files-found: warn
+
+      - name: Pipeline Summary
+        if: always()
+        run: |
+          if [ -f outputs/registry/registry.json ]; then
+            echo "=== outputs/registry/registry.json ==="
+            cat outputs/registry/registry.json
+          else
+            echo "No registry summary found at outputs/registry/registry.json"
+          fi

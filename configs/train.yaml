@@ -1,12 +1,68 @@
+# Config mínima para entrenamiento.
+# Mantiene los campos solicitados y agrega aliases esperados por train.py/Trainer.
+
+# Hereda defaults de base para mantener consistencia.
 base_config: base.yaml
 
-training:
-  epochs: 12
-  early_stopping:
-    enabled: true
-    patience: 4
-    min_delta: 0.0005
+model:
+  # Campo solicitado: arquitectura lógica del experimento.
+  architecture: bev_detection
+  # Campos solicitados.
+  num_classes: 5
+  input_channels: 4
 
-outputs:
-  checkpoint_dir: outputs/checkpoints
-  metrics_dir: outputs/metrics
+  # Campos reales requeridos por build_model().
+  name: pointpillars_bev
+  in_channels: 6
+  base_channels: 32
+  num_segmentation_classes: 6
+
+training:
+  # Campo solicitado: número de épocas.
+  epochs: 50
+  # Campo solicitado: learning rate.
+  lr: 0.001
+  # Alias efectivo usado por Trainer.
+  learning_rate: 0.001
+  # Campo solicitado: batch size de entrenamiento (documental).
+  batch_size: 8
+  # Campo solicitado: ruta de checkpoints.
+  checkpoint_dir: outputs/checkpoints/
+
+  # Campos requeridos por Trainer.
+  weight_decay: 0.0001
+  mixed_precision: false
+  grad_clip_norm: 5.0
+  losses:
+    detection: 1.0
+    segmentation: 1.0
+    obstacle: 0.5
+
+data:
+  # Campo solicitado: directorio de train.
+  train_dir: data/train/
+  # Campo solicitado: directorio de val.
+  val_dir: data/val/
+  # Campo solicitado: batch size.
+  batch_size: 8
+
+  # Campos efectivos para el dataset actual.
+  dataset_type: synthetic_agriculture
+  root_dir: data/
+  train_size: 64
+  val_size: 24
+  num_workers: 0
+  num_points: 12000
+  point_cloud_range: [-35.0, -25.0, -4.0, 55.0, 25.0, 5.0]
+  grid_size: [160, 160]
+  max_objects: 24
+  class_names: [human, animal, rock, post, vehicle]
+  dangerous_classes: [human, animal, rock, post, vehicle]
+  segmentation_classes: [background, traversable_ground, vegetation, vehicle, human, obstacle]
+  augmentations:
+    enabled: true
+  preprocessing:
+    enabled: true
+
+# Campo solicitado: catálogo de clases principales.
+classes: [human, animal, rock, post, vehicle]
