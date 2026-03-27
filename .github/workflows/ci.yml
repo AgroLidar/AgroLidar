@@ -121,6 +121,29 @@ jobs:
       - name: Evaluate
         run: python scripts/evaluate.py --config configs/base.yaml
 
+      - name: Export and validate ONNX
+        run: |
+          python scripts/export_onnx.py \
+            --checkpoint outputs/checkpoints/best.pt \
+            --output outputs/onnx/model.onnx \
+            --validate --simplify
+          python scripts/validate_onnx.py \
+            --onnx-path outputs/onnx/model.onnx \
+            --checkpoint outputs/checkpoints/best.pt \
+            --n-samples 20
+
+      - name: Assert ONNX artifacts exist
+        run: |
+          test -f outputs/onnx/model.onnx
+          test -f outputs/onnx/export_metadata.json
+          python -c "
+          import json
+          m = json.load(open('outputs/onnx/export_metadata.json'))
+          assert m['validation_passed'], 'ONNX validation failed'
+          print(f'ONNX validated. Max diff: {m[\"max_output_diff\"]:.2e}')
+          print(f'ONNX speedup: {m[\"speedup_ratio\"]:.2f}x')
+          "
+
       - name: Export latest MLflow run id
         id: export_mlflow_run_id
         run: |
@@ -147,6 +170,13 @@ jobs:
           name: smoke-train-outputs
           path: outputs/
           retention-days: 7
+
+      - name: Upload ONNX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: onnx-model
+          path: outputs/onnx/
+          retention-days: 30
 
       - name: Upload MLflow runs
         uses: actions/upload-artifact@v4

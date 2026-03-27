@@ -10,6 +10,8 @@ model:
   config_path: configs/base.yaml
   device: cpu
   warmup_runs: 3
+  backend: pytorch
+  onnx_path: outputs/onnx/model.onnx
 
 limits:
   max_batch_size: 16

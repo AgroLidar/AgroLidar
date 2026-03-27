@@ -83,6 +83,8 @@ async def lifespan(app: FastAPI):
             warmup_runs=config.model.warmup_runs,
             p95_latency_threshold_ms=config.health.p95_latency_threshold_ms,
             min_healthy_inferences=config.health.min_healthy_inferences,
+            backend=config.model.backend,
+            onnx_path=config.model.onnx_path,
         )
         logger.info("Model loaded", extra={"model_version": app.state.predictor.model_version})
     except Exception as exc:
@@ -191,6 +193,8 @@ def model_info() -> dict[str, Any]:
         "classes": ["human", "animal", "rock", "post", "vehicle"],
         "input_shape": list(BEVPredictor.EXPECTED_SHAPE),
         "device": str(predictor.device),
+        "backend": predictor.backend,
+        "onnx_path": predictor.onnx_path if predictor.backend == "onnx" else None,
         "loaded_at": datetime.fromtimestamp(predictor.model_loaded_at, tz=timezone.utc).isoformat(),
     }
 

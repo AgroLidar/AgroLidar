@@ -1,4 +1,4 @@
-.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker
+.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export
 
 install:
 	pip install -r requirements.txt
@@ -64,3 +64,14 @@ serve-dev:
 serve-docker:
 	docker build -f Dockerfile.server -t agrolidar-server . && \
 	docker run -p 8000:8000 -v $(pwd)/outputs:/app/outputs agrolidar-server
+
+
+export-onnx:
+	python scripts/export_onnx.py --validate --benchmark
+
+validate-onnx:
+	python scripts/validate_onnx.py \
+		--onnx-path outputs/onnx/model.onnx \
+		--checkpoint outputs/checkpoints/best.pt
+
+full-export: export-onnx validate-onnx
