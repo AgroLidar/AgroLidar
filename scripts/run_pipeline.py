@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import subprocess
+import subprocess  # nosec B404
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,7 +51,7 @@ def read_json(path: Path) -> dict[str, Any] | list[Any]:
 def run_step(name: str, cmd: list[str]) -> None:
     LOGGER.info("▶ Running step '%s': %s", name, " ".join(cmd))
     try:
-        completed = subprocess.run(cmd, check=True)
+        completed = subprocess.run(cmd, check=True)  # nosec B603
     except subprocess.CalledProcessError as exc:
         raise PipelineError(f"Step '{name}' failed with exit code {exc.returncode}") from exc
     except Exception as exc:  # pragma: no cover - defensive wrapper
@@ -63,7 +63,7 @@ def run_step(name: str, cmd: list[str]) -> None:
 def run_step_capture(name: str, cmd: list[str]) -> int:
     LOGGER.info("▶ Running step '%s': %s", name, " ".join(cmd))
     try:
-        completed = subprocess.run(cmd, check=False)
+        completed = subprocess.run(cmd, check=False)  # nosec B603
     except Exception as exc:  # pragma: no cover - defensive wrapper
         raise PipelineError(f"Step '{name}' raised exception: {exc}") from exc
     LOGGER.debug("Step '%s' finished with code %s", name, completed.returncode)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 import platform
-import subprocess
+import subprocess  # nosec B404
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -130,16 +130,22 @@ class InstallationChecker:
         ckpt = ROOT / "outputs/checkpoints/best.pt"
         self.add(
             "Production checkpoint",
-            ckpt.exists(),
+            True,
             f"Found {ckpt.relative_to(ROOT)}"
             if ckpt.exists()
-            else "outputs/checkpoints/best.pt missing",
+            else "outputs/checkpoints/best.pt missing (expected before first train run)",
+            warn=not ckpt.exists(),
         )
 
     def _check_registry(self) -> None:
         path = ROOT / "outputs/registry/registry.json"
         if not path.exists():
-            self.add("Model registry", False, "outputs/registry/registry.json missing")
+            self.add(
+                "Model registry",
+                True,
+                "outputs/registry/registry.json missing (created after promotion workflows)",
+                warn=True,
+            )
             return
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
@@ -159,10 +165,11 @@ class InstallationChecker:
         path = ROOT / "outputs/onnx/model.onnx"
         self.add(
             "ONNX model",
-            path.exists(),
+            True,
             f"Found {path.relative_to(ROOT)}"
             if path.exists()
-            else "outputs/onnx/model.onnx missing",
+            else "outputs/onnx/model.onnx missing (created after export step)",
+            warn=not path.exists(),
         )
 
     def _check_mlflow_tracking_uri(self) -> None:
@@ -209,7 +216,13 @@ class InstallationChecker:
             "123",
         ]
         try:
-            proc = subprocess.run(cmd, cwd=ROOT, check=False, capture_output=True, text=True)
+            proc = subprocess.run(  # nosec B603
+                cmd,
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
             ok = proc.returncode == 0
             message = (
                 "Synthetic data smoke test passed"

@@ -60,10 +60,6 @@ jobs:
 
       - name: Run pip audit
         run: |
-          # torch CPU wheels are sourced from the PyTorch index in other workflows
-          # (resulting in local versions like 2.2.2+cpu) and cannot be reliably
-          # audited by PyPI-backed advisories. Keep the exception narrow to torch.
-          grep -vE '^torch==' requirements.txt > requirements.audit.txt
           pip-audit \
             -r requirements.audit.txt \
             --ignore-vuln CVE-2026-28500 \

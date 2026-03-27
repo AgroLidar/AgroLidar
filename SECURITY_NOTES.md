@@ -15,4 +15,4 @@ Project CI installs CPU-only PyTorch wheels from the official PyTorch package in
 
 - `https://download.pytorch.org/whl/cpu`
 
-Those wheels may resolve to local-version identifiers (for example `2.2.2+cpu`) that PyPI-backed audit resolution cannot map reliably. To avoid suppressing unrelated findings, the security workflow excludes **only** `torch` from the `pip-audit` requirements input instead of disabling the audit entirely.
+Those wheels may resolve to local-version identifiers (for example `2.2.2+cpu`) that PyPI-backed audit resolution cannot map reliably. To avoid suppressing unrelated findings, the security workflow uses `requirements.audit.txt` (which excludes **only** `torch`) as the `pip-audit` input instead of disabling the audit entirely.
