@@ -13,13 +13,9 @@
 
 # AgroLidar
 
-**AgroLidar is a production-minded LiDAR perception platform for agricultural machines**, designed for safety-oriented obstacle detection, model governance, and controlled continuous improvement from real-world field data.
+AgroLidar is a production-minded LiDAR perception platform for agricultural machines that unifies data generation, training, evaluation, safety gating, model promotion, and API serving so teams can ship safer field-ready models faster with traceable governance.
 
-It combines training, evaluation, model registry, safety gating, ONNX export, and API inference into a coherent operator-ready stack.
-
-AgroLidar helps teams move from prototype perception models to dependable field deployment by providing one workflow for data generation, training, evaluation, safety gating, promotion, and serving—so releases are faster, traceable, and safer.
-
-## Quickstart (first run)
+## Quickstart / First Run
 
 ### 1) Install Python dependencies
 
@@ -175,14 +171,3 @@ AgroLidar is in active development toward an enterprise-ready `v1.0.0` release.
 Please review [SECURITY.md](SECURITY.md) for vulnerability reporting and disclosure expectations.
 Dependency audit behavior (including `requirements.audit.txt` and narrow temporary advisory ignores) is documented in [SECURITY_NOTES.md](SECURITY_NOTES.md).
 
-## Contributing
-
-Community and team contributions are welcome. Start with:
-
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- [SECURITY.md](SECURITY.md)
-
-## License
-
-This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
