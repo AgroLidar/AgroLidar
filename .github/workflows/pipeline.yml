@@ -21,6 +21,9 @@ on:
         type: boolean
         default: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   evaluate-only:
     if: ${{ inputs.run_mode == 'evaluate-only' }}
