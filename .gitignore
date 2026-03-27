@@ -14,3 +14,5 @@ build/
 
 # env
 .env*
+mlruns/
+mlflow.db

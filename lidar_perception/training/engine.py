@@ -193,7 +193,7 @@ class Trainer:
         metrics["dangerous_class_aggregate_score"] = float(sum(dangerous_scores) / max(len(dangerous_scores), 1))
         return metrics
 
-    def fit(self, train_loader: DataLoader, val_loader: DataLoader) -> None:
+    def fit(self, train_loader: DataLoader, val_loader: DataLoader, epoch_end_callback=None) -> None:
         checkpoint_dir = Path(self.config["output_dir"]) / "checkpoints"
         metrics_dir = Path(self.config["output_dir"]) / "metrics"
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -221,6 +221,12 @@ class Trainer:
             record = {"epoch": epoch, "train": train_metrics, "val": val_metrics}
             with metrics_log.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps(record) + "\n")
+            if epoch_end_callback is not None:
+                try:
+                    current_lr = float(self.optimizer.param_groups[0]["lr"])
+                    epoch_end_callback(epoch=epoch, train_metrics=train_metrics, val_metrics=val_metrics, lr=current_lr)
+                except Exception:
+                    self.logger.exception("epoch_end_callback failed at epoch=%s", epoch)
 
             score = val_metrics["mAP"] + val_metrics["segmentation_iou"] + val_metrics["recall"] - val_metrics["dangerous_fnr"]
             checkpoint_metrics = dict(val_metrics)

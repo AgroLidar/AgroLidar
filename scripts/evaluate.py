@@ -9,12 +9,14 @@ if str(ROOT) not in sys.path:
 
 import argparse
 import json
+from datetime import datetime, timezone
 
 from torch.utils.data import DataLoader
 import torch
 
 from lidar_perception.data.datasets import build_dataset, collate_fn
 from lidar_perception.models.factory import build_model
+from lidar_perception.tracking import MLflowTracker, flatten_dict
 from lidar_perception.training.engine import Trainer, maybe_load_weights
 from lidar_perception.utils.config import load_config
 from lidar_perception.utils.logging import setup_logger
@@ -66,6 +68,8 @@ def render_markdown(metrics: dict) -> str:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    tracker = MLflowTracker("configs/mlflow.yaml")
+    run_name = f"eval_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     if "training" not in config:
         config["training"] = {"learning_rate": 1e-3, "weight_decay": 0.0, "mixed_precision": False}
     else:
@@ -107,6 +111,24 @@ def main() -> None:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     md_path.write_text(render_markdown(metrics), encoding="utf-8")
+
+    with tracker.start_run(run_name=run_name, tags={"run_type": "evaluation"}):
+        latest_train_run = tracker.latest_run_id(run_type="training")
+        if latest_train_run:
+            tracker.set_tag("train_run_id", latest_train_run)
+        tracker.log_params(flatten_dict(config))
+        eval_metrics = {}
+        for key, value in metrics.items():
+            if isinstance(value, (int, float)):
+                eval_metrics[f"eval/{key}"] = float(value)
+        tracker.log_metrics(eval_metrics)
+        if "dangerous_fnr" in metrics:
+            tracker.log_metric("eval/dangerous_fnr", float(metrics["dangerous_fnr"]))
+        tracker.log_eval_report(json_path)
+        tracker.log_eval_report(md_path)
+        model_tag = str(config.get("model_tag", config.get("evaluation", {}).get("model_tag", "candidate")))
+        tracker.set_tag("model_tag", model_tag)
+        tracker.end_run("FINISHED")
 
     print(f"evaluation_saved_json={json_path} evaluation_saved_md={md_path} checkpoint={checkpoint}")
 

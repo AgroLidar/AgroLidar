@@ -1,4 +1,4 @@
-.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline
+.PHONY: install lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list
 
 install:
 	pip install -r requirements.txt
@@ -48,3 +48,9 @@ promote:
 		--comparison-report outputs/reports/model_comparison.json
 
 pipeline: train retrain evaluate compare promote
+
+mlflow-ui:
+	bash scripts/mlflow_ui.sh
+
+mlflow-list:
+	mlflow runs list --experiment-name agrolidar-bev-detection

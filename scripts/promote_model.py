@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timezone
 
 from lidar_perception.registry.model_registry import ModelRegistry
+from lidar_perception.tracking import MLflowTracker
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,6 +36,8 @@ def _latest_with_checkpoint(entries: list[dict], checkpoint: str, status: str | 
 def main() -> None:
     args = parse_args()
     report = json.loads(Path(args.comparison_report).read_text(encoding="utf-8"))
+    tracker = MLflowTracker("configs/mlflow.yaml")
+    run_name = f"promotion_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
     registry = ModelRegistry(args.registry_dir)
     entries = registry.list_entries()
@@ -85,6 +88,27 @@ def main() -> None:
 
     Path(args.registry_dir).mkdir(parents=True, exist_ok=True)
     (Path(args.registry_dir) / "registry.json").write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+
+    with tracker.start_run(run_name=run_name, tags={"run_type": "promotion"}):
+        tracker.log_params(
+            {
+                "candidate_tag": args.candidate_model,
+                "production_tag": args.production_model,
+                "timestamp": now,
+            }
+        )
+        candidate_metrics = report.get("candidate", {})
+        production_metrics = report.get("production", {})
+        delta_metrics = {}
+        for key, candidate_value in candidate_metrics.items():
+            production_value = production_metrics.get(key)
+            if isinstance(candidate_value, (int, float)) and isinstance(production_value, (int, float)):
+                delta_metrics[f"delta/{key}"] = float(candidate_value) - float(production_value)
+        tracker.log_metrics(delta_metrics)
+        tracker.set_tag("promotion_decision", decision)
+        tracker.log_artifact(args.comparison_report, artifact_path="reports")
+        tracker.end_run("FINISHED")
+
     print(f"promotion_decision={decision} registry={Path(args.registry_dir) / 'registry.json'}")
 
 

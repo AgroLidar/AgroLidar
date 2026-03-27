@@ -90,6 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint-and-test
     if: github.ref == 'refs/heads/main'
+    outputs:
+      mlflow_run_id: ${{ steps.export_mlflow_run_id.outputs.mlflow_run_id }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -119,6 +121,11 @@ jobs:
       - name: Evaluate
         run: python scripts/evaluate.py --config configs/base.yaml
 
+      - name: Export latest MLflow run id
+        id: export_mlflow_run_id
+        run: |
+          echo "mlflow_run_id=$(python scripts/get_latest_run_id.py)" >> $GITHUB_OUTPUT
+
       - name: Assert artifacts and report schema
         run: |
           test -f outputs/checkpoints/best.pt
@@ -140,3 +147,10 @@ jobs:
           name: smoke-train-outputs
           path: outputs/
           retention-days: 7
+
+      - name: Upload MLflow runs
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-runs
+          path: mlruns/
+          retention-days: 30
