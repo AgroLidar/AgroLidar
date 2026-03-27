@@ -1,0 +1,7 @@
+confidence_threshold: 0.35
+iou_threshold: 0.50
+dangerous_classes:
+  - human
+  - animal
+max_cases_per_run: 250
+min_distance_error: 2.0

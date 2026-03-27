@@ -1,4 +1,4 @@
-.PHONY: install lint test train retrain evaluate compare promote pipeline
+.PHONY: install lint test train mine queue full-loop retrain evaluate compare promote pipeline
 
 install:
 	pip install -r requirements.txt
@@ -12,6 +12,15 @@ test:
 
 train:
 	python scripts/train.py --config configs/train.yaml
+
+
+mine:
+	python scripts/mine_hard_cases.py --inference-dir outputs/inference/
+
+queue:
+	python scripts/build_review_queue.py
+
+full-loop: mine queue retrain evaluate compare promote
 
 retrain:
 	python scripts/retrain.py --config configs/retrain.yaml
