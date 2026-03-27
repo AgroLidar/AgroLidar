@@ -1,51 +1,46 @@
 # Repository Admin TODO (GitHub UI)
 
-These settings cannot be fully configured from code and should be applied in the GitHub repository settings.
+These settings require GitHub repository admin permissions and cannot be fully enforced from code.
 
-## Recommended repository description
+## 1) Repository metadata
 
-`Safety-first LiDAR perception and model governance stack for agricultural machines.`
+- **Description:** `Safety-first LiDAR perception and model-governance stack for agricultural machines.`
+- **Homepage URL:** `https://agrolidar.github.io/AgroLidar/`
+- **Topics:** `lidar`, `agritech`, `perception`, `autonomous-systems`, `pytorch`, `fastapi`, `onnx`, `safety-critical`, `mlops`
+- **Social preview image:** use `assets/logo.png` (or a 1280x640 derivative with subtitle)
 
-## Recommended homepage
+## 2) GitHub Pages
 
-- GitHub Pages docs (after enabling Pages): `https://agrolidar.github.io/AgroLidar/`
+- In **Settings → Pages**, ensure source is **GitHub Actions**.
+- Confirm first successful run of workflow **Docs Pages Deployment** publishes site URL.
 
-## Suggested topics
+## 3) Branch protection for `main`
 
-- lidar
-- agritech
-- perception
-- autonomous-systems
-- pytorch
-- fastapi
-- onnx
-- machine-learning
-- safety-critical
-- mlops
+Recommended required checks:
 
-## Social preview suggestion
+- `Python Quality (3.11)`
+- `Landing Build (Node 20)`
+- `MkDocs Strict Build`
+- `Secret Scan (Gitleaks)`
+- `Dependency Audit`
+- `Repository Hygiene / hygiene`
 
-Use `assets/logo.png` with a neutral dark background and subtitle:
-`AgroLidar · Safety-first field perception`.
+Recommended rule settings:
 
-## Branch protection
-
-- Protect `main`
-- Require PR reviews (>=1)
-- Require status checks:
-  - CI
-  - Docs
-  - Repository Hygiene
-- Require up-to-date branches before merge
+- Require pull request before merging (>=1 review)
+- Require status checks to pass before merging
+- Require branches to be up to date
 - Restrict force pushes and deletions
+- Require conversation resolution before merge
 
-## Merge strategy recommendation
+## 4) Merge strategy
 
-- Allow squash merge (default)
-- Disable merge commits for cleaner history
-- Optionally allow rebase merge for advanced contributors
+- Enable **Squash merge** (default)
+- Optionally enable **Rebase merge**
+- Disable merge commits for linear history
+- Optionally enable auto-merge after required checks pass
 
-## Release naming convention
+## 5) Releases
 
-- Tags: `vMAJOR.MINOR.PATCH` (e.g., `v1.0.0`)
-- GitHub release title: `AgroLidar vMAJOR.MINOR.PATCH`
+- Enforce tag naming convention: `vMAJOR.MINOR.PATCH`
+- Use release title format: `AgroLidar vMAJOR.MINOR.PATCH`

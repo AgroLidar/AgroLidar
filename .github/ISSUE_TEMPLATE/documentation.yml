@@ -1,7 +1,7 @@
 name: Documentation improvement
-description: Suggest improvements for docs clarity, accuracy, or onboarding
+description: Report unclear, outdated, or missing documentation
 title: "[Docs] "
-labels: ["documentation"]
+labels: ["documentation", "needs-triage"]
 body:
   - type: input
     id: location
@@ -13,12 +13,27 @@ body:
   - type: textarea
     id: issue
     attributes:
-      label: What is unclear or incorrect?
+      label: What is wrong or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: audience
+    attributes:
+      label: Who is impacted?
+      placeholder: "New integrators, deployment engineers, maintainers"
     validations:
       required: true
   - type: textarea
     id: recommendation
     attributes:
-      label: Proposed improvement
+      label: Suggested update
+      description: Provide proposed text, structure, or examples if possible.
     validations:
       required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Validation
+      options:
+        - label: I verified this issue is not already covered in docs/index.md.
+          required: true

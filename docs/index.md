@@ -11,6 +11,8 @@ AgroLidar is a LiDAR perception platform for agricultural machines with emphasis
 - [Architecture](architecture.md)
 - [Development](development.md)
 - [Roadmap](roadmap.md)
+- [Release Process](release-process.md)
+- [Release Checklist](release-checklist.md)
 
 ## Extended Product Documentation
 

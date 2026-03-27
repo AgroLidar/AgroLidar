@@ -8,12 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Community health, governance, and contributor onboarding files.
-- Expanded CI/CD workflows for repository hygiene, documentation, and release readiness.
-- Structured docs navigation pages for architecture, usage, and roadmap.
+- Release checklist (`docs/release-checklist.md`) and release process guide (`docs/release-process.md`).
+- GitHub Pages deployment workflow for MkDocs (`.github/workflows/docs-pages.yml`).
+- Expanded community templates and issue form governance for support routing and higher quality reports.
+- Security hardening workflow with gitleaks and dependency audits.
 
 ### Changed
-- README rewritten as a product-grade landing page with technical onboarding.
+- Standardized version metadata (`VERSION`, `lidar_perception.__version__`, `package.json`).
+- Hardened CI workflows with explicit permissions, concurrency controls, and clearer workflow names.
+- Improved release automation with changelog/release-note validation and immutable release checks.
 
 ## [0.9.0] - 2026-03-27
 
@@ -22,3 +25,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inference server and ML pipeline scripts for training, retraining, ONNX export, and validation.
 - Operations and deployment documentation for field and enterprise integration.
 
+[Unreleased]: https://github.com/AgroLidar/AgroLidar/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/AgroLidar/AgroLidar/releases/tag/v0.9.0

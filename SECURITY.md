@@ -1,6 +1,6 @@
 # Security Policy
 
-AgroLidar includes safety-critical perception components. We treat security and model integrity issues as high-priority defects.
+AgroLidar includes safety-critical perception components. Security, model integrity, and promotion-governance flaws are treated as high-priority defects.
 
 ## Supported Versions
 
@@ -11,35 +11,36 @@ AgroLidar includes safety-critical perception components. We treat security and 
 
 ## Reporting a Vulnerability
 
-Please report vulnerabilities privately by emailing **security@agro-lidar.com**.
+Report vulnerabilities privately to **security@agro-lidar.com**.
 
-Include, when possible:
+Please include:
 
 - affected component(s)
-- impact summary
+- impact summary (confidentiality / integrity / availability / safety)
 - reproduction steps or proof-of-concept
-- potential mitigations
+- mitigations or containment actions attempted
 
 > Do **not** disclose vulnerabilities publicly before a fix is available.
 
-## Response Expectations
+## Response SLO
 
 - **Acknowledgement:** within 72 hours
 - **Initial triage:** within 7 calendar days
 - **Status updates:** at least every 14 days until resolution
-- **Coordinated disclosure target:** after patch availability and downstream notice window
+- **Disclosure target:** coordinated disclosure after patch availability and downstream notice window
 
-## Security Scope Priorities
+## Scope Priorities
 
 - inference server authentication/authorization gaps
 - model checkpoint integrity and registry tampering
-- API abuse, rate limiting bypass, or denial-of-service vectors
+- API abuse, rate-limit bypass, or denial-of-service vectors
 - unsafe deserialization / untrusted input execution paths
 - secrets handling and credential exposure
+- CI/CD supply-chain compromise (actions, dependencies, build pipeline)
 
 ## Out of Scope
 
 - social engineering attacks without a software defect
 - physical attacks against customer hardware
 - known vulnerabilities in unsupported versions
-- vulnerabilities in third-party packages without AgroLidar-specific exploit path (please report upstream as well)
+- vulnerabilities in third-party packages without AgroLidar-specific exploit path (report upstream as well)

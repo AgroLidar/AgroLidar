@@ -1,4 +1,4 @@
-.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export safety-check regression-report registry-status check-install
+.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test docs-build docs-serve generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export safety-check regression-report registry-status check-install
 
 install:
 	pip install -r requirements.txt
@@ -20,6 +20,13 @@ lint:
 
 test:
 	python -m pytest tests/ -v
+
+
+docs-build:
+	mkdocs build --strict
+
+docs-serve:
+	mkdocs serve
 
 train:
 	python scripts/train.py --config configs/train.yaml

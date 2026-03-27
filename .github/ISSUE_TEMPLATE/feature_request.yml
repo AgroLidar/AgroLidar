@@ -1,20 +1,42 @@
 name: Feature request
-description: Propose a meaningful product, modeling, or developer-experience enhancement
+description: Propose a meaningful product, modeling, platform, or developer-experience enhancement
 title: "[Feature] "
-labels: ["enhancement"]
+labels: ["enhancement", "needs-triage"]
 body:
   - type: textarea
     id: problem
     attributes:
       label: Problem statement
       description: What user or engineering problem are we solving?
+      placeholder: "Manual promotion review is too slow for weekly model updates."
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
       label: Proposed solution
-      description: Describe behavior, interfaces, and scope.
+      description: Describe expected behavior, interfaces, and boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List objective conditions for completion.
+      placeholder: |
+        - [ ] New promotion command supports dry-run preview
+        - [ ] Gate decision output includes model lineage metadata
+        - [ ] Regression tests cover failure path
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Training / Retraining
+        - Inference API
+        - Safety gate and policy
+        - Docs / Developer Experience
+        - CI/CD / Release
     validations:
       required: true
   - type: textarea
@@ -22,7 +44,7 @@ body:
     attributes:
       label: Alternatives considered
   - type: textarea
-    id: impact
+    id: risks
     attributes:
-      label: Expected impact
-      description: Quality, performance, safety, maintainability, or adoption impact.
+      label: Risk and compatibility notes
+      description: Include migration impact, breaking changes, and safety implications.
