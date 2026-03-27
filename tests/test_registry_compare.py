@@ -43,5 +43,9 @@ def test_compare_models_blocks_when_dangerous_class_recall_drops():
         "recall_human": 0.73,
         "recall_animal": 0.74,
     }
-    report = compare_models(production, candidate, cfg={"min_dangerous_class_recall_gain": 0.0, "dangerous_classes": ["human", "animal"]})
+    report = compare_models(
+        production,
+        candidate,
+        cfg={"min_dangerous_class_recall_gain": 0.0, "dangerous_classes": ["human", "animal"]},
+    )
     assert report["promote"] is False

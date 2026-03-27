@@ -10,9 +10,19 @@ import yaml
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build human review queue from mined hard cases")
-    parser.add_argument("--hard-cases-dir", default="data/hard_cases/", help="Directory with mined hard-case JSON files")
-    parser.add_argument("--output-dir", default="data/review_queue/", help="Directory to write review queue artifacts")
-    parser.add_argument("--config", default="configs/mining.yaml", help="Mining configuration YAML path")
+    parser.add_argument(
+        "--hard-cases-dir",
+        default="data/hard_cases/",
+        help="Directory with mined hard-case JSON files",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="data/review_queue/",
+        help="Directory to write review queue artifacts",
+    )
+    parser.add_argument(
+        "--config", default="configs/mining.yaml", help="Mining configuration YAML path"
+    )
     return parser.parse_args()
 
 

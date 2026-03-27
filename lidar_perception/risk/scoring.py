@@ -28,8 +28,20 @@ class HazardScorer:
         speed_factor = min(1.4, 1.0 + ctx.vehicle_speed_mps / 12.0)
         ttc_factor = 1.0
         if ctx.time_to_collision_s is not None:
-            ttc_factor = 1.35 if ctx.time_to_collision_s < 2.0 else (1.15 if ctx.time_to_collision_s < 4.0 else 1.0)
-        score = class_weight * ctx.confidence * (0.4 + 0.6 * distance_factor) * corridor_factor * track_factor * speed_factor * ttc_factor
+            ttc_factor = (
+                1.35
+                if ctx.time_to_collision_s < 2.0
+                else (1.15 if ctx.time_to_collision_s < 4.0 else 1.0)
+            )
+        score = (
+            class_weight
+            * ctx.confidence
+            * (0.4 + 0.6 * distance_factor)
+            * corridor_factor
+            * track_factor
+            * speed_factor
+            * ttc_factor
+        )
         return float(max(0.0, min(score, 1.0)))
 
     @staticmethod

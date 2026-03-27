@@ -34,7 +34,9 @@ class PointCloudAugmentor:
             terrain_jitter_std=float(config.get("terrain_jitter_std", 0.03)),
         )
 
-    def __call__(self, points: np.ndarray, boxes: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray | None]:
+    def __call__(
+        self, points: np.ndarray, boxes: np.ndarray | None = None
+    ) -> tuple[np.ndarray, np.ndarray | None]:
         if not self.config.enabled:
             return points, boxes
 
@@ -49,12 +51,18 @@ class PointCloudAugmentor:
         scale = np.random.uniform(self.config.scale_range[0], self.config.scale_range[1])
         augmented[:, :3] *= scale
 
-        translation = np.random.normal(0.0, self.config.translation_std, size=(1, 3)).astype(np.float32)
+        translation = np.random.normal(0.0, self.config.translation_std, size=(1, 3)).astype(
+            np.float32
+        )
         augmented[:, :3] += translation
-        augmented[:, 2] += np.random.normal(0.0, self.config.terrain_jitter_std, size=(augmented.shape[0],)).astype(np.float32)
+        augmented[:, 2] += np.random.normal(
+            0.0, self.config.terrain_jitter_std, size=(augmented.shape[0],)
+        ).astype(np.float32)
 
         if augmented.shape[1] > 3:
-            augmented[:, 3] += np.random.normal(0.0, self.config.intensity_noise_std, size=(augmented.shape[0],)).astype(np.float32)
+            augmented[:, 3] += np.random.normal(
+                0.0, self.config.intensity_noise_std, size=(augmented.shape[0],)
+            ).astype(np.float32)
             augmented[:, 3] = np.clip(augmented[:, 3], 0.0, 1.0)
 
         if np.random.rand() < self.config.weather_attenuation_prob:

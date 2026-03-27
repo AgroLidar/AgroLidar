@@ -6,7 +6,9 @@ import numpy as np
 import torch
 
 
-def measure_latency(model: torch.nn.Module, sample: torch.Tensor, device: torch.device, warmup: int, iterations: int) -> dict[str, float]:
+def measure_latency(
+    model: torch.nn.Module, sample: torch.Tensor, device: torch.device, warmup: int, iterations: int
+) -> dict[str, float]:
     model.eval()
     with torch.no_grad():
         for _ in range(warmup):

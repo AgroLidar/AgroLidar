@@ -8,7 +8,9 @@ from lidar_perception.models.heads import DetectionHead, ObstacleHead, Segmentat
 
 
 class MultiTaskLiDARNet(nn.Module):
-    def __init__(self, in_channels: int, base_channels: int, num_classes: int, num_segmentation_classes: int):
+    def __init__(
+        self, in_channels: int, base_channels: int, num_classes: int, num_segmentation_classes: int
+    ):
         super().__init__()
         self.backbone = BEVBackbone(in_channels=in_channels, base_channels=base_channels)
         head_channels = base_channels * 2

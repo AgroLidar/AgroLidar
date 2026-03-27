@@ -17,9 +17,17 @@ class PipelineError(RuntimeError):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run full AgroLidar training-to-promotion pipeline")
-    parser.add_argument("--config-dir", default="configs", help="Directory containing train.yaml/retrain.yaml/eval.yaml")
-    parser.add_argument("--dry-run", action="store_true", help="Run pipeline without promotion/registry writes")
+    parser = argparse.ArgumentParser(
+        description="Run full AgroLidar training-to-promotion pipeline"
+    )
+    parser.add_argument(
+        "--config-dir",
+        default="configs",
+        help="Directory containing train.yaml/retrain.yaml/eval.yaml",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Run pipeline without promotion/registry writes"
+    )
     parser.add_argument(
         "--candidate-tag",
         default=None,
@@ -57,7 +65,9 @@ def summarize_train(metrics_jsonl: Path) -> None:
         LOGGER.info("train summary unavailable (missing %s)", metrics_jsonl)
         return
 
-    lines = [line for line in metrics_jsonl.read_text(encoding="utf-8").splitlines() if line.strip()]
+    lines = [
+        line for line in metrics_jsonl.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
     if not lines:
         LOGGER.info("train summary unavailable (%s is empty)", metrics_jsonl)
         return
@@ -169,17 +179,23 @@ def main() -> int:
         candidate_output_dir = Path(str(retrain_meta.get("candidate_output_dir", "")))
         candidate_checkpoint = candidate_output_dir / "checkpoints" / "best.pt"
         if args.candidate_tag:
-            tagged_candidate = Path("outputs/candidates") / args.candidate_tag / "checkpoints" / "best.pt"
+            tagged_candidate = (
+                Path("outputs/candidates") / args.candidate_tag / "checkpoints" / "best.pt"
+            )
             if not tagged_candidate.exists():
                 raise PipelineError(f"Requested candidate tag not found: {tagged_candidate}")
             candidate_checkpoint = tagged_candidate
             LOGGER.info("using tagged candidate checkpoint: %s", candidate_checkpoint)
         if not candidate_checkpoint.exists():
-            raise PipelineError(f"Candidate checkpoint not found after retrain: {candidate_checkpoint}")
+            raise PipelineError(
+                f"Candidate checkpoint not found after retrain: {candidate_checkpoint}"
+            )
 
         production_checkpoint = Path("outputs/checkpoints/best.pt")
         if not production_checkpoint.exists():
-            raise PipelineError(f"Production checkpoint not found after train: {production_checkpoint}")
+            raise PipelineError(
+                f"Production checkpoint not found after train: {production_checkpoint}"
+            )
 
         production_metrics_path = Path("outputs/reports/production_eval.json")
         run_step(
@@ -197,7 +213,9 @@ def main() -> int:
         summarize_evaluate(candidate_metrics_path, "candidate")
 
         if not production_metrics_path.exists():
-            LOGGER.info("production metrics not found at %s; generating now", production_metrics_path)
+            LOGGER.info(
+                "production metrics not found at %s; generating now", production_metrics_path
+            )
             run_step(
                 "evaluate",
                 [
@@ -212,7 +230,9 @@ def main() -> int:
             eval_report_path = Path("outputs/reports/eval_report.json")
             if eval_report_path.exists():
                 production_metrics_path.parent.mkdir(parents=True, exist_ok=True)
-                production_metrics_path.write_text(eval_report_path.read_text(encoding="utf-8"), encoding="utf-8")
+                production_metrics_path.write_text(
+                    eval_report_path.read_text(encoding="utf-8"), encoding="utf-8"
+                )
             summarize_evaluate(production_metrics_path, "production")
 
         run_step(
@@ -253,7 +273,9 @@ def main() -> int:
                     "outputs/registry",
                 ],
             )
-            promoted_entry = summarize_promote(Path("outputs/registry/registry.json"), str(candidate_checkpoint))
+            promoted_entry = summarize_promote(
+                Path("outputs/registry/registry.json"), str(candidate_checkpoint)
+            )
 
     except PipelineError as exc:
         LOGGER.error("pipeline failed: %s", exc)
@@ -267,7 +289,9 @@ def main() -> int:
         LOGGER.info("pipeline completed but could not determine promoted entry")
         return 0
 
-    promoted_metrics = promoted_entry.get("metrics", {}) if isinstance(promoted_entry.get("metrics"), dict) else {}
+    promoted_metrics = (
+        promoted_entry.get("metrics", {}) if isinstance(promoted_entry.get("metrics"), dict) else {}
+    )
     timestamp = promoted_entry.get("timestamp") or datetime.now(timezone.utc).isoformat()
     model_tag = promoted_entry.get("version") or promoted_entry.get("checkpoint")
     LOGGER.info(

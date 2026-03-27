@@ -129,7 +129,15 @@ def test_predict_invalid_base64_returns_422(client: TestClient):
 def test_predict_response_has_required_fields(client: TestClient):
     response = client.post("/predict", json=_payload())
     body = response.json()
-    required = {"frame_id", "timestamp", "detections", "inference_time_ms", "model_version", "dangerous_objects", "collision_risk"}
+    required = {
+        "frame_id",
+        "timestamp",
+        "detections",
+        "inference_time_ms",
+        "model_version",
+        "dangerous_objects",
+        "collision_risk",
+    }
     assert required.issubset(body.keys())
 
 

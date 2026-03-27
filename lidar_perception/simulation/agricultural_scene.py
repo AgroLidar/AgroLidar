@@ -74,17 +74,25 @@ class AgriculturalSceneGenerator:
         intensity = self.rng.uniform(0.0, 0.3, size=(count, 1)).astype(np.float32)
         return np.concatenate([xyz, intensity], axis=1)
 
-    def _sample_object_points(self, center: np.ndarray, size: tuple[float, float, float], yaw: float, count: int) -> np.ndarray:
+    def _sample_object_points(
+        self, center: np.ndarray, size: tuple[float, float, float], yaw: float, count: int
+    ) -> np.ndarray:
         dx, dy, dz = size
-        local = self.rng.uniform([-dx / 2, -dy / 2, -dz / 2], [dx / 2, dy / 2, dz / 2], size=(count, 3)).astype(np.float32)
-        rotation = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]], dtype=np.float32)
+        local = self.rng.uniform(
+            [-dx / 2, -dy / 2, -dz / 2], [dx / 2, dy / 2, dz / 2], size=(count, 3)
+        ).astype(np.float32)
+        rotation = np.array(
+            [[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]], dtype=np.float32
+        )
         local[:, :2] = local[:, :2] @ rotation.T
         local[:, :3] += center[None, :]
         local[:, 2] += self._terrain_height(local[:, 0], local[:, 1])
         intensity = self.rng.uniform(0.45, 1.0, size=(count, 1)).astype(np.float32)
         return np.concatenate([local, intensity], axis=1)
 
-    def generate(self, num_points: int, max_objects: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def generate(
+        self, num_points: int, max_objects: int
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         vegetation_density = float(self.simulation.get("vegetation_density", 0.25))
         ground_count = int(num_points * 0.48)
         vegetation_count = int(num_points * vegetation_density)

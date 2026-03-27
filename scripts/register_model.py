@@ -20,7 +20,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--metrics", required=True)
-    parser.add_argument("--status", choices=["candidate", "production", "archived"], default="candidate")
+    parser.add_argument(
+        "--status", choices=["candidate", "production", "archived"], default="candidate"
+    )
     parser.add_argument("--version", required=True)
     parser.add_argument("--dataset-manifest", default="data/manifests/train_manifest.json")
     parser.add_argument("--notes", default="")
@@ -32,7 +34,15 @@ def main() -> None:
     cfg = load_config(args.config)
     metrics = json.loads(Path(args.metrics).read_text(encoding="utf-8"))
     registry = ModelRegistry("outputs/registry")
-    entry = new_entry(args.version, args.status, args.checkpoint, cfg, args.dataset_manifest, metrics, notes=args.notes)
+    entry = new_entry(
+        args.version,
+        args.status,
+        args.checkpoint,
+        cfg,
+        args.dataset_manifest,
+        metrics,
+        notes=args.notes,
+    )
     created = registry.add(entry)
     print(json.dumps(created, indent=2))
 

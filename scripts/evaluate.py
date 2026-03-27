@@ -37,25 +37,60 @@ def _resolve_checkpoint(config: dict, checkpoint_arg: str | None) -> str:
     if checkpoint_arg:
         return checkpoint_arg
     output_dir = Path(config.get("output_dir", "outputs"))
-    for candidate in [output_dir / "checkpoints" / "best.pt", output_dir / "checkpoints" / "latest.pt"]:
+    for candidate in [
+        output_dir / "checkpoints" / "best.pt",
+        output_dir / "checkpoints" / "latest.pt",
+    ]:
         if candidate.exists():
             return str(candidate)
 
-    candidate_runs = sorted((output_dir / "candidates").glob("*/checkpoints/best.pt"), key=lambda p: p.stat().st_mtime, reverse=True)
+    candidate_runs = sorted(
+        (output_dir / "candidates").glob("*/checkpoints/best.pt"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
     if candidate_runs:
         return str(candidate_runs[0])
 
-    raise FileNotFoundError("No checkpoint provided and no default checkpoint found under outputs/checkpoints or outputs/candidates")
+    raise FileNotFoundError(
+        "No checkpoint provided and no default checkpoint found under outputs/checkpoints or outputs/candidates"
+    )
 
 
 def render_markdown(metrics: dict) -> str:
-    lines = ["# AgroLidar Evaluation Report", "", "## Core Metrics", "", "| Metric | Value |", "|---|---:|"]
-    for key in ["mAP", "precision", "recall", "dangerous_fnr", "dangerous_class_aggregate_score", "segmentation_iou", "distance_mae", "latency_ms", "fps", "robustness_gap"]:
+    lines = [
+        "# AgroLidar Evaluation Report",
+        "",
+        "## Core Metrics",
+        "",
+        "| Metric | Value |",
+        "|---|---:|",
+    ]
+    for key in [
+        "mAP",
+        "precision",
+        "recall",
+        "dangerous_fnr",
+        "dangerous_class_aggregate_score",
+        "segmentation_iou",
+        "distance_mae",
+        "latency_ms",
+        "fps",
+        "robustness_gap",
+    ]:
         if key in metrics:
             value = metrics[key]
-            lines.append(f"| {key} | {value:.6f} |" if isinstance(value, float) else f"| {key} | {value} |")
+            lines.append(
+                f"| {key} | {value:.6f} |" if isinstance(value, float) else f"| {key} | {value} |"
+            )
 
-    lines += ["", "## Safety-Critical Per-Class Metrics", "", "| Class | Recall | FNR | Precision | Distance Error |", "|---|---:|---:|---:|---:|"]
+    lines += [
+        "",
+        "## Safety-Critical Per-Class Metrics",
+        "",
+        "| Class | Recall | FNR | Precision | Distance Error |",
+        "|---|---:|---:|---:|---:|",
+    ]
     for cls in SAFETY_CLASSES:
         rec = metrics.get(f"recall_{cls}", 0.0)
         fnr = metrics.get(f"fnr_{cls}", 1.0)
@@ -78,7 +113,9 @@ def main() -> None:
         config["training"].setdefault("mixed_precision", False)
     split = args.split or config.get("evaluation", {}).get("split", "test")
     checkpoint = _resolve_checkpoint(config, args.checkpoint)
-    device = torch.device("cuda" if config.get("device") == "cuda" and torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda" if config.get("device") == "cuda" and torch.cuda.is_available() else "cpu"
+    )
     logger = setup_logger(config["output_dir"])
 
     dataset = build_dataset(config["data"], split=split)
@@ -106,7 +143,9 @@ def main() -> None:
     metrics["latency"] = float(metrics.get("latency_ms", metrics.get("avg_batch_latency_ms", 0.0)))
     logger.info("evaluation metrics: %s", metrics)
 
-    json_path = Path(config.get("evaluation", {}).get("save_json", "outputs/reports/eval_report.json"))
+    json_path = Path(
+        config.get("evaluation", {}).get("save_json", "outputs/reports/eval_report.json")
+    )
     md_path = Path(config.get("evaluation", {}).get("save_md", "outputs/reports/eval_report.md"))
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
@@ -126,11 +165,15 @@ def main() -> None:
             tracker.log_metric("eval/dangerous_fnr", float(metrics["dangerous_fnr"]))
         tracker.log_eval_report(json_path)
         tracker.log_eval_report(md_path)
-        model_tag = str(config.get("model_tag", config.get("evaluation", {}).get("model_tag", "candidate")))
+        model_tag = str(
+            config.get("model_tag", config.get("evaluation", {}).get("model_tag", "candidate"))
+        )
         tracker.set_tag("model_tag", model_tag)
         tracker.end_run("FINISHED")
 
-    print(f"evaluation_saved_json={json_path} evaluation_saved_md={md_path} checkpoint={checkpoint}")
+    print(
+        f"evaluation_saved_json={json_path} evaluation_saved_md={md_path} checkpoint={checkpoint}"
+    )
 
 
 if __name__ == "__main__":

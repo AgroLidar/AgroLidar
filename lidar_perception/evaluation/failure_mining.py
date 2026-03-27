@@ -25,7 +25,9 @@ def _detect_distance_anomaly(result: dict, gt: dict | None, thresholds: dict) ->
     return abs(actual - expected) > float(thresholds.get("distance_error_m", 5.0))
 
 
-def _detect_sequence_instability(result: dict, previous_result: dict | None, thresholds: dict) -> bool:
+def _detect_sequence_instability(
+    result: dict, previous_result: dict | None, thresholds: dict
+) -> bool:
     if not previous_result:
         return False
 
@@ -52,28 +54,43 @@ def _detect_sequence_instability(result: dict, previous_result: dict | None, thr
     return False
 
 
-def identify_failures(result: dict, thresholds: dict, gt: dict | None = None, previous_result: dict | None = None) -> list[str]:
+def identify_failures(
+    result: dict, thresholds: dict, gt: dict | None = None, previous_result: dict | None = None
+) -> list[str]:
     reasons: list[str] = []
     detections = result.get("detections", [])
     if not detections:
         reasons.append("empty_prediction")
         return reasons
 
-    low_conf = [d for d in detections if d.get("score", 1.0) < thresholds.get("low_confidence", 0.25)]
+    low_conf = [
+        d for d in detections if d.get("score", 1.0) < thresholds.get("low_confidence", 0.25)
+    ]
     if low_conf:
         reasons.append("low_confidence")
 
-    inconsistent = [d for d in detections if d.get("track_status") == "tentative" and d.get("hazard_score", 0.0) > 0.4]
+    inconsistent = [
+        d
+        for d in detections
+        if d.get("track_status") == "tentative" and d.get("hazard_score", 0.0) > 0.4
+    ]
     if inconsistent or _detect_sequence_instability(result, previous_result, thresholds):
         reasons.append("tracking_inconsistent")
 
     near_miss = [
-        d for d in detections if d.get("distance_m", 999.0) < thresholds.get("near_miss_distance_m", 7.0) and d.get("risk_level") != "emergency"
+        d
+        for d in detections
+        if d.get("distance_m", 999.0) < thresholds.get("near_miss_distance_m", 7.0)
+        and d.get("risk_level") != "emergency"
     ]
     if near_miss:
         reasons.append("near_miss_hazard")
 
-    dangerous_low_conf = [d for d in detections if d.get("label_name") in {"human", "animal"} and d.get("score", 1.0) < 0.35]
+    dangerous_low_conf = [
+        d
+        for d in detections
+        if d.get("label_name") in {"human", "animal"} and d.get("score", 1.0) < 0.35
+    ]
     if dangerous_low_conf:
         reasons.append("dangerous_class_low_confidence")
 

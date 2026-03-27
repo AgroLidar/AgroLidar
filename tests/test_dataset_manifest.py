@@ -11,7 +11,9 @@ def test_manifest_dataset_loads_bin(tmp_path: Path):
     bin_path = tmp_path / "frame.bin"
     points.tofile(bin_path)
     manifest = tmp_path / "manifest.jsonl"
-    manifest.write_text(json.dumps({"sample_id": "s1", "point_cloud": str(bin_path)}) + "\n", encoding="utf-8")
+    manifest.write_text(
+        json.dumps({"sample_id": "s1", "point_cloud": str(bin_path)}) + "\n", encoding="utf-8"
+    )
 
     cfg = {
         "dataset_type": "manifest",

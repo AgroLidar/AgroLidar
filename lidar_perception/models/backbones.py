@@ -8,7 +8,9 @@ class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, stride: int = 1):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False),
+            nn.Conv2d(
+                in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
+            ),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
@@ -28,12 +30,16 @@ class BEVBackbone(nn.Module):
         self.layer2 = ConvBlock(base_channels * 2, base_channels * 4, stride=2)
 
         self.up1 = nn.Sequential(
-            nn.ConvTranspose2d(base_channels * 2, base_channels, kernel_size=2, stride=2, bias=False),
+            nn.ConvTranspose2d(
+                base_channels * 2, base_channels, kernel_size=2, stride=2, bias=False
+            ),
             nn.BatchNorm2d(base_channels),
             nn.ReLU(inplace=True),
         )
         self.up2 = nn.Sequential(
-            nn.ConvTranspose2d(base_channels * 4, base_channels, kernel_size=4, stride=4, bias=False),
+            nn.ConvTranspose2d(
+                base_channels * 4, base_channels, kernel_size=4, stride=4, bias=False
+            ),
             nn.BatchNorm2d(base_channels),
             nn.ReLU(inplace=True),
         )

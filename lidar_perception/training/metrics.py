@@ -6,7 +6,9 @@ import numpy as np
 import torch
 
 
-def compute_segmentation_iou(logits: torch.Tensor, target: torch.Tensor, num_classes: int) -> dict[str, float]:
+def compute_segmentation_iou(
+    logits: torch.Tensor, target: torch.Tensor, num_classes: int
+) -> dict[str, float]:
     pred = logits.argmax(dim=1)
     ious = []
     for cls in range(num_classes):
@@ -36,7 +38,9 @@ def bev_iou(box_a: np.ndarray, box_b: np.ndarray) -> float:
     return intersection / max(union, 1e-6)
 
 
-def compute_detection_map(predictions: list[list[dict]], targets: list[dict], iou_threshold: float) -> dict[str, float]:
+def compute_detection_map(
+    predictions: list[list[dict]], targets: list[dict], iou_threshold: float
+) -> dict[str, float]:
     scores = []
     true_positives = []
     total_gt = sum(len(item["boxes"]) for item in targets)
@@ -74,13 +78,14 @@ def compute_detection_map(predictions: list[list[dict]], targets: list[dict], io
     return {"mAP": float(ap), "precision": float(precision[-1]), "recall": float(recall[-1])}
 
 
-def compute_obstacle_distance_error(pred_distance: torch.Tensor, target_distance: torch.Tensor, occupancy: torch.Tensor) -> dict[str, float]:
+def compute_obstacle_distance_error(
+    pred_distance: torch.Tensor, target_distance: torch.Tensor, occupancy: torch.Tensor
+) -> dict[str, float]:
     mask = occupancy > 0.5
     if mask.sum().item() == 0:
         return {"distance_mae": math.inf}
     error = torch.abs(pred_distance[mask] - target_distance[mask]).mean().item()
     return {"distance_mae": float(error)}
-
 
 
 def compute_per_class_detection_metrics(
@@ -118,7 +123,9 @@ def compute_per_class_detection_metrics(
                     matched_gt.add(best_gt)
                     tp += 1
                     pred_dist = float(np.linalg.norm(np.asarray(pred["box"][:2], dtype=np.float32)))
-                    gt_dist = float(np.linalg.norm(np.asarray(gt_boxes[best_gt][:2], dtype=np.float32)))
+                    gt_dist = float(
+                        np.linalg.norm(np.asarray(gt_boxes[best_gt][:2], dtype=np.float32))
+                    )
                     distance_errors.append(abs(pred_dist - gt_dist))
                 else:
                     fp += 1
@@ -132,11 +139,19 @@ def compute_per_class_detection_metrics(
             "precision": precision,
             "recall": recall,
             "false_negative_rate": fnr,
-            "distance_error": float(sum(distance_errors) / len(distance_errors)) if distance_errors else float("inf"),
+            "distance_error": float(sum(distance_errors) / len(distance_errors))
+            if distance_errors
+            else float("inf"),
         }
     return metrics
 
-def compute_dangerous_fnr(predictions: list[list[dict]], targets: list[dict], dangerous_labels: set[int], iou_threshold: float) -> dict[str, float]:
+
+def compute_dangerous_fnr(
+    predictions: list[list[dict]],
+    targets: list[dict],
+    dangerous_labels: set[int],
+    iou_threshold: float,
+) -> dict[str, float]:
     missed = 0
     total = 0
 

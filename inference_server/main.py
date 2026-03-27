@@ -98,12 +98,24 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AgroLidar Inference Server", version="1.0.0", lifespan=lifespan)
 server_config = load_server_config()
-limiter = Limiter(key_func=get_remote_address, default_limits=[f"{server_config.limits.rate_limit_per_second}/second"])
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[f"{server_config.limits.rate_limit_per_second}/second"],
+)
 app.state.limiter = limiter
 
 app.add_middleware(SlowAPIMiddleware)
-app.add_exception_handler(RateLimitExceeded, lambda req, exc: JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"}))
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_exception_handler(
+    RateLimitExceeded,
+    lambda req, exc: JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"}),
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(RequestLoggingMiddleware)
 
@@ -222,7 +234,11 @@ def predict(request: Request, payload: BEVFrameInput) -> PredictionResponse:
         if dangerous_objects > 0:
             logger.warning("Dangerous objects detected for frame_id=%s", payload.frame_id)
         if collision_risk == "high":
-            logger.critical("High collision risk on frame_id=%s detections=%s", payload.frame_id, detections_data)
+            logger.critical(
+                "High collision risk on frame_id=%s detections=%s",
+                payload.frame_id,
+                detections_data,
+            )
 
         return PredictionResponse(
             frame_id=payload.frame_id,
@@ -268,7 +284,9 @@ def predict_batch(request: Request, payloads: list[BEVFrameInput]) -> list[Predi
                     frame_id=payload.frame_id,
                     timestamp=payload.timestamp,
                     detections=detections,
-                    inference_time_ms=predictor._latencies_ms[-1] if predictor._latencies_ms else 0.0,
+                    inference_time_ms=predictor._latencies_ms[-1]
+                    if predictor._latencies_ms
+                    else 0.0,
                     model_version=predictor.model_version,
                     dangerous_objects=dangerous_objects,
                     collision_risk=collision_risk,

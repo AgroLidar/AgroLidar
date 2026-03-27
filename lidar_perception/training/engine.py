@@ -33,7 +33,9 @@ class Trainer:
             lr=float(config["training"]["learning_rate"]),
             weight_decay=float(config["training"]["weight_decay"]),
         )
-        self.scaler = GradScaler(enabled=bool(config["training"].get("mixed_precision", False)) and device.type == "cuda")
+        self.scaler = GradScaler(
+            enabled=bool(config["training"].get("mixed_precision", False)) and device.type == "cuda"
+        )
         self.predictor = Predictor(model, config, device)
         self.best_score = float("-inf")
         self.start_epoch = 1
@@ -46,7 +48,9 @@ class Trainer:
             self.start_epoch = int(payload.get("epoch", 0)) + 1
             metrics = payload.get("metrics", {})
             self.best_score = float(metrics.get("mAP", float("-inf")))
-            self.logger.info("resumed checkpoint=%s from epoch=%s", checkpoint_path, self.start_epoch)
+            self.logger.info(
+                "resumed checkpoint=%s from epoch=%s", checkpoint_path, self.start_epoch
+            )
 
     def _move_targets(self, batch: dict) -> tuple[dict, torch.Tensor, dict]:
         detection_target = {k: v.to(self.device) for k, v in batch["detection_target"].items()}
@@ -78,7 +82,9 @@ class Trainer:
             self.scaler.scale(loss).backward()
             if self.config["training"].get("grad_clip_norm") is not None:
                 self.scaler.unscale_(self.optimizer)
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.config["training"]["grad_clip_norm"])
+                torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(), self.config["training"]["grad_clip_norm"]
+                )
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
@@ -132,15 +138,25 @@ class Trainer:
                 if "boxes" in batch:
                     for idx in range(bev.shape[0]):
                         single_outputs = {
-                            "detection": {k: v[idx : idx + 1] for k, v in outputs["detection"].items()},
+                            "detection": {
+                                k: v[idx : idx + 1] for k, v in outputs["detection"].items()
+                            },
                         }
                         predictions.append(self.predictor.decode_detections(single_outputs))
-                        targets.append({"boxes": batch["boxes"][idx], "labels": batch["labels"][idx]})
+                        targets.append(
+                            {"boxes": batch["boxes"][idx], "labels": batch["labels"][idx]}
+                        )
 
         dangerous_names = set(self.config["data"].get("dangerous_classes", []))
-        dangerous_labels = {idx for idx, name in enumerate(self.config["data"]["class_names"]) if name in dangerous_names}
+        dangerous_labels = {
+            idx
+            for idx, name in enumerate(self.config["data"]["class_names"])
+            if name in dangerous_names
+        }
         if predictions and targets:
-            map_metrics = compute_detection_map(predictions, targets, self.config["evaluation"]["iou_threshold"])
+            map_metrics = compute_detection_map(
+                predictions, targets, self.config["evaluation"]["iou_threshold"]
+            )
             dangerous_metrics = compute_dangerous_fnr(
                 predictions,
                 targets,
@@ -157,7 +173,12 @@ class Trainer:
             map_metrics = {"mAP": 0.0, "precision": 0.0, "recall": 0.0}
             dangerous_metrics = {"dangerous_fnr": 1.0}
             per_class_metrics = {
-                cls: {"precision": 0.0, "recall": 0.0, "false_negative_rate": 1.0, "distance_error": float("inf")}
+                cls: {
+                    "precision": 0.0,
+                    "recall": 0.0,
+                    "false_negative_rate": 1.0,
+                    "distance_error": float("inf"),
+                }
                 for cls in self.config["data"]["class_names"]
             }
 
@@ -169,13 +190,19 @@ class Trainer:
             self.config["evaluation"]["latency_iters"],
         )
         clean_seg = float(sum(seg_iou) / max(len(seg_iou), 1))
-        degraded_seg = float(sum(degraded_seg_iou) / max(len(degraded_seg_iou), 1)) if degraded_seg_iou else clean_seg
+        degraded_seg = (
+            float(sum(degraded_seg_iou) / max(len(degraded_seg_iou), 1))
+            if degraded_seg_iou
+            else clean_seg
+        )
         metrics = {
             "mAP": map_metrics["mAP"],
             "precision": map_metrics["precision"],
             "recall": map_metrics["recall"],
             "segmentation_iou": clean_seg,
-            "distance_mae": float(sum(distance_errors) / max(len(distance_errors), 1)) if distance_errors else float("inf"),
+            "distance_mae": float(sum(distance_errors) / max(len(distance_errors), 1))
+            if distance_errors
+            else float("inf"),
             "dangerous_fnr": dangerous_metrics["dangerous_fnr"],
             "avg_batch_latency_ms": float((total_inference_time * 1000.0) / max(num_batches, 1)),
             "latency_ms": latency_metrics["latency_ms"],
@@ -189,11 +216,17 @@ class Trainer:
             metrics[f"precision_{class_name}"] = float(cls_metrics["precision"])
             metrics[f"distance_error_{class_name}"] = float(cls_metrics["distance_error"])
             if class_name in dangerous_names:
-                dangerous_scores.append((cls_metrics["recall"] + (1.0 - cls_metrics["false_negative_rate"])) / 2.0)
-        metrics["dangerous_class_aggregate_score"] = float(sum(dangerous_scores) / max(len(dangerous_scores), 1))
+                dangerous_scores.append(
+                    (cls_metrics["recall"] + (1.0 - cls_metrics["false_negative_rate"])) / 2.0
+                )
+        metrics["dangerous_class_aggregate_score"] = float(
+            sum(dangerous_scores) / max(len(dangerous_scores), 1)
+        )
         return metrics
 
-    def fit(self, train_loader: DataLoader, val_loader: DataLoader, epoch_end_callback=None) -> None:
+    def fit(
+        self, train_loader: DataLoader, val_loader: DataLoader, epoch_end_callback=None
+    ) -> None:
         checkpoint_dir = Path(self.config["output_dir"]) / "checkpoints"
         metrics_dir = Path(self.config["output_dir"]) / "metrics"
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -224,19 +257,38 @@ class Trainer:
             if epoch_end_callback is not None:
                 try:
                     current_lr = float(self.optimizer.param_groups[0]["lr"])
-                    epoch_end_callback(epoch=epoch, train_metrics=train_metrics, val_metrics=val_metrics, lr=current_lr)
+                    epoch_end_callback(
+                        epoch=epoch,
+                        train_metrics=train_metrics,
+                        val_metrics=val_metrics,
+                        lr=current_lr,
+                    )
                 except Exception:
                     self.logger.exception("epoch_end_callback failed at epoch=%s", epoch)
 
-            score = val_metrics["mAP"] + val_metrics["segmentation_iou"] + val_metrics["recall"] - val_metrics["dangerous_fnr"]
+            score = (
+                val_metrics["mAP"]
+                + val_metrics["segmentation_iou"]
+                + val_metrics["recall"]
+                - val_metrics["dangerous_fnr"]
+            )
             checkpoint_metrics = dict(val_metrics)
             checkpoint_metrics["val_loss"] = float(max(0.0, 1.0 - val_metrics["mAP"]))
             latest_path = checkpoint_dir / "latest.pt"
-            save_checkpoint(latest_path, self.model, self.optimizer, epoch, checkpoint_metrics, self.config)
+            save_checkpoint(
+                latest_path, self.model, self.optimizer, epoch, checkpoint_metrics, self.config
+            )
             if score > (self.best_score + min_delta):
                 self.best_score = score
                 stale_epochs = 0
-                save_checkpoint(checkpoint_dir / "best.pt", self.model, self.optimizer, epoch, checkpoint_metrics, self.config)
+                save_checkpoint(
+                    checkpoint_dir / "best.pt",
+                    self.model,
+                    self.optimizer,
+                    epoch,
+                    checkpoint_metrics,
+                    self.config,
+                )
             else:
                 stale_epochs += 1
                 if early_enabled and stale_epochs >= patience:
@@ -244,7 +296,12 @@ class Trainer:
                     break
 
 
-def maybe_load_weights(model: torch.nn.Module, optimizer: torch.optim.Optimizer, checkpoint_path: str | None, device: torch.device):
+def maybe_load_weights(
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    checkpoint_path: str | None,
+    device: torch.device,
+):
     if checkpoint_path:
         return load_checkpoint(checkpoint_path, model, optimizer, device)
     return None

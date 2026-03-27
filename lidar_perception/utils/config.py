@@ -35,7 +35,11 @@ def _load_config_recursive(path: Path, stack: tuple[Path, ...]) -> dict[str, Any
 
     base_config = config.pop("base_config", None)
     if base_config:
-        base_path = (path.parent / base_config).resolve() if not Path(base_config).is_absolute() else Path(base_config)
+        base_path = (
+            (path.parent / base_config).resolve()
+            if not Path(base_config).is_absolute()
+            else Path(base_config)
+        )
         base = _load_config_recursive(base_path, path_stack)
         return _deep_merge(base, config)
     return config

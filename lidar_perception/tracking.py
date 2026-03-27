@@ -26,7 +26,9 @@ class MLflowTracker:
             from mlflow.tracking import MlflowClient
 
             self.mlflow = mlflow
-            tracking_uri = os.getenv("MLFLOW_TRACKING_URI", str(self.config.get("tracking_uri", "./mlruns")))
+            tracking_uri = os.getenv(
+                "MLFLOW_TRACKING_URI", str(self.config.get("tracking_uri", "./mlruns"))
+            )
             self.mlflow.set_tracking_uri(tracking_uri)
             self.client = MlflowClient(tracking_uri=tracking_uri)
             self.experiment_id = self._ensure_experiment()
@@ -38,7 +40,9 @@ class MLflowTracker:
 
     def _load_config(self) -> dict[str, Any]:
         if not self.config_path.exists():
-            logger.warning("Config de MLflow no encontrada en %s. Usando defaults.", self.config_path)
+            logger.warning(
+                "Config de MLflow no encontrada en %s. Usando defaults.", self.config_path
+            )
             return {}
         with self.config_path.open("r", encoding="utf-8") as handle:
             payload = yaml.safe_load(handle) or {}

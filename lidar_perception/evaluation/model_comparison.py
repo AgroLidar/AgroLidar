@@ -11,8 +11,13 @@ def compare_models(production: dict, candidate: dict, cfg: dict | None = None) -
     recall_gain = float(candidate.get("recall", 0.0) - production.get("recall", 0.0))
     fnr_drop = float(production.get("dangerous_fnr", 1.0) - candidate.get("dangerous_fnr", 1.0))
     latency_regression = float(candidate.get("latency_ms", 1e9) - production.get("latency_ms", 0.0))
-    distance_mae_delta = float(candidate.get("distance_mae", 1e9) - production.get("distance_mae", 1e9))
-    robustness_gap_regression = float(candidate.get("robustness_gap", production.get("robustness_gap", 0.0)) - production.get("robustness_gap", 0.0))
+    distance_mae_delta = float(
+        candidate.get("distance_mae", 1e9) - production.get("distance_mae", 1e9)
+    )
+    robustness_gap_regression = float(
+        candidate.get("robustness_gap", production.get("robustness_gap", 0.0))
+        - production.get("robustness_gap", 0.0)
+    )
 
     dangerous_classes = cfg.get("dangerous_classes", ["human", "animal", "rock", "post"])
     per_class_delta: dict[str, float] = {}
@@ -56,5 +61,7 @@ def compare_models(production: dict, candidate: dict, cfg: dict | None = None) -
             "dangerous_class_recall_delta": per_class_delta,
         },
         "promote": bool(promote),
-        "decision_reason": "candidate_improves_safety_without_major_latency_regression" if promote else "candidate_does_not_meet_promotion_policy",
+        "decision_reason": "candidate_improves_safety_without_major_latency_regression"
+        if promote
+        else "candidate_does_not_meet_promotion_policy",
     }

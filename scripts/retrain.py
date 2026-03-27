@@ -19,7 +19,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from lidar_perception.data.datasets import build_dataset, collate_fn
-from lidar_perception.data.hard_case_dataset import CompositeTrainingDataset, ReviewedHardCaseDataset
+from lidar_perception.data.hard_case_dataset import (
+    CompositeTrainingDataset,
+    ReviewedHardCaseDataset,
+)
 from lidar_perception.models.factory import build_model
 from lidar_perception.training.engine import Trainer
 from lidar_perception.utils.config import load_config
@@ -83,8 +86,14 @@ def main() -> None:
     run_config["training"]["epochs"] = int(retrain_cfg.get("epochs", 1))
 
     # Keep retraining iterations bounded by default so frequent offline cycles stay practical.
-    data_cfg["train_size"] = int(min(data_cfg.get("train_size", 0) or 0, retrain_cfg.get("base_train_size_cap", 120)) or retrain_cfg.get("base_train_size_cap", 120))
-    data_cfg["val_size"] = int(min(data_cfg.get("val_size", 0) or 0, retrain_cfg.get("base_val_size_cap", 40)) or retrain_cfg.get("base_val_size_cap", 40))
+    data_cfg["train_size"] = int(
+        min(data_cfg.get("train_size", 0) or 0, retrain_cfg.get("base_train_size_cap", 120))
+        or retrain_cfg.get("base_train_size_cap", 120)
+    )
+    data_cfg["val_size"] = int(
+        min(data_cfg.get("val_size", 0) or 0, retrain_cfg.get("base_val_size_cap", 40))
+        or retrain_cfg.get("base_val_size_cap", 40)
+    )
 
     candidate_output.mkdir(parents=True, exist_ok=True)
     logger = setup_logger(str(candidate_output))
@@ -101,7 +110,11 @@ def main() -> None:
     }
     hard_dataset = ReviewedHardCaseDataset(data_cfg, split="train")
 
-    dangerous_label_ids = [idx for idx, name in enumerate(data_cfg.get("class_names", [])) if name in set(data_cfg.get("dangerous_classes", []))]
+    dangerous_label_ids = [
+        idx
+        for idx, name in enumerate(data_cfg.get("class_names", []))
+        if name in set(data_cfg.get("dangerous_classes", []))
+    ]
     train_dataset = CompositeTrainingDataset(
         base_train_dataset,
         hard_dataset,

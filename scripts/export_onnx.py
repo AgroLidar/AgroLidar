@@ -53,7 +53,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_wrapped_model(config_path: str, checkpoint_path: str, device: torch.device) -> ONNXExportWrapper:
+def load_wrapped_model(
+    config_path: str, checkpoint_path: str, device: torch.device
+) -> ONNXExportWrapper:
     config = load_config(config_path)
     model = build_model(config["model"]).to(device)
     load_checkpoint(checkpoint_path, model=model, device=device)
@@ -104,8 +106,12 @@ def validate_onnx_vs_pytorch(
     grouped: dict[str, dict[str, float]] = {}
     for row in rows:
         name = str(row["output"])
-        current = grouped.get(name, {"max_absolute_diff": 0.0, "mean_absolute_diff": 0.0, "count": 0.0})
-        current["max_absolute_diff"] = max(current["max_absolute_diff"], float(row["max_absolute_diff"]))
+        current = grouped.get(
+            name, {"max_absolute_diff": 0.0, "mean_absolute_diff": 0.0, "count": 0.0}
+        )
+        current["max_absolute_diff"] = max(
+            current["max_absolute_diff"], float(row["max_absolute_diff"])
+        )
         current["mean_absolute_diff"] += float(row["mean_absolute_diff"])
         current["count"] += 1.0
         grouped[name] = current
@@ -202,7 +208,9 @@ def main() -> None:
     validation_passed = False
     max_output_diff = 0.0
     if args.validate:
-        validation_passed, max_output_diff = validate_onnx_vs_pytorch(output_path, model, input_shape)
+        validation_passed, max_output_diff = validate_onnx_vs_pytorch(
+            output_path, model, input_shape
+        )
         if not validation_passed:
             print(f"Validation FAILED: max_output_diff={max_output_diff:.6e}")
         else:

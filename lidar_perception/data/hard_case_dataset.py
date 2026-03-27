@@ -26,7 +26,9 @@ class ReviewedHardCaseDataset(Dataset):
         self.class_names = list(config["class_names"])
         self.class_to_idx = {name: idx for idx, name in enumerate(self.class_names)}
 
-        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
+        self.preprocessor = AgroPreprocessor(
+            config["point_cloud_range"], config.get("preprocessing", {})
+        )
         self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
         self.augmentor = PointCloudAugmentor(config["augmentations"]) if split == "train" else None
 
@@ -44,7 +46,12 @@ class ReviewedHardCaseDataset(Dataset):
         self.records = [
             rec
             for rec in records
-            if self._include_record(rec, only_reviewed=only_reviewed, only_high_conf_failures=only_high_conf_failures, min_failure_confidence=min_failure_confidence)
+            if self._include_record(
+                rec,
+                only_reviewed=only_reviewed,
+                only_high_conf_failures=only_high_conf_failures,
+                min_failure_confidence=min_failure_confidence,
+            )
         ]
 
     def __len__(self) -> int:
@@ -65,8 +72,12 @@ class ReviewedHardCaseDataset(Dataset):
         points, preprocessing_metadata = self.preprocessor.process(points)
         bev = self.voxelizer.voxelize(points)
 
-        detection_target = self.voxelizer.build_detection_targets(boxes, labels, num_classes=len(self.class_names))
-        segmentation_target = self.voxelizer.build_segmentation_target(points, boxes, labels, len(self.config["segmentation_classes"]))
+        detection_target = self.voxelizer.build_detection_targets(
+            boxes, labels, num_classes=len(self.class_names)
+        )
+        segmentation_target = self.voxelizer.build_segmentation_target(
+            points, boxes, labels, len(self.config["segmentation_classes"])
+        )
         obstacle_target = self.voxelizer.build_obstacle_targets(points)
 
         item = {
@@ -122,7 +133,11 @@ class ReviewedHardCaseDataset(Dataset):
     def _load_manifest(self, path: Path) -> list[dict]:
         suffix = path.suffix.lower()
         if suffix == ".jsonl":
-            return [self._normalize_record(json.loads(line), source_path=path) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            return [
+                self._normalize_record(json.loads(line), source_path=path)
+                for line in path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
         if suffix == ".json":
             payload = json.loads(path.read_text(encoding="utf-8"))
             rows = payload if isinstance(payload, list) else payload.get("records", [])
@@ -153,7 +168,9 @@ class ReviewedHardCaseDataset(Dataset):
 
         rec.setdefault("sample_id", source_path.stem)
         rec["reviewed"] = self._as_bool(rec.get("reviewed", rec.get("is_reviewed", False)))
-        rec["failure_confidence"] = float(rec.get("failure_confidence", rec.get("score", 0.0)) or 0.0)
+        rec["failure_confidence"] = float(
+            rec.get("failure_confidence", rec.get("score", 0.0)) or 0.0
+        )
         rec["hazard_score"] = float(rec.get("hazard_score", rec.get("hazard", 0.0)) or 0.0)
         rec["uncertainty"] = float(rec.get("uncertainty", rec.get("uncertainty_score", 0.0)) or 0.0)
         return rec
@@ -179,10 +196,20 @@ class ReviewedHardCaseDataset(Dataset):
                 out.append(rec)
         return out
 
-    def _include_record(self, rec: dict, *, only_reviewed: bool, only_high_conf_failures: bool, min_failure_confidence: float) -> bool:
+    def _include_record(
+        self,
+        rec: dict,
+        *,
+        only_reviewed: bool,
+        only_high_conf_failures: bool,
+        min_failure_confidence: float,
+    ) -> bool:
         if only_reviewed and not rec.get("reviewed", False):
             return False
-        if only_high_conf_failures and float(rec.get("failure_confidence", 0.0)) < min_failure_confidence:
+        if (
+            only_high_conf_failures
+            and float(rec.get("failure_confidence", 0.0)) < min_failure_confidence
+        ):
             return False
         return Path(rec["point_cloud"]).exists()
 
