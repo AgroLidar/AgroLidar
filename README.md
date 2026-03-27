@@ -17,6 +17,82 @@
 
 It combines training, evaluation, model registry, safety gating, ONNX export, and API inference into a coherent operator-ready stack.
 
+AgroLidar helps teams move from prototype perception models to dependable field deployment by providing one workflow for data generation, training, evaluation, safety gating, promotion, and serving—so releases are faster, traceable, and safer.
+
+## Quickstart (first run)
+
+### 1) Install Python dependencies
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2) Install frontend dependencies
+
+```bash
+npm ci
+```
+
+### 3) Verify installation
+
+```bash
+make check-install
+# equivalent: python scripts/check_installation.py
+```
+
+### 4) Run backend / inference server
+
+```bash
+make serve
+# equivalent: uvicorn inference_server.main:app --host 0.0.0.0 --port 8000
+```
+
+### 5) Run frontend
+
+```bash
+npm run dev
+# app URL: http://localhost:3000
+```
+
+### 6) Run tests and quality checks
+
+```bash
+make test                # Python test suite
+npm run lint             # Next.js lint checks
+npm run typecheck        # TypeScript type checks
+```
+
+### 7) Optional smoke/demo flow
+
+```bash
+make generate-data
+make train
+make evaluate
+make safety-check
+```
+
+## Architecture at a glance
+
+- `lidar_perception/`: model, data, training, evaluation, and registry-facing core logic.
+- `inference_server/`: FastAPI app, prediction interfaces, middleware, and health checks.
+- `scripts/`: CLI workflows (train/evaluate/retrain/promote/export/check-install).
+- `configs/`: YAML configuration for training, inference, retraining, and safety policy.
+- `app/` + `components/`: Next.js public-facing UI and reusable UI primitives.
+- `docs/`: operations, architecture, integration, safety, and deployment documentation.
+- `tests/`: backend regression and contract test coverage.
+
+## Trust, governance, and community
+
+- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Support policy: [SUPPORT.md](SUPPORT.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- License: [LICENSE](LICENSE)
+- Code ownership: [.github/CODEOWNERS](.github/CODEOWNERS)
+
 ## Why AgroLidar
 
 - **Field-first safety posture** for hard classes like humans, animals, rocks, and posts.
@@ -54,70 +130,6 @@ AgroLidar/
 ├── app/, components/      # Next.js landing page
 └── outputs/               # Generated reports and registry state
 ```
-
-## Quickstart
-
-### 1) Install Python dependencies
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2) Install frontend dependencies
-
-```bash
-npm ci
-```
-
-### 3) Run installation check
-
-```bash
-make check-install
-# equivalent: python scripts/check_installation.py
-```
-
-### 4) Run backend / inference server
-
-```bash
-make serve
-# equivalent: uvicorn inference_server.main:app --host 0.0.0.0 --port 8000
-```
-
-### 5) Run frontend
-
-```bash
-npm run dev
-# app URL: http://localhost:3000
-```
-
-### 6) Run tests and quality checks
-
-```bash
-make test                # Python test suite
-npm run lint             # Next.js lint checks
-npm run typecheck        # TypeScript type checks
-```
-
-### 7) Optional: run pipeline smoke commands
-
-```bash
-make generate-data
-make train
-make evaluate
-make safety-check
-```
-
-## Architecture at a glance
-
-- `lidar_perception/`: model, data, training, evaluation, and registry-facing core logic.
-- `inference_server/`: FastAPI app, prediction interfaces, middleware, and health checks.
-- `scripts/`: CLI workflows (train/evaluate/retrain/promote/export/check-install).
-- `configs/`: YAML configuration for training, inference, retraining, and safety policy.
-- `app/` + `components/`: Next.js public-facing UI and reusable UI primitives.
-- `docs/`: operations, architecture, integration, safety, and deployment documentation.
-- `tests/`: backend regression and contract test coverage.
 
 ## Release & Versioning
 
@@ -157,16 +169,6 @@ AgroLidar is in active development toward an enterprise-ready `v1.0.0` release.
 - Current baseline line: `0.9.x`
 - Planned release discipline: Semantic Versioning + changelog-driven releases
 - See [CHANGELOG.md](CHANGELOG.md) and [docs/roadmap.md](docs/roadmap.md)
-
-## Trust, Governance, and Community
-
-- License: [LICENSE](LICENSE)
-- Security policy: [SECURITY.md](SECURITY.md)
-- Contributing guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Support policy: [SUPPORT.md](SUPPORT.md)
-- Code ownership: [.github/CODEOWNERS](.github/CODEOWNERS)
 
 ## Security
 
