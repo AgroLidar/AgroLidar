@@ -107,10 +107,13 @@ def main() -> None:
                 tracker.set_tag("best_epoch", best_epoch["value"])
             tracker.set_tag("training_status", "completed")
             tracker.end_run("FINISHED")
-        except Exception:
-            tracker.set_tag("training_status", "failed")
-            tracker.end_run("FAILED")
-            raise
+        except Exception as train_error:
+            try:
+                tracker.set_tag("training_status", "failed")
+                tracker.end_run("FAILED")
+            except Exception:
+                pass
+            raise train_error
 
 
 if __name__ == "__main__":

@@ -69,53 +69,71 @@ class MLflowTracker:
         merged_tags = dict(self.config.get("tags", {}))
         if tags:
             merged_tags.update(tags)
-        run = self.mlflow.start_run(
-            run_name=run_name,
-            experiment_id=self.experiment_id,
-            tags=merged_tags,
-        )
+        run = None
+        try:
+            run = self.mlflow.start_run(
+                run_name=run_name,
+                experiment_id=self.experiment_id,
+                tags=merged_tags,
+            )
+        except Exception as exc:
+            logger.warning("MLflow start_run failed: %s", exc)
+            yield None
+            return
         try:
             yield run
         except Exception:
             self.end_run("FAILED")
             raise
         finally:
-            active = self.mlflow.active_run()
-            if active is not None and active.info.run_id == run.info.run_id:
-                self.end_run("FINISHED")
+            try:
+                active = self.mlflow.active_run()
+                if active is not None and run is not None and active.info.run_id == run.info.run_id:
+                    self.end_run("FINISHED")
+            except Exception as exc:
+                logger.warning("MLflow active_run check failed: %s", exc)
 
     def log_params(self, params_dict: dict[str, Any]) -> None:
         if not self.enabled or not self.mlflow:
             return
-        safe = {k: v for k, v in params_dict.items() if v is not None}
-        if safe:
-            self.mlflow.log_params(safe)
+        try:
+            safe = {k: v for k, v in params_dict.items() if v is not None}
+            if safe:
+                self.mlflow.log_params(safe)
+        except Exception as exc:
+            logger.warning("MLflow log_params failed: %s", exc)
 
     def log_metric(self, key: str, value: float, step: int | None = None) -> None:
         if not self.enabled or not self.mlflow:
             return
-        metric_value = float(value)
-        if step is None:
-            self.mlflow.log_metric(key, metric_value)
-        else:
-            self.mlflow.log_metric(key, metric_value, step=step)
+        try:
+            metric_value = float(value)
+            if step is None:
+                self.mlflow.log_metric(key, metric_value)
+            else:
+                self.mlflow.log_metric(key, metric_value, step=step)
+        except Exception as exc:
+            logger.warning("MLflow log_metric failed: %s", exc)
 
     def log_metrics(self, metrics_dict: dict[str, Any], step: int | None = None) -> None:
         if not self.enabled or not self.mlflow:
             return
-        payload = {}
-        for key, value in metrics_dict.items():
-            if isinstance(value, bool):
-                payload[key] = float(value)
-            elif isinstance(value, (int, float)):
-                payload[key] = float(value)
-        if not payload:
-            return
-        if step is None:
-            self.mlflow.log_metrics(payload)
-        else:
-            for key, value in payload.items():
-                self.mlflow.log_metric(key, value, step=step)
+        try:
+            payload = {}
+            for key, value in metrics_dict.items():
+                if isinstance(value, bool):
+                    payload[key] = float(value)
+                elif isinstance(value, (int, float)):
+                    payload[key] = float(value)
+            if not payload:
+                return
+            if step is None:
+                self.mlflow.log_metrics(payload)
+            else:
+                for key, value in payload.items():
+                    self.mlflow.log_metric(key, value, step=step)
+        except Exception as exc:
+            logger.warning("MLflow log_metrics failed: %s", exc)
 
     def log_config(self, config_path: str | Path) -> None:
         self.log_artifact(config_path, artifact_path="configs")
@@ -129,22 +147,31 @@ class MLflowTracker:
     def log_artifact(self, path: str | Path, artifact_path: str | None = None) -> None:
         if not self.enabled or not self.mlflow:
             return
-        target = Path(path)
-        if not target.exists():
-            logger.warning("Artifact no encontrado, se omite: %s", target)
-            return
-        self.mlflow.log_artifact(str(target), artifact_path=artifact_path)
+        try:
+            target = Path(path)
+            if not target.exists():
+                logger.warning("Artifact no encontrado, se omite: %s", target)
+                return
+            self.mlflow.log_artifact(str(target), artifact_path=artifact_path)
+        except Exception as exc:
+            logger.warning("MLflow log_artifact failed: %s", exc)
 
     def log_model_summary(self, model: Any) -> None:
         if not self.enabled or not self.mlflow:
             return
-        summary = str(model)
-        self.mlflow.log_text(summary, artifact_file="model/model_summary.txt")
+        try:
+            summary = str(model)
+            self.mlflow.log_text(summary, artifact_file="model/model_summary.txt")
+        except Exception as exc:
+            logger.warning("MLflow log_model_summary failed: %s", exc)
 
     def set_tag(self, key: str, value: Any) -> None:
         if not self.enabled or not self.mlflow:
             return
-        self.mlflow.set_tag(key, str(value))
+        try:
+            self.mlflow.set_tag(key, str(value))
+        except Exception as exc:
+            logger.warning("MLflow set_tag failed: %s", exc)
 
     def end_run(self, status: str = "FINISHED") -> None:
         if not self.enabled or not self.mlflow:
@@ -152,7 +179,7 @@ class MLflowTracker:
         try:
             self.mlflow.end_run(status=status)
         except Exception as exc:  # pragma: no cover - defensive path
-            logger.warning("No se pudo cerrar run de MLflow (%s).", exc)
+            logger.warning("MLflow end_run failed: %s", exc)
 
     def latest_run_id(self, run_type: str | None = None) -> str | None:
         if not self.enabled or not self.client or not self.experiment_id:
