@@ -66,6 +66,12 @@ def render_markdown(metrics: dict) -> str:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    if "training" not in config:
+        config["training"] = {"learning_rate": 1e-3, "weight_decay": 0.0, "mixed_precision": False}
+    else:
+        config["training"].setdefault("learning_rate", 1e-3)
+        config["training"].setdefault("weight_decay", 0.0)
+        config["training"].setdefault("mixed_precision", False)
     split = args.split or config.get("evaluation", {}).get("split", "test")
     checkpoint = _resolve_checkpoint(config, args.checkpoint)
     device = torch.device("cuda" if config.get("device") == "cuda" and torch.cuda.is_available() else "cpu")
@@ -84,6 +90,16 @@ def main() -> None:
     trainer = Trainer(model=model, config=config, logger=logger, device=device)
     maybe_load_weights(model, trainer.optimizer, checkpoint, device)
     metrics = trainer.evaluate(loader)
+    per_class = {}
+    for cls in config["data"].get("class_names", SAFETY_CLASSES):
+        per_class[cls] = {
+            "recall": float(metrics.get(f"recall_{cls}", 0.0)),
+            "precision": float(metrics.get(f"precision_{cls}", 0.0)),
+            "fnr": float(metrics.get(f"fnr_{cls}", 1.0)),
+            "distance_error": float(metrics.get(f"distance_error_{cls}", float("inf"))),
+        }
+    metrics["per_class"] = per_class
+    metrics["latency"] = float(metrics.get("latency_ms", metrics.get("avg_batch_latency_ms", 0.0)))
     logger.info("evaluation metrics: %s", metrics)
 
     json_path = Path(config.get("evaluation", {}).get("save_json", "outputs/reports/eval_report.json"))
