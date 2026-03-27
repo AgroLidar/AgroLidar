@@ -1,4 +1,4 @@
-.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export safety-check regression-report
+.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export safety-check regression-report registry-status check-install
 
 install:
 	pip install -r requirements.txt
@@ -95,3 +95,9 @@ validate-onnx:
 		--checkpoint outputs/checkpoints/best.pt
 
 full-export: export-onnx validate-onnx
+
+registry-status:
+	python scripts/registry_status.py
+
+check-install:
+	python scripts/check_installation.py

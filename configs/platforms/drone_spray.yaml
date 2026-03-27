@@ -1,0 +1,13 @@
+platform_type: drone_spray
+nominal_speed_kmh: 22.0
+max_speed_kmh: 45.0
+mounting_height_m: 2.5
+forward_offset_m: 0.2
+lateral_offset_m: 0.0
+pitch_deg: -10.0
+vibration_profile: high
+power_voltage_v: 24
+operating_environment: rain
+stop_zone_m: 7.0
+hazard_corridor_width_m: 2.0
+notes: Architecture placeholder for spray drones; requires dedicated airborne perception validation.

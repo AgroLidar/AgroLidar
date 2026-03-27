@@ -1,38 +1,69 @@
-# Iteration Summary (Hard-Case Learning + Promotion Controls)
+# Latest Iteration Summary
 
-## What was implemented
+## Docs added/updated
+- docs/README.md (documentation index)
+- docs/HARDWARE_DEPLOYMENT_GUIDE.md
+- docs/INSTALLATION_AND_COMMISSIONING.md
+- docs/SENSOR_CALIBRATION.md
+- docs/OPERATIONS_MANUAL.md
+- docs/BUYER_CHECKLIST.md
+- docs/SAFETY_AND_LIMITATIONS.md
+- docs/REFERENCE_ARCHITECTURES.md
+- docs/API_INTEGRATION_GUIDE.md
+- docs/CONFIGURATION_REFERENCE.md
+- docs/DATA_COLLECTION_AND_RETRAINING.md
+- docs/VEHICLE_COMPATIBILITY_GUIDE.md
+- docs/PLATFORM_ADAPTATION_MATRIX.md
+- docs/REGULATORY_AND_COMPLIANCE.md
+- docs/SANDBOX_AND_DEMO_MODE.md
+- docs/CHANGELOG.md
+- README.md links updated for deployment/integration sections.
 
-- Added `ReviewedHardCaseDataset` for loading hard cases from `data/hard_cases/` and `data/review_queue/` with JSON/JSONL/CSV manifest support.
-- Added `CompositeTrainingDataset` to mix base and hard-case samples with configurable ratio plus hazard/uncertainty weighting and optional dangerous-class oversampling.
-- Upgraded retraining pipeline (`scripts/retrain.py`) to build candidate-only runs, log hard-case usage and class distribution, and persist composition metadata.
-- Upgraded evaluation pipeline to emit safety-critical per-class metrics and dangerous-class aggregate score in JSON + Markdown.
-- Added `scripts/promote_model.py` for registry-aware model promotion/rejection decisions.
-- Strengthened model comparison policy with robustness regression constraints.
-- Added tests for hard-case datasets, retrain integration, and promotion logic.
+## Platform configs added
+- configs/platforms/tractor_generic.yaml
+- configs/platforms/tractor_high_horsepower.yaml
+- configs/platforms/tractor_compact.yaml
+- configs/platforms/combine_generic.yaml
+- configs/platforms/combine_header_sensor.yaml
+- configs/platforms/sprayer_generic.yaml
+- configs/platforms/sprayer_boom_mounted.yaml
+- configs/platforms/drone_spray.yaml
+- configs/platforms/telehandler_generic.yaml
+- configs/platforms/utv_generic.yaml
 
-## Dataset integration results
+## New scripts/modules added
+- scripts/check_installation.py
+- lidar_perception/platforms/platform_profiles.py
+- lidar_perception/platforms/__init__.py
+- Makefile targets: `registry-status`, `check-install`
 
-- Retraining read hard-case sources and produced a compositional dataset summary.
-- Current run had `hard_cases_used=0` (no reviewed hard labels present in repo data directories), so candidate was trained from base-only samples with the configured composite logic active.
-- Composition captured in `outputs/reports/retrain_metadata.json`.
+## Commands verified against repository
+Verified these commands/targets exist and are documented:
+- make install
+- make setup
+- make serve
+- make evaluate
+- make safety-check
+- make export-onnx
+- make validate-onnx
+- make mlflow-ui
+- make regression-report
+- make registry-status
+- make check-install
 
-## Retraining behavior
+## Assumptions made
+- API integrations are documented for architecture and pilot integration; hardware-specific actuator implementations remain integrator-owned.
+- Platform profiles are reference defaults and require per-vehicle commissioning/calibration.
+- Rate limit and safety thresholds are taken directly from current configs.
 
-- Generated a new candidate model run at:
-  - `outputs/candidates/retrain_candidate_20260326T200355Z`
-- Production checkpoint path was not overwritten.
-- Candidate evaluation report generated at:
-  - `outputs/reports/eval_report.json`
-  - `outputs/reports/eval_report.md`
+## Gaps still blocking real vehicle deployment
+- No real sensor ingest adapter (only synthetic BEV frames).
+- No calibration tooling implemented (only documented).
+- No CAN bus / ISOBUS integration.
+- No ROS 2 node.
+- No authenticated API (security gap for production).
+- No edge deployment tested on real Jetson hardware.
 
-## Metric outcomes / promotion decision
-
-- Candidate dangerous-class recall remained poor (`human/animal/rock/post` recall = `0.0` in this run).
-- `scripts/compare_models.py` returned `promote=false` due to safety and latency policy failures.
-- `scripts/promote_model.py` marked candidate as `rejected` in `outputs/registry/registry.json`.
-
-## Risks and gaps
-
-1. **Real reviewed hard cases are still missing** in local data folders, so retraining cannot yet improve dangerous-class recall.
-2. Candidate latency is far above production baseline in this run.
-3. Current synthetic-heavy training still underperforms safety-critical targets; next iteration must integrate reviewed real-world annotations.
+## Easiest vs hardest platform classes for initial pilots
+- Easiest: high-horsepower tractors with clean power and standard mounting points (Tier 1/2).
+- Hardest: boom-mounted sprayers, header-mounted combines, and drone platforms due to vibration, occlusion, and integration complexity (Tier 3).

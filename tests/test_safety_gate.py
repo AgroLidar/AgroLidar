@@ -168,7 +168,9 @@ def test_gate_report_has_required_fields() -> None:
     assert required.issubset(report.keys())
 
 
-def _run_gate_subprocess(tmp_path: Path, candidate: dict, production: dict | None = None) -> subprocess.CompletedProcess[str]:
+def _run_gate_subprocess(
+    tmp_path: Path, candidate: dict, production: dict | None = None
+) -> subprocess.CompletedProcess[str]:
     candidate_path = tmp_path / "candidate_eval.json"
     candidate_path.write_text(json.dumps(candidate), encoding="utf-8")
     output_path = tmp_path / "gate_report.json"

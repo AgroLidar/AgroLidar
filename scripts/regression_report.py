@@ -33,7 +33,9 @@ def _metric(run_dir: Path, name: str) -> float | None:
     metric_path = run_dir / "metrics" / name
     if not metric_path.exists():
         return None
-    lines = [ln.strip() for ln in metric_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    lines = [
+        ln.strip() for ln in metric_path.read_text(encoding="utf-8").splitlines() if ln.strip()
+    ]
     if not lines:
         return None
     try:
@@ -50,7 +52,11 @@ def _load_mlruns(runs_dir: Path) -> list[dict[str, Any]]:
     for run_meta in runs_dir.glob("*/**/meta.yaml"):
         run_dir = run_meta.parent
         tags_dir = run_dir / "tags"
-        run_type = (tags_dir / "run_type").read_text(encoding="utf-8").strip() if (tags_dir / "run_type").exists() else ""
+        run_type = (
+            (tags_dir / "run_type").read_text(encoding="utf-8").strip()
+            if (tags_dir / "run_type").exists()
+            else ""
+        )
         if run_type != "evaluation":
             continue
 
@@ -70,7 +76,8 @@ def _load_mlruns(runs_dir: Path) -> list[dict[str, Any]]:
                 "human_recall": per_human,
                 "animal_recall": per_animal,
                 "dangerous_fnr": _metric(run_dir, "eval/dangerous_fnr"),
-                "latency_ms": _metric(run_dir, "eval/latency_ms") or _metric(run_dir, "eval/latency"),
+                "latency_ms": _metric(run_dir, "eval/latency_ms")
+                or _metric(run_dir, "eval/latency"),
                 "gate": gate,
             }
         )
@@ -99,7 +106,9 @@ def _load_from_outputs(outputs_dir: Path) -> list[dict[str, Any]]:
         rows.append(
             {
                 "run": report_path.stem,
-                "date": datetime.fromtimestamp(report_path.stat().st_mtime, tz=timezone.utc).isoformat(),
+                "date": datetime.fromtimestamp(
+                    report_path.stat().st_mtime, tz=timezone.utc
+                ).isoformat(),
                 "mAP": report.get("mAP"),
                 "human_recall": (per.get("human") or {}).get("recall"),
                 "animal_recall": (per.get("animal") or {}).get("recall"),

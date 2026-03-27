@@ -1,0 +1,13 @@
+platform_type: utv_generic
+nominal_speed_kmh: 18.0
+max_speed_kmh: 50.0
+mounting_height_m: 1.7
+forward_offset_m: 0.4
+lateral_offset_m: 0.0
+pitch_deg: -2.5
+vibration_profile: high
+power_voltage_v: 12
+operating_environment: all
+stop_zone_m: 10.0
+hazard_corridor_width_m: 2.4
+notes: Utility task vehicle profile with high vibration on unpaved roads.

@@ -1,0 +1,13 @@
+platform_type: tractor_compact
+nominal_speed_kmh: 6.0
+max_speed_kmh: 16.0
+mounting_height_m: 1.8
+forward_offset_m: 0.5
+lateral_offset_m: 0.0
+pitch_deg: -2.0
+vibration_profile: medium
+power_voltage_v: 12
+operating_environment: dust
+stop_zone_m: 6.0
+hazard_corridor_width_m: 2.6
+notes: Reference for compact tractors (<80hp; Kubota, Yanmar, LS classes).

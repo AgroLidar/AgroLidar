@@ -1,0 +1,13 @@
+platform_type: sprayer_generic
+nominal_speed_kmh: 10.0
+max_speed_kmh: 30.0
+mounting_height_m: 2.6
+forward_offset_m: 0.9
+lateral_offset_m: 0.0
+pitch_deg: -3.5
+vibration_profile: medium
+power_voltage_v: 24
+operating_environment: rain
+stop_zone_m: 12.0
+hazard_corridor_width_m: 5.5
+notes: Generic self-propelled sprayer profile.

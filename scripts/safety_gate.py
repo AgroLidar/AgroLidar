@@ -15,14 +15,20 @@ EXIT_WARN = 2
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="AgroLidar safety policy gate")
-    parser.add_argument("--candidate-report", required=True, help="Path to candidate eval_report.json")
+    parser.add_argument(
+        "--candidate-report", required=True, help="Path to candidate eval_report.json"
+    )
     parser.add_argument(
         "--production-report",
         default=None,
         help="Optional production eval_report.json path (regression checks skipped if missing)",
     )
-    parser.add_argument("--policy", default="configs/safety_policy.yaml", help="Path to safety policy YAML")
-    parser.add_argument("--output", default="outputs/reports/gate_report.json", help="Output gate_report.json path")
+    parser.add_argument(
+        "--policy", default="configs/safety_policy.yaml", help="Path to safety policy YAML"
+    )
+    parser.add_argument(
+        "--output", default="outputs/reports/gate_report.json", help="Output gate_report.json path"
+    )
     parser.add_argument("--strict", action="store_true", help="Use strict policy overrides")
     return parser.parse_args()
 
@@ -56,7 +62,9 @@ def _to_float(value: Any, default: float | None = None) -> float | None:
         return default
 
 
-def _build_rule(rule: str, status: str, candidate_value: Any, threshold: Any, message: str) -> dict[str, Any]:
+def _build_rule(
+    rule: str, status: str, candidate_value: Any, threshold: Any, message: str
+) -> dict[str, Any]:
     return {
         "rule": rule,
         "status": status,
@@ -118,7 +126,9 @@ def evaluate_safety_gate(
             )
         rules.append(_build_rule("dangerous_fnr_regression", status, candidate_fnr, threshold, msg))
 
-    human_recall = _to_float(candidate_report.get("per_class", {}).get("human", {}).get("recall"), default=None)
+    human_recall = _to_float(
+        candidate_report.get("per_class", {}).get("human", {}).get("recall"), default=None
+    )
     human_recall_minimum = _to_float(policy.get("human_recall_minimum"), default=0.90)
     if human_recall is None or human_recall < (human_recall_minimum or 0.0):
         status = "BLOCK"
@@ -127,9 +137,13 @@ def evaluate_safety_gate(
     else:
         status = "PASS"
         msg = f"human recall {human_recall:.6f} meets minimum {human_recall_minimum:.6f}."
-    rules.append(_build_rule("human_recall_minimum", status, human_recall, human_recall_minimum, msg))
+    rules.append(
+        _build_rule("human_recall_minimum", status, human_recall, human_recall_minimum, msg)
+    )
 
-    animal_recall = _to_float(candidate_report.get("per_class", {}).get("animal", {}).get("recall"), default=None)
+    animal_recall = _to_float(
+        candidate_report.get("per_class", {}).get("animal", {}).get("recall"), default=None
+    )
     animal_recall_minimum = _to_float(policy.get("animal_recall_minimum"), default=0.85)
     if animal_recall is None or animal_recall < (animal_recall_minimum or 0.0):
         status = "BLOCK"
@@ -138,10 +152,17 @@ def evaluate_safety_gate(
     else:
         status = "PASS"
         msg = f"animal recall {animal_recall:.6f} meets minimum {animal_recall_minimum:.6f}."
-    rules.append(_build_rule("animal_recall_minimum", status, animal_recall, animal_recall_minimum, msg))
+    rules.append(
+        _build_rule("animal_recall_minimum", status, animal_recall, animal_recall_minimum, msg)
+    )
 
-    candidate_latency = _to_float(candidate_report.get("latency_ms", candidate_report.get("latency")), default=None)
-    prod_latency = _to_float((production_report or {}).get("latency_ms", (production_report or {}).get("latency")), default=None)
+    candidate_latency = _to_float(
+        candidate_report.get("latency_ms", candidate_report.get("latency")), default=None
+    )
+    prod_latency = _to_float(
+        (production_report or {}).get("latency_ms", (production_report or {}).get("latency")),
+        default=None,
+    )
     latency_tol = _to_float(policy.get("latency_regression_tolerance"), default=0.20)
     if prod_latency is None or candidate_latency is None:
         rules.append(
@@ -262,7 +283,9 @@ def main() -> int:
         policy_path = Path(args.policy)
 
         candidate_report = _load_json(candidate_path)
-        production_report = _load_json(production_path) if production_path and production_path.exists() else None
+        production_report = (
+            _load_json(production_path) if production_path and production_path.exists() else None
+        )
         policy = _load_policy(policy_path, args.strict)
 
         report = evaluate_safety_gate(

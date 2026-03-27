@@ -92,3 +92,40 @@ python scripts/evaluate.py --config configs/base.yaml
 python scripts/compare_models.py --production-metrics outputs/reports/production_eval.json --candidate-metrics outputs/reports/eval_report.json
 python scripts/promote_model.py --candidate-model outputs/candidates/<run>/checkpoints/best.pt --production-model outputs/checkpoints/best.pt --comparison-report outputs/reports/model_comparison.json
 ```
+
+
+## 📦 Deployment & Integration
+
+### Quick Start (Sandbox)
+
+```bash
+make generate-data && make train && make serve
+# Then POST a frame to http://localhost:8000/predict
+```
+
+### Verify Your Installation
+
+```bash
+make check-install
+```
+
+### Documentation
+
+- [Deployment Documentation Index](docs/README.md)
+
+### Hardware & Platform Compatibility
+
+- [Hardware Deployment Guide](docs/HARDWARE_DEPLOYMENT_GUIDE.md)
+- [Vehicle Compatibility Guide](docs/VEHICLE_COMPATIBILITY_GUIDE.md)
+- [Platform Adaptation Matrix](docs/PLATFORM_ADAPTATION_MATRIX.md)
+
+### For Buyers & Integrators
+
+- [Buyer Checklist](docs/BUYER_CHECKLIST.md)
+- [Sandbox and Demo Mode](docs/SANDBOX_AND_DEMO_MODE.md)
+- [API Integration Guide](docs/API_INTEGRATION_GUIDE.md)
+
+### Safety & Regulatory
+
+- [Safety and Limitations](docs/SAFETY_AND_LIMITATIONS.md)
+- [Regulatory and Compliance](docs/REGULATORY_AND_COMPLIANCE.md)
