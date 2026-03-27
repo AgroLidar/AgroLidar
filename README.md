@@ -1,141 +1,177 @@
 [![CI](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/ci.yml)
+[![Docs](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/docs.yml)
+[![Repository Hygiene](https://github.com/AgroLidar/AgroLidar/actions/workflows/repo-hygiene.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/repo-hygiene.yml)
+[![Release](https://github.com/AgroLidar/AgroLidar/actions/workflows/release.yml/badge.svg)](https://github.com/AgroLidar/AgroLidar/actions/workflows/release.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.2-orange.svg)](https://pytorch.org/)
-[![ONNX](https://img.shields.io/badge/ONNX-1.16-purple.svg)](https://onnx.ai/)
-[![MLflow](https://img.shields.io/badge/MLflow-2.14-blue.svg)](https://mlflow.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green.svg)](https://fastapi.tiangolo.com/)
-[![Docs](https://img.shields.io/badge/docs-deployment%20ready-brightgreen.svg)](docs/README.md)
-[![Safety Gate](https://img.shields.io/badge/safety%20gate-enabled-critical.svg)](docs/SAFETY_AND_LIMITATIONS.md)
+
+<p align="center">
+  <img src="assets/logo.png" alt="AgroLidar" width="180" />
+</p>
 
 # AgroLidar
 
-AgroLidar is a **field-first LiDAR perception stack for agricultural machines**.
+**AgroLidar is a production-minded LiDAR perception platform for agricultural machines**, designed for safety-oriented obstacle detection, model governance, and controlled continuous improvement from real-world field data.
 
-The system is built for safety-critical operation around people, animals, rocks, and posts in noisy real-world conditions (dust, vegetation clutter, uneven terrain).
+It combines training, evaluation, model registry, safety gating, ONNX export, and API inference into a coherent operator-ready stack.
 
-> Policy: **no online self-training in production**. Models learn offline through review, retraining, and controlled promotion.
+## Why AgroLidar
 
----
+- **Field-first safety posture**: designed around hard classes like humans, animals, rocks, and posts.
+- **Governed model promotion**: explicit candidate-vs-production comparisons before rollout.
+- **Operationally practical**: includes server APIs, deployment docs, and platform adaptation configs.
+- **Continuous learning loop**: mine hard cases, review, retrain, evaluate, and promote with policy checks.
 
-## Continuous Learning Loop
+## Core Features
 
-1. Run inference on collected runs.
-2. Mine hard/failure cases into `data/hard_cases/`.
-3. Build and review labeling queue in `data/review_queue/`.
-4. Retrain a **candidate model** with base + reviewed hard cases.
-5. Evaluate candidate on safety-critical metrics.
-6. Compare candidate vs production and promote only if policy passes.
+- LiDAR data simulation, preprocessing, training, and inference.
+- Safety-oriented metrics and promotion gates.
+- FastAPI inference server (`inference_server/` and `lidar_perception/api/`).
+- ONNX export + validation for runtime portability.
+- Registry lifecycle (`production`, `candidate`, `archived`, `rejected`) managed by scripts.
+- Config-driven platform profiles for agricultural vehicles.
 
----
+## System Overview
 
-## Retraining with Hard Cases
+```text
+Data -> Train/Retrain -> Evaluate -> Compare -> Safety Gate -> Promote
+  |                                                |
+  +-> Hard-case mining + review queue              +-> Registry + reports
+```
 
-`scripts/retrain.py` now composes datasets using:
+### Architecture Components
 
-- base training dataset
-- reviewed hard-case dataset (`data/hard_cases/` + `data/review_queue/`)
+- `lidar_perception/`: model, data, inference, risk, evaluation, and registry logic.
+- `scripts/`: CLI automation for train/eval/retrain/promotion/export.
+- `inference_server/`: serving layer for online inference.
+- `configs/`: base, training, evaluation, inference, safety, and platform profiles.
+- `docs/`: deployment, operations, regulatory, and integration guides.
 
-Key knobs (in `configs/retrain.yaml`):
+## Repository Structure
 
-- `hard_case_ratio`
-- `oversample_dangerous_classes`
-- `dangerous_class_weight`
-- `reviewed_only`
-- `only_high_conf_failures`
+```text
+AgroLidar/
+├── lidar_perception/      # Core Python package
+├── inference_server/      # FastAPI inference service
+├── scripts/               # Training/evaluation/promotion automation
+├── configs/               # Runtime + pipeline configuration
+├── tests/                 # Unit and integration tests
+├── docs/                  # Product and technical documentation
+├── app/, components/      # Next.js landing page
+└── outputs/               # Generated reports and registry state
+```
 
-Retraining writes metadata to `outputs/reports/retrain_metadata.json` and saves a **new candidate run** under `outputs/candidates/<tag_timestamp>/` (production artifacts are not overwritten).
+## Quickstart
 
----
+### 1) Install
 
-## Safety-Critical Metrics
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-`scripts/evaluate.py` outputs both JSON and Markdown reports with:
+### 2) Validate environment
 
-- global: mAP, recall, precision, dangerous FNR, latency, robustness gap
-- per-class safety metrics for:
-  - `human`
-  - `animal`
-  - `rock`
-  - `post`
-  - `vehicle`
-- per class:
-  - recall
-  - false negative rate
-  - precision
-  - distance error
-- aggregate:
-  - `dangerous_class_aggregate_score`
+```bash
+python scripts/check_installation.py
+```
 
----
+### 3) Run an end-to-end smoke flow
 
-## Model Promotion Logic
+```bash
+make generate-data
+make train
+make evaluate
+make safety-check
+```
 
-`python scripts/promote_model.py ...` consumes:
+### 4) Serve inference API
 
-- candidate model checkpoint
-- production model checkpoint
-- comparison report (`scripts/compare_models.py` output)
+```bash
+make serve
+# API: http://localhost:8000
+```
 
-Promotion policy requires:
+## Usage Examples
 
-- improved safety recall / dangerous FNR
-- no significant latency regression
-- no significant robustness degradation
-
-Outcomes:
-
-- accepted candidate -> `production`
-- previous production -> `archived`
-- rejected candidate -> `rejected`
-
-All state transitions are written in `outputs/registry/registry.json`.
-
----
-
-## Quick Commands
+### Train a baseline model
 
 ```bash
 python scripts/train.py --config configs/train.yaml
+```
+
+### Retrain with hard-case emphasis
+
+```bash
 python scripts/retrain.py --config configs/retrain.yaml
-python scripts/evaluate.py --config configs/base.yaml
-python scripts/compare_models.py --production-metrics outputs/reports/production_eval.json --candidate-metrics outputs/reports/eval_report.json
-python scripts/promote_model.py --candidate-model outputs/candidates/<run>/checkpoints/best.pt --production-model outputs/checkpoints/best.pt --comparison-report outputs/reports/model_comparison.json
 ```
 
-
-## 📦 Deployment & Integration
-
-### Quick Start (Sandbox)
+### Compare candidate vs production
 
 ```bash
-make generate-data && make train && make serve
-# Then POST a frame to http://localhost:8000/predict
+python scripts/compare_models.py \
+  --production-metrics outputs/reports/production_eval.json \
+  --candidate-metrics outputs/reports/eval_report.json
 ```
 
-### Verify Your Installation
+### Attempt controlled promotion
 
 ```bash
-make check-install
+python scripts/promote_model.py \
+  --candidate-model outputs/candidates/<run>/checkpoints/best.pt \
+  --production-model outputs/checkpoints/best.pt \
+  --comparison-report outputs/reports/model_comparison.json
 ```
 
-### Documentation
+## Development
 
-- [Deployment Documentation Index](docs/README.md)
+```bash
+make setup
+make lint
+make test
+pre-commit run --all-files
+```
 
-### Hardware & Platform Compatibility
+See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow, branch strategy, and PR quality expectations.
 
-- [Hardware Deployment Guide](docs/HARDWARE_DEPLOYMENT_GUIDE.md)
-- [Vehicle Compatibility Guide](docs/VEHICLE_COMPATIBILITY_GUIDE.md)
-- [Platform Adaptation Matrix](docs/PLATFORM_ADAPTATION_MATRIX.md)
+## Documentation
 
-### For Buyers & Integrators
-
-- [Buyer Checklist](docs/BUYER_CHECKLIST.md)
-- [Sandbox and Demo Mode](docs/SANDBOX_AND_DEMO_MODE.md)
-- [API Integration Guide](docs/API_INTEGRATION_GUIDE.md)
-
-### Safety & Regulatory
-
+- [Documentation Home](docs/index.md)
+- [Getting Started](docs/getting-started.md)
+- [Architecture](docs/architecture.md)
+- [Usage Guide](docs/usage.md)
+- [Development Guide](docs/development.md)
+- [Roadmap](docs/roadmap.md)
+- [Operations Manual](docs/OPERATIONS_MANUAL.md)
 - [Safety and Limitations](docs/SAFETY_AND_LIMITATIONS.md)
-- [Regulatory and Compliance](docs/REGULATORY_AND_COMPLIANCE.md)
+
+## Demo / Screenshots
+
+- Product demo placeholder: `docs/assets/demo.gif` (to be added once a stabilized demo capture is available).
+- API example payloads and workflows are documented in [docs/API_INTEGRATION_GUIDE.md](docs/API_INTEGRATION_GUIDE.md).
+
+## Project Status
+
+AgroLidar is in active development toward an enterprise-ready v1.0 release.
+
+- Current baseline line: `0.9.x`
+- Planned release discipline: Semantic Versioning + changelog-driven releases
+- See [CHANGELOG.md](CHANGELOG.md) and [docs/roadmap.md](docs/roadmap.md)
+
+## Security
+
+Please review [SECURITY.md](SECURITY.md) for vulnerability reporting and disclosure policy.
+
+## Contributing
+
+Community and team contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## License
+
+This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+
+## Organization Contact
+
+- GitHub: https://github.com/AgroLidar
+- Security: security@agro-lidar.com
+- General contact: contact@agro-lidar.com

@@ -1,36 +1,26 @@
----
-layout: default
-title: AgroLidar Docs
----
-
 # AgroLidar Documentation
 
-**LiDAR perception system for agricultural machines.**
+Welcome to the AgroLidar documentation hub.
 
-> Field-first. Safety-gated. Deployment-ready.
+AgroLidar is a LiDAR perception platform for agricultural machines with emphasis on safety-critical detection quality, disciplined model governance, and deployment realism.
 
-## Quick Links
+## Start Here
 
-| Document | Description |
-|----------|-------------|
-| [Hardware Guide](HARDWARE_DEPLOYMENT_GUIDE.md) | BOM, tiers, wiring |
-| [Installation](INSTALLATION_AND_COMMISSIONING.md) | Setup & commissioning |
-| [Sandbox & Demo](SANDBOX_AND_DEMO_MODE.md) | Try without hardware |
-| [API Integration](API_INTEGRATION_GUIDE.md) | OEM/integrator guide |
-| [Buyer Checklist](BUYER_CHECKLIST.md) | Decision checklist |
-| [Safety & Limits](SAFETY_AND_LIMITATIONS.md) | Critical reading |
-| [Platform Matrix](PLATFORM_ADAPTATION_MATRIX.md) | Vehicle compatibility |
-| [Configuration](CONFIGURATION_REFERENCE.md) | All config knobs |
-| [Data & Retraining](DATA_COLLECTION_AND_RETRAINING.md) | Continuous learning |
-| [Regulatory](REGULATORY_AND_COMPLIANCE.md) | CE, ANATEL, ENACOM |
+- [Getting Started](getting-started.md)
+- [Usage](usage.md)
+- [Architecture](architecture.md)
+- [Development](development.md)
+- [Roadmap](roadmap.md)
 
-## Get Started
+## Extended Product Documentation
 
-```bash
-git clone https://github.com/AgroLidar/AgroLidar
-cd AgroLidar
-make setup
-make generate-data && make train && make serve
-```
-
-Then visit: http://localhost:8000/docs for the live API.
+- [Installation and Commissioning](INSTALLATION_AND_COMMISSIONING.md)
+- [Hardware Deployment Guide](HARDWARE_DEPLOYMENT_GUIDE.md)
+- [Sensor Calibration](SENSOR_CALIBRATION.md)
+- [Vehicle Compatibility Guide](VEHICLE_COMPATIBILITY_GUIDE.md)
+- [Platform Adaptation Matrix](PLATFORM_ADAPTATION_MATRIX.md)
+- [API Integration Guide](API_INTEGRATION_GUIDE.md)
+- [Data Collection and Retraining](DATA_COLLECTION_AND_RETRAINING.md)
+- [Safety and Limitations](SAFETY_AND_LIMITATIONS.md)
+- [Regulatory and Compliance](REGULATORY_AND_COMPLIANCE.md)
+- [Operations Manual](OPERATIONS_MANUAL.md)

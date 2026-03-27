@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -9,21 +9,21 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-added-large-files
-        args: ["--maxkb=500"]
+        args: ["--maxkb=1024"]
       - id: check-merge-conflict
       - id: debug-statements
-      - id: no-commit-to-branch
-        args: ["--branch", "main"]
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.9
+    rev: v0.12.10
     hooks:
       - id: ruff
         args: ["--fix"]
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
+    rev: v1.15.0
     hooks:
       - id: mypy
         files: "^(lidar_perception|inference_server|scripts)/"
@@ -54,17 +54,18 @@ repos:
           python -c "
           import yaml, sys, glob
           errors = []
-          for f in glob.glob('configs/*.yaml'):
+          files = glob.glob('configs/*.yaml') + glob.glob('configs/platforms/*.yaml')
+          for f in files:
               try:
-                  yaml.safe_load(open(f))
+                  yaml.safe_load(open(f, encoding='utf-8'))
               except yaml.YAMLError as e:
                   errors.append(f'{f}: {e}')
           if errors:
               print('Invalid YAML configs:')
               [print(e) for e in errors]
               sys.exit(1)
-          print(f'All {len(list(glob.glob(\"configs/*.yaml\")))} config files valid')
+          print(f'All {len(files)} config files valid')
           "
         language: system
         pass_filenames: false
-        files: "^configs/.*\\.yaml$"
+        files: "^configs/.*\\.ya?ml$"

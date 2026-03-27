@@ -1,29 +1,45 @@
 # Security Policy
 
+AgroLidar includes safety-critical perception components. We treat security and model integrity issues as high-priority defects.
+
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| 0.9.x   | ✅        |
+| Version | Supported | Notes |
+| --- | --- | --- |
+| 0.9.x | ✅ | Current stable line |
+| `< 0.9.0` | ❌ | Upgrade to latest 0.9.x |
 
 ## Reporting a Vulnerability
 
-To report a security vulnerability in AgroLidar, please email:
-security@agro-lidar.com
+Please report vulnerabilities privately by emailing **security@agro-lidar.com**.
 
-Do NOT open a public GitHub issue for security vulnerabilities.
+Include, when possible:
 
-We will respond within 72 hours and coordinate a responsible disclosure.
+- affected component(s)
+- impact summary
+- reproduction steps or proof-of-concept
+- potential mitigations
 
-## Scope
+> Do **not** disclose vulnerabilities publicly before a fix is available.
 
-- Inference server authentication gaps
-- Model integrity / checkpoint tampering
-- API rate limiting bypass
-- Unsafe deserialization of frame data
+## Response Expectations
+
+- **Acknowledgement:** within 72 hours
+- **Initial triage:** within 7 calendar days
+- **Status updates:** at least every 14 days until resolution
+- **Coordinated disclosure target:** after patch availability and downstream notice window
+
+## Security Scope Priorities
+
+- inference server authentication/authorization gaps
+- model checkpoint integrity and registry tampering
+- API abuse, rate limiting bypass, or denial-of-service vectors
+- unsafe deserialization / untrusted input execution paths
+- secrets handling and credential exposure
 
 ## Out of Scope
 
-- Social engineering
-- Physical hardware attacks
-- Issues in third-party dependencies (report to upstream)
+- social engineering attacks without a software defect
+- physical attacks against customer hardware
+- known vulnerabilities in unsupported versions
+- vulnerabilities in third-party packages without AgroLidar-specific exploit path (please report upstream as well)

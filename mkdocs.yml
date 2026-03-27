@@ -1,0 +1,29 @@
+site_name: AgroLidar Docs
+site_description: LiDAR perception platform for agricultural safety and deployment
+site_url: https://agrolidar.github.io/AgroLidar/
+repo_url: https://github.com/AgroLidar/AgroLidar
+repo_name: AgroLidar/AgroLidar
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Architecture: architecture.md
+  - Usage: usage.md
+  - Development: development.md
+  - Roadmap: roadmap.md
+  - Safety & Limitations: SAFETY_AND_LIMITATIONS.md
+  - Operations Manual: OPERATIONS_MANUAL.md
