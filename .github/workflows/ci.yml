@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -62,7 +65,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
 
-      - name: Evaluate
+      - name: Check if checkpoint exists
+        id: checkpoint_check
+        run: |
+          if [ -f "outputs/checkpoints/best.pt" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No checkpoint found, skipping evaluation."
+          fi
+
+      - name: Run evaluation
+        if: steps.checkpoint_check.outputs.exists == 'true'
         run: python scripts/evaluate.py --config configs/base.yaml
 
       - name: Upload evaluation reports

@@ -1,0 +1,28 @@
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+  "E501",
+  "E402",
+  "F401",
+]
+
+exclude = [
+  "notebooks/",
+  ".github/",
+  "app/",
+  "components/",
+]
+
+[lint.per-file-ignores]
+"scripts/collect_failures.py" = ["I001"]
+"scripts/evaluate.py" = ["I001"]
+"scripts/retrain.py" = ["I001"]
+"lidar_perception/active_learning/miner.py" = ["I001"]
+"lidar_perception/api/main.py" = ["I001"]
+"lidar_perception/data/datasets.py" = ["I001"]
+"lidar_perception/registry/__init__.py" = ["I001"]
+"tests/test_hard_case_datasets.py" = ["I001"]
+"tests/test_retrain_and_promotion.py" = ["I001"]

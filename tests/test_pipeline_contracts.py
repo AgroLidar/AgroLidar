@@ -8,7 +8,6 @@ import pytest
 
 from scripts import promote_model
 
-
 REQUIRED_EVAL_KEYS = {
     "mAP",
     "recall",

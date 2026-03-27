@@ -194,7 +194,7 @@ def main() -> int:
             ],
         )
         candidate_metrics_path = Path("outputs/reports/eval_report.json")
-        candidate_metrics = summarize_evaluate(candidate_metrics_path, "candidate")
+        summarize_evaluate(candidate_metrics_path, "candidate")
 
         if not production_metrics_path.exists():
             LOGGER.info("production metrics not found at %s; generating now", production_metrics_path)
