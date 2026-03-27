@@ -112,8 +112,8 @@ def main() -> None:
             try:
                 tracker.set_tag("training_status", "failed")
                 tracker.end_run("FAILED")
-            except Exception:
-                pass
+            except Exception as tracking_error:
+                print(f"Warning: failed to mark MLflow run as FAILED: {tracking_error}")
             raise train_error
 
 

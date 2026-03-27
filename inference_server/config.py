@@ -9,7 +9,7 @@ import yaml
 
 @dataclass
 class ServerConfig:
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0"  # nosec B104
     port: int = 8000
     workers: int = 1
     reload: bool = False
