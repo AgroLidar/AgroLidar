@@ -23,9 +23,15 @@ class MiningConfig:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Mine hard/failure cases from inference outputs")
-    parser.add_argument("--inference-dir", required=True, help="Directory with per-frame inference JSON outputs")
-    parser.add_argument("--output-dir", default="data/hard_cases/", help="Directory to store mined hard-case files")
-    parser.add_argument("--config", default="configs/mining.yaml", help="Mining configuration YAML path")
+    parser.add_argument(
+        "--inference-dir", required=True, help="Directory with per-frame inference JSON outputs"
+    )
+    parser.add_argument(
+        "--output-dir", default="data/hard_cases/", help="Directory to store mined hard-case files"
+    )
+    parser.add_argument(
+        "--config", default="configs/mining.yaml", help="Mining configuration YAML path"
+    )
     return parser.parse_args()
 
 
@@ -71,7 +77,9 @@ def iou(box_a: list[float] | tuple[float, ...], box_b: list[float] | tuple[float
     return float(inter_area / denom)
 
 
-def best_match(gt_item: dict[str, Any], detections: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, float]:
+def best_match(
+    gt_item: dict[str, Any], detections: list[dict[str, Any]]
+) -> tuple[dict[str, Any] | None, float]:
     gt_class = str(gt_item.get("class", ""))
     gt_bbox = gt_item.get("bbox", [])
 
@@ -148,7 +156,9 @@ def mine_frame(frame: dict[str, Any], config: MiningConfig) -> list[dict[str, An
                 "class": klass,
                 "confidence": round(conf, 6),
                 "iou": round(float(best_iou), 6),
-                "distance_error": None if np.isnan(distance_error) else round(float(distance_error), 6),
+                "distance_error": None
+                if np.isnan(distance_error)
+                else round(float(distance_error), 6),
                 "reason": reason,
                 "reviewed": False,
             }

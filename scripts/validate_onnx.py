@@ -15,7 +15,9 @@ from scripts.export_onnx import load_wrapped_model, parse_input_shape, validate_
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Validate an exported ONNX model against PyTorch outputs")
+    parser = argparse.ArgumentParser(
+        description="Validate an exported ONNX model against PyTorch outputs"
+    )
     parser.add_argument("--onnx-path", required=True)
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--n-samples", type=int, default=100)

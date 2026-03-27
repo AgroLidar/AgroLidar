@@ -21,5 +21,7 @@ def segmentation_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
 
 def obstacle_loss(pred: dict[str, torch.Tensor], target: dict[str, torch.Tensor]) -> torch.Tensor:
     occupancy_loss = F.binary_cross_entropy_with_logits(pred["occupancy"], target["occupancy"])
-    distance_loss = F.l1_loss(torch.sigmoid(pred["distance"]) * target["occupancy"], target["distance"])
+    distance_loss = F.l1_loss(
+        torch.sigmoid(pred["distance"]) * target["occupancy"], target["distance"]
+    )
     return occupancy_loss + distance_loss

@@ -12,7 +12,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Inspect AgroLidar model registry state")
     parser.add_argument("--json", action="store_true", help="Print raw JSON")
     parser.add_argument("--production", action="store_true", help="Show only production model")
-    parser.add_argument("--history", action="store_true", help="Show all entries ordered by timestamp")
+    parser.add_argument(
+        "--history", action="store_true", help="Show all entries ordered by timestamp"
+    )
     return parser.parse_args()
 
 
@@ -32,7 +34,9 @@ def _sorted_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(entries, key=lambda item: str(item.get("timestamp", "")), reverse=True)
 
 
-def _select_entries(entries: list[dict[str, Any]], production_only: bool, history: bool) -> list[dict[str, Any]]:
+def _select_entries(
+    entries: list[dict[str, Any]], production_only: bool, history: bool
+) -> list[dict[str, Any]]:
     ordered = _sorted_entries(entries)
 
     if production_only:

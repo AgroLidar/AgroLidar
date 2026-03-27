@@ -60,7 +60,9 @@ class TemporalDetectionTracker:
         previous_center = track.box[:2].copy()
         track.box = alpha * detection["box"] + (1.0 - alpha) * track.box
         track.score = max(float(detection["score"]), track.score * self.score_decay)
-        track.hazard_score = alpha * float(detection["hazard_score"]) + (1.0 - alpha) * track.hazard_score
+        track.hazard_score = (
+            alpha * float(detection["hazard_score"]) + (1.0 - alpha) * track.hazard_score
+        )
         track.distance_m = float(np.linalg.norm(track.box[:2]))
         track.relative_position = {
             "forward_m": float(track.box[0]),
@@ -129,9 +131,15 @@ class TemporalDetectionTracker:
             enriched["velocity_mps"] = dict(matched.velocity_mps)
             updated_outputs.append(enriched)
 
-        self._tracks = [track for track in self._tracks if track.time_since_update <= self.max_track_age]
+        self._tracks = [
+            track for track in self._tracks if track.time_since_update <= self.max_track_age
+        ]
         risk_priority = {"emergency": 0, "warning": 1, "monitor": 2}
         return sorted(
             updated_outputs,
-            key=lambda item: (risk_priority.get(item["risk_level"], 3), -item["hazard_score"], item["distance_m"]),
+            key=lambda item: (
+                risk_priority.get(item["risk_level"], 3),
+                -item["hazard_score"],
+                item["distance_m"],
+            ),
         )

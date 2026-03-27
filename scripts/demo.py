@@ -42,7 +42,9 @@ def main() -> None:
             sample_index = min(index + frame_offset, len(dataset) - 1)
             sample = dataset[sample_index]
             last_sample = sample
-            last_result = runtime.infer_points(sample["points"].numpy(), vehicle_speed_mps=args.tractor_speed_mps)
+            last_result = runtime.infer_points(
+                sample["points"].numpy(), vehicle_speed_mps=args.tractor_speed_mps
+            )
             print(
                 f"scene={index} frame={frame_offset} detections={len(last_result['detections'])} "
                 f"nearest_distance_m={last_result['nearest_obstacle_distance_m']:.2f} "
@@ -56,7 +58,9 @@ def main() -> None:
             last_sample["points"].numpy(),
             last_result["detections"],
             save_path=save_path,
-            filtered_points=last_result["filtered_points"] if config["visualization"].get("show_filtered_points", True) else None,
+            filtered_points=last_result["filtered_points"]
+            if config["visualization"].get("show_filtered_points", True)
+            else None,
             corridor_width_m=config["data"].get("preprocessing", {}).get("corridor_width_m"),
         )
         print(

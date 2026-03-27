@@ -48,7 +48,15 @@ def config_hash(config: dict) -> str:
     return hashlib.sha256(canonical).hexdigest()[:12]
 
 
-def new_entry(version: str, status: str, checkpoint: str, config: dict, dataset_manifest: str, metrics: dict, notes: str = "") -> RegistryEntry:
+def new_entry(
+    version: str,
+    status: str,
+    checkpoint: str,
+    config: dict,
+    dataset_manifest: str,
+    metrics: dict,
+    notes: str = "",
+) -> RegistryEntry:
     return RegistryEntry(
         version=version,
         timestamp=datetime.now(timezone.utc).isoformat(),

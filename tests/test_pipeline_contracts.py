@@ -45,7 +45,9 @@ def test_evaluate_output_has_required_keys(tmp_path: Path) -> None:
     assert REQUIRED_CLASSES.issubset(payload["per_class"].keys())
 
 
-def test_promote_rejects_worse_candidate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_promote_rejects_worse_candidate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     candidate_model = tmp_path / "candidate_best.pt"
     production_model = tmp_path / "production_best.pt"
     comparison_report = tmp_path / "comparison.json"
@@ -88,7 +90,9 @@ def test_promote_rejects_worse_candidate(tmp_path: Path, monkeypatch: pytest.Mon
     assert production_model.read_text(encoding="utf-8") == "production"
 
 
-def test_registry_json_written_on_promotion(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_registry_json_written_on_promotion(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     candidate_model = tmp_path / "candidate_best.pt"
     production_model = tmp_path / "production_best.pt"
     comparison_report = tmp_path / "comparison.json"
@@ -164,4 +168,6 @@ def test_retrain_metadata_written(tmp_path: Path) -> None:
     metadata_path.write_text(json.dumps(mocked_metadata), encoding="utf-8")
 
     payload = json.loads(metadata_path.read_text(encoding="utf-8"))
-    assert {"hard_case_ratio", "base_dataset_size", "hard_case_count", "timestamp"}.issubset(payload.keys())
+    assert {"hard_case_ratio", "base_dataset_size", "hard_case_count", "timestamp"}.issubset(
+        payload.keys()
+    )

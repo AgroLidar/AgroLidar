@@ -4,20 +4,33 @@ from pathlib import Path
 import numpy as np
 
 from lidar_perception.data.datasets import build_dataset
-from lidar_perception.data.hard_case_dataset import CompositeTrainingDataset, ReviewedHardCaseDataset
+from lidar_perception.data.hard_case_dataset import (
+    CompositeTrainingDataset,
+    ReviewedHardCaseDataset,
+)
 
 
 def _cfg(tmp_path: Path) -> dict:
     return {
         "dataset_type": "reviewed_hard_cases",
         "class_names": ["human", "animal", "vehicle", "post", "rock"],
-        "segmentation_classes": ["background", "traversable_ground", "vegetation", "vehicle", "human", "obstacle"],
+        "segmentation_classes": [
+            "background",
+            "traversable_ground",
+            "vegetation",
+            "vehicle",
+            "human",
+            "obstacle",
+        ],
         "point_cloud_range": [-10, -10, -3, 10, 10, 3],
         "grid_size": [32, 32],
         "preprocessing": {"enabled": False},
         "augmentations": {"enabled": False},
         "hard_case": {
-            "dirs": [str(tmp_path / "data" / "hard_cases"), str(tmp_path / "data" / "review_queue")],
+            "dirs": [
+                str(tmp_path / "data" / "hard_cases"),
+                str(tmp_path / "data" / "review_queue"),
+            ],
             "manifests": [],
             "only_reviewed": True,
             "only_high_conf_failures": False,
@@ -58,7 +71,14 @@ def test_composite_dataset_mixes_base_and_hard_cases_with_weighting(tmp_path: Pa
         "test_size": 1,
         "num_points": 200,
         "class_names": ["human", "animal", "vehicle", "post", "rock"],
-        "segmentation_classes": ["background", "traversable_ground", "vegetation", "vehicle", "human", "obstacle"],
+        "segmentation_classes": [
+            "background",
+            "traversable_ground",
+            "vegetation",
+            "vehicle",
+            "human",
+            "obstacle",
+        ],
         "point_cloud_range": [-10, -10, -3, 10, 10, 3],
         "grid_size": [32, 32],
         "max_objects": 3,

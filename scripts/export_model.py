@@ -13,7 +13,9 @@ from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export model artifact for edge deployment handoff")
+    parser = argparse.ArgumentParser(
+        description="Export model artifact for edge deployment handoff"
+    )
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--output", default="outputs/exports/model.pt")
     return parser.parse_args()

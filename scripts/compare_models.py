@@ -19,7 +19,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compare production vs candidate model metrics")
     parser.add_argument("--production-metrics", required=True)
     parser.add_argument("--candidate-metrics", required=True)
-    parser.add_argument("--config", default="configs/eval.yaml", help="Optional config for comparison policy overrides")
+    parser.add_argument(
+        "--config",
+        default="configs/eval.yaml",
+        help="Optional config for comparison policy overrides",
+    )
     parser.add_argument("--output", default="outputs/reports/model_comparison.json")
     parser.add_argument("--output-md", default="outputs/reports/model_comparison.md")
     return parser.parse_args()
@@ -69,7 +73,9 @@ def main() -> None:
     out_md.parent.mkdir(parents=True, exist_ok=True)
     out_md.write_text(render_markdown(report), encoding="utf-8")
 
-    print(f"promote={report['promote']} reason={report['decision_reason']} output={out} output_md={out_md}")
+    print(
+        f"promote={report['promote']} reason={report['decision_reason']} output={out} output_md={out_md}"
+    )
 
 
 if __name__ == "__main__":

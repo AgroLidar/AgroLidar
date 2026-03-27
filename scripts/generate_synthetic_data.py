@@ -29,7 +29,9 @@ def _frame_rng_noise(rng: np.random.Generator) -> np.ndarray:
     xs = rng.integers(0, FRAME_SHAPE[1], size=scatter_count)
     ys = rng.integers(0, FRAME_SHAPE[2], size=scatter_count)
     channels = rng.integers(0, FRAME_SHAPE[0], size=scatter_count)
-    frame[channels, xs, ys] = np.clip(frame[channels, xs, ys] + rng.uniform(0.2, 0.9, size=scatter_count), 0.0, 1.0)
+    frame[channels, xs, ys] = np.clip(
+        frame[channels, xs, ys] + rng.uniform(0.2, 0.9, size=scatter_count), 0.0, 1.0
+    )
     return frame
 
 
@@ -48,7 +50,9 @@ def _random_object(rng: np.random.Generator, class_name: str) -> dict:
     }
 
 
-def _write_split(root: Path, split: str, samples: int, rng: np.random.Generator, start_time: datetime) -> Counter:
+def _write_split(
+    root: Path, split: str, samples: int, rng: np.random.Generator, start_time: datetime
+) -> Counter:
     frame_dir = root / split / "frames"
     label_dir = root / split / "labels"
     frame_dir.mkdir(parents=True, exist_ok=True)
@@ -61,7 +65,11 @@ def _write_split(root: Path, split: str, samples: int, rng: np.random.Generator,
         np.save(frame_dir / f"{frame_id}.npy", frame)
 
         object_count = int(rng.integers(0, 6))
-        classes = rng.choice(CLASSES, size=object_count, replace=True, p=CLASS_PROBS) if object_count > 0 else []
+        classes = (
+            rng.choice(CLASSES, size=object_count, replace=True, p=CLASS_PROBS)
+            if object_count > 0
+            else []
+        )
         objects = []
         for class_name in classes:
             class_name = str(class_name)
@@ -73,7 +81,9 @@ def _write_split(root: Path, split: str, samples: int, rng: np.random.Generator,
             "timestamp": (start_time + timedelta(milliseconds=100 * idx)).isoformat(),
             "objects": objects,
         }
-        (label_dir / f"{frame_id}.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        (label_dir / f"{frame_id}.json").write_text(
+            json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+        )
 
     return counter
 
@@ -92,10 +102,14 @@ def main() -> None:
     queue_dir = out / "review_queue"
     queue_dir.mkdir(parents=True, exist_ok=True)
     (queue_dir / "queue.json").write_text("[]\n", encoding="utf-8")
-    (queue_dir / "queue_summary.md").write_text("# Review Queue\n\nNo pending hard cases.\n", encoding="utf-8")
+    (queue_dir / "queue_summary.md").write_text(
+        "# Review Queue\n\nNo pending hard cases.\n", encoding="utf-8"
+    )
 
     total_counter = train_counter + val_counter
-    print(f"generated train_frames={args.train_samples} val_frames={args.val_samples} output_dir={out}")
+    print(
+        f"generated train_frames={args.train_samples} val_frames={args.val_samples} output_dir={out}"
+    )
     for class_name in CLASSES:
         print(f"class={class_name} objects={int(total_counter.get(class_name, 0))}")
 

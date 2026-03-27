@@ -23,7 +23,9 @@ class SyntheticLiDARDataset(Dataset):
         self.num_points = int(config["num_points"])
         self.class_names = list(config["class_names"])
         self.max_objects = int(config["max_objects"])
-        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
+        self.preprocessor = AgroPreprocessor(
+            config["point_cloud_range"], config.get("preprocessing", {})
+        )
         self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
         self.augmentor = PointCloudAugmentor(config["augmentations"]) if split == "train" else None
         self.rng = np.random.default_rng(42 + {"train": 0, "val": 1000, "test": 2000}[split])
@@ -45,8 +47,12 @@ class SyntheticLiDARDataset(Dataset):
         points, preprocessing_metadata = self.preprocessor.process(points)
 
         bev = self.voxelizer.voxelize(points)
-        detection_target = self.voxelizer.build_detection_targets(boxes, labels, num_classes=len(self.class_names))
-        segmentation_target = self.voxelizer.build_segmentation_target(points, boxes, labels, len(self.config["segmentation_classes"]))
+        detection_target = self.voxelizer.build_detection_targets(
+            boxes, labels, num_classes=len(self.class_names)
+        )
+        segmentation_target = self.voxelizer.build_segmentation_target(
+            points, boxes, labels, len(self.config["segmentation_classes"])
+        )
         obstacle_target = self.voxelizer.build_obstacle_targets(points)
 
         return {
@@ -69,9 +75,13 @@ class SyntheticLiDARDataset(Dataset):
 class PointCloudFolderDataset(Dataset):
     def __init__(self, config: dict, split: str = "test"):
         self.root_dir = Path(config["root_dir"])
-        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
+        self.preprocessor = AgroPreprocessor(
+            config["point_cloud_range"], config.get("preprocessing", {})
+        )
         self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
-        self.files = sorted([p for p in self.root_dir.glob("**/*") if p.suffix.lower() in {".bin", ".pcd"}])
+        self.files = sorted(
+            [p for p in self.root_dir.glob("**/*") if p.suffix.lower() in {".bin", ".pcd"}]
+        )
         self.split = split
 
     def __len__(self) -> int:
@@ -105,8 +115,14 @@ class ManifestPointCloudDataset(Dataset):
         manifest_path = Path(config.get(manifest_key) or config.get("manifest_path", ""))
         if not manifest_path.exists():
             raise FileNotFoundError(f"Manifest not found: {manifest_path}")
-        self.records = [json.loads(line) for line in manifest_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-        self.preprocessor = AgroPreprocessor(config["point_cloud_range"], config.get("preprocessing", {}))
+        self.records = [
+            json.loads(line)
+            for line in manifest_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        self.preprocessor = AgroPreprocessor(
+            config["point_cloud_range"], config.get("preprocessing", {})
+        )
         self.voxelizer = BEVVoxelizer(config["point_cloud_range"], config["grid_size"])
 
     def __len__(self) -> int:
@@ -171,15 +187,23 @@ class BEVFrameDataset(Dataset):
     def __len__(self) -> int:
         return len(self.frame_files)
 
-    def _pixel_to_metric(self, px: float, py: float, width: int, height: int) -> tuple[float, float]:
+    def _pixel_to_metric(
+        self, px: float, py: float, width: int, height: int
+    ) -> tuple[float, float]:
         x = (float(px) / max(width - 1, 1)) * 2.0 - 1.0
         y = (float(py) / max(height - 1, 1)) * 2.0 - 1.0
         return x, y
 
-    def _pixel_size_to_metric(self, w_px: float, h_px: float, width: int, height: int) -> tuple[float, float]:
-        return max(float(w_px) / max(width, 1) * 2.0, 1e-3), max(float(h_px) / max(height, 1) * 2.0, 1e-3)
+    def _pixel_size_to_metric(
+        self, w_px: float, h_px: float, width: int, height: int
+    ) -> tuple[float, float]:
+        return max(float(w_px) / max(width, 1) * 2.0, 1e-3), max(
+            float(h_px) / max(height, 1) * 2.0, 1e-3
+        )
 
-    def _build_targets(self, label_payload: dict, width: int, height: int, det_h: int, det_w: int) -> tuple[torch.Tensor, torch.Tensor, dict]:
+    def _build_targets(
+        self, label_payload: dict, width: int, height: int, det_h: int, det_w: int
+    ) -> tuple[torch.Tensor, torch.Tensor, dict]:
         heatmap = np.zeros((len(self.class_names), det_h, det_w), dtype=np.float32)
         offsets = np.zeros((2, det_h, det_w), dtype=np.float32)
         sizes = np.zeros((3, det_h, det_w), dtype=np.float32)
@@ -242,17 +266,23 @@ class BEVFrameDataset(Dataset):
         else:
             boxes_tensor = torch.zeros((0, 7), dtype=torch.float32)
             labels_tensor = torch.zeros((0,), dtype=torch.int64)
-        return boxes_tensor, labels_tensor, {
-            "detection_target": detection_target,
-            "segmentation_target": torch.from_numpy(segmentation),
-            "obstacle_target": obstacle_target,
-        }
+        return (
+            boxes_tensor,
+            labels_tensor,
+            {
+                "detection_target": detection_target,
+                "segmentation_target": torch.from_numpy(segmentation),
+                "obstacle_target": obstacle_target,
+            },
+        )
 
     def __getitem__(self, index: int) -> dict:
         frame_path = self.frame_files[index]
         label_path = self.label_files.get(frame_path.stem)
         if label_path is None:
-            raise FileNotFoundError(f"Missing label file for frame '{frame_path.name}' in {self.labels_dir}")
+            raise FileNotFoundError(
+                f"Missing label file for frame '{frame_path.name}' in {self.labels_dir}"
+            )
 
         bev = np.load(frame_path).astype(np.float32)
         if bev.ndim != 3:
@@ -261,7 +291,9 @@ class BEVFrameDataset(Dataset):
         if c != self.expected_channels:
             raise ValueError(f"Expected {self.expected_channels} channels, got {c} in {frame_path}")
         if h != self.expected_height or w != self.expected_width:
-            raise ValueError(f"Expected frame shape ({self.expected_height}, {self.expected_width}), got ({h}, {w}) in {frame_path}")
+            raise ValueError(
+                f"Expected frame shape ({self.expected_height}, {self.expected_width}), got ({h}, {w}) in {frame_path}"
+            )
         bev = np.clip(bev, 0.0, 1.0)
 
         label_payload = json.loads(label_path.read_text(encoding="utf-8"))
@@ -273,7 +305,9 @@ class BEVFrameDataset(Dataset):
                 mode="bilinear",
                 align_corners=False,
             ).squeeze(0)
-        boxes, labels, targets = self._build_targets(label_payload, w, h, self.model_height, self.model_width)
+        boxes, labels, targets = self._build_targets(
+            label_payload, w, h, self.model_height, self.model_width
+        )
         return {
             "frame_id": label_payload.get("frame_id", frame_path.stem),
             "timestamp": label_payload.get("timestamp", ""),
@@ -312,7 +346,9 @@ def collate_fn(batch: list[dict]) -> dict:
             key: torch.stack([item["detection_target"][key] for item in batch], dim=0)
             for key in batch[0]["detection_target"].keys()
         }
-        result["segmentation_target"] = torch.stack([item["segmentation_target"] for item in batch], dim=0)
+        result["segmentation_target"] = torch.stack(
+            [item["segmentation_target"] for item in batch], dim=0
+        )
         result["obstacle_target"] = {
             key: torch.stack([item["obstacle_target"][key] for item in batch], dim=0)
             for key in batch[0]["obstacle_target"].keys()

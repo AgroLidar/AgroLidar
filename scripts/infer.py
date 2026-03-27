@@ -53,10 +53,18 @@ def main() -> None:
 
     for index, (source, points) in enumerate(zip(sources, points_sequence)):
         result = runtime.infer_points(points, vehicle_speed_mps=args.tractor_speed_mps)
-        print(f"source={source} risk={result['scene_risk_level']} nearest_distance={result['nearest_obstacle_distance_m']:.2f}m")
+        print(
+            f"source={source} risk={result['scene_risk_level']} nearest_distance={result['nearest_obstacle_distance_m']:.2f}m"
+        )
         if args.save_json:
             out = save_dir / f"{source}_{index}.json"
-            out.write_text(json.dumps(result, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else x) + "\n", encoding="utf-8")
+            out.write_text(
+                json.dumps(
+                    result, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else x
+                )
+                + "\n",
+                encoding="utf-8",
+            )
 
 
 if __name__ == "__main__":

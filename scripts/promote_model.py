@@ -16,7 +16,9 @@ from lidar_perception.tracking import MLflowTracker
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Promote/reject candidate model based on comparison report")
+    parser = argparse.ArgumentParser(
+        description="Promote/reject candidate model based on comparison report"
+    )
     parser.add_argument("--candidate-model", required=True)
     parser.add_argument("--production-model", required=True)
     parser.add_argument("--comparison-report", required=True)
@@ -26,8 +28,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _latest_with_checkpoint(entries: list[dict], checkpoint: str, status: str | None = None) -> dict | None:
-    matches = [e for e in entries if e.get("checkpoint") == checkpoint and (status is None or e.get("status") == status)]
+def _latest_with_checkpoint(
+    entries: list[dict], checkpoint: str, status: str | None = None
+) -> dict | None:
+    matches = [
+        e
+        for e in entries
+        if e.get("checkpoint") == checkpoint and (status is None or e.get("status") == status)
+    ]
     if not matches:
         return None
     return sorted(matches, key=lambda x: x.get("timestamp", ""))[-1]
@@ -49,7 +57,10 @@ def main() -> None:
     if report.get("promote", False):
         if production is not None:
             production["status"] = "archived"
-            production["notes"] = (production.get("notes", "") + f" | archived_at={now} promoted_candidate={args.candidate_model}").strip()
+            production["notes"] = (
+                production.get("notes", "")
+                + f" | archived_at={now} promoted_candidate={args.candidate_model}"
+            ).strip()
         if candidate is not None:
             candidate["status"] = "production"
             candidate["notes"] = (candidate.get("notes", "") + f" | promoted_at={now}").strip()
@@ -70,7 +81,10 @@ def main() -> None:
     else:
         if candidate is not None:
             candidate["status"] = "rejected"
-            candidate["notes"] = (candidate.get("notes", "") + f" | rejected_at={now} reason={report.get('decision_reason', 'policy_failed')}").strip()
+            candidate["notes"] = (
+                candidate.get("notes", "")
+                + f" | rejected_at={now} reason={report.get('decision_reason', 'policy_failed')}"
+            ).strip()
         else:
             entries.append(
                 {
@@ -87,7 +101,9 @@ def main() -> None:
         decision = "rejected"
 
     Path(args.registry_dir).mkdir(parents=True, exist_ok=True)
-    (Path(args.registry_dir) / "registry.json").write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
+    (Path(args.registry_dir) / "registry.json").write_text(
+        json.dumps(entries, indent=2) + "\n", encoding="utf-8"
+    )
 
     with tracker.start_run(run_name=run_name, tags={"run_type": "promotion"}):
         tracker.log_params(
@@ -102,7 +118,9 @@ def main() -> None:
         delta_metrics = {}
         for key, candidate_value in candidate_metrics.items():
             production_value = production_metrics.get(key)
-            if isinstance(candidate_value, (int, float)) and isinstance(production_value, (int, float)):
+            if isinstance(candidate_value, (int, float)) and isinstance(
+                production_value, (int, float)
+            ):
                 delta_metrics[f"delta/{key}"] = float(candidate_value) - float(production_value)
         tracker.log_metrics(delta_metrics)
         tracker.set_tag("promotion_decision", decision)

@@ -40,7 +40,9 @@ def score_candidate(sample_id: str, result: dict, cfg: dict) -> CandidateScore:
         score += cfg.get("low_confidence_weight", 1.0) * (1.0 - min_conf)
 
     score += cfg.get("entropy_weight", 1.0) * ent
-    if any(d.get("label_name") in DANGEROUS and d.get("risk_level") != "monitor" for d in detections):
+    if any(
+        d.get("label_name") in DANGEROUS and d.get("risk_level") != "monitor" for d in detections
+    ):
         reasons.append("dangerous_ambiguous")
         score += cfg.get("ambiguous_dangerous_weight", 1.2)
 

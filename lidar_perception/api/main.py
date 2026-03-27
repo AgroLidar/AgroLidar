@@ -52,7 +52,9 @@ class DemoSession:
 
     def next_frame(self, vehicle_speed_mps: float) -> tuple[dict, dict]:
         sample = self.dataset[self.frame_index % len(self.dataset)]
-        result = self.runtime.infer_points(sample["points"].numpy(), vehicle_speed_mps=vehicle_speed_mps)
+        result = self.runtime.infer_points(
+            sample["points"].numpy(), vehicle_speed_mps=vehicle_speed_mps
+        )
         meta = {
             "frame_index": self.frame_index,
             "point_cloud_range": self.config["data"]["point_cloud_range"],
@@ -96,7 +98,9 @@ def _serialize_result(result: dict, meta: dict, point_limit: int) -> dict:
         "frame_index": int(meta["frame_index"]),
         "point_cloud_range": meta["point_cloud_range"],
         "class_names": meta["class_names"],
-        "raw_points": _sample_points(result.get("filtered_points", np.empty((0, 3), dtype=np.float32)), point_limit),
+        "raw_points": _sample_points(
+            result.get("filtered_points", np.empty((0, 3), dtype=np.float32)), point_limit
+        ),
         "filtered_points": _sample_points(result["filtered_points"], point_limit),
         "detections": [
             {
@@ -143,7 +147,9 @@ def demo_page() -> HTMLResponse:
 
 
 @app.post("/tracking/reset")
-def reset_tracking(config_path: str = "configs/base.yaml", checkpoint_path: str = "outputs/checkpoints/best.pt") -> dict[str, str]:
+def reset_tracking(
+    config_path: str = "configs/base.yaml", checkpoint_path: str = "outputs/checkpoints/best.pt"
+) -> dict[str, str]:
     runtime = _get_runtime(config_path, checkpoint_path)
     runtime.reset_tracking()
     return {"status": "tracking_reset"}
@@ -173,7 +179,9 @@ def predict(request: InferenceRequest) -> dict:
     runtime = _get_runtime(request.config_path, request.checkpoint_path)
     if request.reset_tracking:
         runtime.reset_tracking()
-    result = runtime.infer_file(request.point_cloud_path, vehicle_speed_mps=request.vehicle_speed_mps)
+    result = runtime.infer_file(
+        request.point_cloud_path, vehicle_speed_mps=request.vehicle_speed_mps
+    )
     return {
         "detections": [
             {

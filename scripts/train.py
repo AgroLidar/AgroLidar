@@ -4,6 +4,7 @@ Carga configuración YAML, construye datasets/dataloaders para train/val, inicia
 el modelo y ejecuta el loop de entrenamiento con `Trainer.fit`, guardando checkpoints
 en `outputs/checkpoints/`.
 """
+
 from __future__ import annotations
 
 import sys

@@ -23,7 +23,9 @@ def circle_nms(predictions: list[dict], iou_threshold: float) -> list[dict]:
         should_keep = True
         for existing in kept:
             dist = np.linalg.norm(candidate["box"][:2] - existing["box"][:2])
-            radius = max(candidate["box"][3], candidate["box"][4], existing["box"][3], existing["box"][4])
+            radius = max(
+                candidate["box"][3], candidate["box"][4], existing["box"][3], existing["box"][4]
+            )
             if dist < iou_threshold * radius:
                 should_keep = False
                 break
@@ -37,11 +39,20 @@ class Predictor:
         self.model = model
         self.config = config
         self.device = device
-        self.voxelizer = BEVVoxelizer(config["data"]["point_cloud_range"], config["data"]["grid_size"])
-        self.preprocessor = AgroPreprocessor(config["data"]["point_cloud_range"], config["data"].get("preprocessing", {}))
+        self.voxelizer = BEVVoxelizer(
+            config["data"]["point_cloud_range"], config["data"]["grid_size"]
+        )
+        self.preprocessor = AgroPreprocessor(
+            config["data"]["point_cloud_range"], config["data"].get("preprocessing", {})
+        )
         self.class_names = config["data"]["class_names"]
         self.hazard_weights = config["data"].get("hazard_weights", {})
-        self.hazard_scorer = HazardScorer(self.hazard_weights, corridor_width_m=float(config["data"].get("preprocessing", {}).get("corridor_width_m", 3.2)))
+        self.hazard_scorer = HazardScorer(
+            self.hazard_weights,
+            corridor_width_m=float(
+                config["data"].get("preprocessing", {}).get("corridor_width_m", 3.2)
+            ),
+        )
         preprocessing_config = config["data"].get("preprocessing", {})
         inference_config = config.get("inference", {})
         self.max_candidates_per_class = int(config["model"].get("max_candidates_per_class", 32))
@@ -96,7 +107,9 @@ class Predictor:
                 size = np.maximum(sizes[:, gx, gy], 0.1)
                 angle = float(np.arctan2(yaw[0, gx, gy], yaw[1, gx, gy]))
                 score = float(heatmap[cls_idx, gx, gy] * confidence[gx, gy])
-                box = np.array([center_x, center_y, 0.0, size[0], size[1], size[2], angle], dtype=np.float32)
+                box = np.array(
+                    [center_x, center_y, 0.0, size[0], size[1], size[2], angle], dtype=np.float32
+                )
                 distance = float(np.linalg.norm(box[:2]))
                 label_name = self.class_names[cls_idx]
                 relative_position = {"forward_m": float(center_x), "lateral_m": float(center_y)}
@@ -108,14 +121,22 @@ class Predictor:
                         "box": box,
                         "distance_m": distance,
                         "relative_position": relative_position,
-                        "hazard_score": self.compute_hazard_score(label_name, score, distance, relative_position),
+                        "hazard_score": self.compute_hazard_score(
+                            label_name, score, distance, relative_position
+                        ),
                     }
                 )
 
         predictions = circle_nms(predictions, self.config["model"]["nms_iou_threshold"])
         return predictions[: self.config["model"]["max_detections"]]
 
-    def compute_hazard_score(self, class_name: str, confidence: float, distance_m: float, relative_position: dict[str, float]) -> float:
+    def compute_hazard_score(
+        self,
+        class_name: str,
+        confidence: float,
+        distance_m: float,
+        relative_position: dict[str, float],
+    ) -> float:
         return self.hazard_scorer.score(
             RiskContext(
                 class_name=class_name,
@@ -124,11 +145,15 @@ class Predictor:
                 forward_m=relative_position["forward_m"],
                 lateral_m=relative_position["lateral_m"],
                 track_consistency=0.8,
-                vehicle_speed_mps=float(self.config.get("inference", {}).get("default_vehicle_speed_mps", 3.0)),
+                vehicle_speed_mps=float(
+                    self.config.get("inference", {}).get("default_vehicle_speed_mps", 3.0)
+                ),
             )
         )
 
-    def compute_risk_level(self, distance_m: float, hazard_score: float, relative_position: dict[str, float]) -> str:
+    def compute_risk_level(
+        self, distance_m: float, hazard_score: float, relative_position: dict[str, float]
+    ) -> str:
         return self.hazard_scorer.risk_level(hazard_score, distance_m)
 
     def infer(self, points: np.ndarray) -> dict:
@@ -148,7 +173,11 @@ class Predictor:
         obstacle = outputs["obstacle"]
         occupancy = torch.sigmoid(obstacle["occupancy"][0, 0]).detach().cpu()
         distance = torch.sigmoid(obstacle["distance"][0, 0]).detach().cpu() * 80.0
-        nearest_distance = float(distance[occupancy > 0.5].min().item()) if (occupancy > 0.5).any() else float("inf")
+        nearest_distance = (
+            float(distance[occupancy > 0.5].min().item())
+            if (occupancy > 0.5).any()
+            else float("inf")
+        )
         return {
             "detections": detections,
             "filtered_points": filtered_points,
@@ -156,7 +185,15 @@ class Predictor:
             "occupancy": occupancy.numpy(),
             "distance_map": distance.numpy(),
             "nearest_obstacle_distance_m": nearest_distance,
-            "scene_hazard_score": float(max([item["hazard_score"] for item in detections], default=0.0)),
-            "scene_risk_level": "emergency" if any(item["risk_level"] == "emergency" for item in detections) else ("warning" if any(item["risk_level"] == "warning" for item in detections) else "monitor"),
+            "scene_hazard_score": float(
+                max([item["hazard_score"] for item in detections], default=0.0)
+            ),
+            "scene_risk_level": "emergency"
+            if any(item["risk_level"] == "emergency" for item in detections)
+            else (
+                "warning"
+                if any(item["risk_level"] == "warning" for item in detections)
+                else "monitor"
+            ),
             "preprocessing": preprocessing_metadata,
         }

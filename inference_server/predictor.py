@@ -109,7 +109,9 @@ class BEVPredictor:
 
     def _validate_frame(self, frame_array: np.ndarray) -> np.ndarray:
         if frame_array.shape != self.EXPECTED_SHAPE:
-            raise ValueError(f"Invalid frame shape {frame_array.shape}; expected {self.EXPECTED_SHAPE}")
+            raise ValueError(
+                f"Invalid frame shape {frame_array.shape}; expected {self.EXPECTED_SHAPE}"
+            )
         if frame_array.dtype != np.float32:
             frame_array = frame_array.astype(np.float32)
         return frame_array
@@ -227,7 +229,9 @@ class BEVPredictor:
             elif self.backend == "onnx":
                 if self.onnx_session is None or self.onnx_input_name is None:
                     raise RuntimeError("ONNX session is not initialized")
-                outputs = self.onnx_session.run(self.onnx_output_names, {self.onnx_input_name: batched})
+                outputs = self.onnx_session.run(
+                    self.onnx_output_names, {self.onnx_input_name: batched}
+                )
                 detections = self._decode_onnx_outputs(outputs)
             else:
                 raise ValueError(f"Unsupported backend: {self.backend}")
@@ -259,7 +263,10 @@ class BEVPredictor:
     def is_healthy(self) -> bool:
         if not self.model_loaded:
             return False
-        if self.total_inferences >= self.min_healthy_inferences and len(self._recent_success) >= self.min_healthy_inferences:
+        if (
+            self.total_inferences >= self.min_healthy_inferences
+            and len(self._recent_success) >= self.min_healthy_inferences
+        ):
             recent = list(self._recent_success)[-self.min_healthy_inferences :]
             if not all(recent):
                 return False

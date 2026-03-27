@@ -40,14 +40,30 @@ class AgroPreprocessor:
         self.max_relative_height_m = float(self.config.get("max_relative_height_m", 3.5))
         self.min_relative_height_m = float(self.config.get("min_relative_height_m", -1.0))
         self.denoise_min_cell_count = int(self.config.get("denoise_min_cell_count", 2))
-        self.denoise_low_intensity_threshold = float(self.config.get("denoise_low_intensity_threshold", 0.12))
-        self.vegetation_height_threshold_m = float(self.config.get("vegetation_height_threshold_m", 1.4))
-        self.vegetation_intensity_threshold = float(self.config.get("vegetation_intensity_threshold", 0.45))
+        self.denoise_low_intensity_threshold = float(
+            self.config.get("denoise_low_intensity_threshold", 0.12)
+        )
+        self.vegetation_height_threshold_m = float(
+            self.config.get("vegetation_height_threshold_m", 1.4)
+        )
+        self.vegetation_intensity_threshold = float(
+            self.config.get("vegetation_intensity_threshold", 0.45)
+        )
 
-    def _grid_indices(self, points: np.ndarray, grid_size: tuple[int, int]) -> tuple[np.ndarray, np.ndarray]:
+    def _grid_indices(
+        self, points: np.ndarray, grid_size: tuple[int, int]
+    ) -> tuple[np.ndarray, np.ndarray]:
         x_min, y_min, _, x_max, y_max, _ = self.point_cloud_range
-        gx = np.clip(((points[:, 0] - x_min) / max((x_max - x_min), 1e-6) * grid_size[0]).astype(np.int32), 0, grid_size[0] - 1)
-        gy = np.clip(((points[:, 1] - y_min) / max((y_max - y_min), 1e-6) * grid_size[1]).astype(np.int32), 0, grid_size[1] - 1)
+        gx = np.clip(
+            ((points[:, 0] - x_min) / max((x_max - x_min), 1e-6) * grid_size[0]).astype(np.int32),
+            0,
+            grid_size[0] - 1,
+        )
+        gy = np.clip(
+            ((points[:, 1] - y_min) / max((y_max - y_min), 1e-6) * grid_size[1]).astype(np.int32),
+            0,
+            grid_size[1] - 1,
+        )
         return gx, gy
 
     def _estimate_ground_map(self, points: np.ndarray) -> np.ndarray:
@@ -73,7 +89,9 @@ class AgroPreprocessor:
             row = ground_map[ix]
             valid = np.isfinite(row)
             if valid.any():
-                row[~valid] = np.interp(np.flatnonzero(~valid), np.flatnonzero(valid), row[valid]).astype(np.float32)
+                row[~valid] = np.interp(
+                    np.flatnonzero(~valid), np.flatnonzero(valid), row[valid]
+                ).astype(np.float32)
             else:
                 row[:] = global_ground
 
@@ -106,21 +124,34 @@ class AgroPreprocessor:
         gx, gy = self._grid_indices(processed, self.ground_grid_size)
         np.add.at(coarse_counts, (gx, gy), 1)
         local_density = coarse_counts[gx, gy]
-        intensity = processed[:, 3] if processed.shape[1] > 3 else np.ones(processed.shape[0], dtype=np.float32)
+        intensity = (
+            processed[:, 3]
+            if processed.shape[1] > 3
+            else np.ones(processed.shape[0], dtype=np.float32)
+        )
 
         atmospheric_noise_mask = (
             (local_density < self.denoise_min_cell_count)
             & (intensity < self.denoise_low_intensity_threshold)
             & (relative_height > 0.25)
         )
-        valid_height_mask = (relative_height >= self.min_relative_height_m) & (relative_height <= self.max_relative_height_m)
+        valid_height_mask = (relative_height >= self.min_relative_height_m) & (
+            relative_height <= self.max_relative_height_m
+        )
         keep_mask = valid_height_mask & ~atmospheric_noise_mask
         filtered = processed[keep_mask]
 
         vegetation_mask = (
             (filtered[:, 2] > 0.15)
             & (filtered[:, 2] < self.vegetation_height_threshold_m)
-            & ((filtered[:, 3] if filtered.shape[1] > 3 else np.ones(filtered.shape[0], dtype=np.float32)) < self.vegetation_intensity_threshold)
+            & (
+                (
+                    filtered[:, 3]
+                    if filtered.shape[1] > 3
+                    else np.ones(filtered.shape[0], dtype=np.float32)
+                )
+                < self.vegetation_intensity_threshold
+            )
         )
 
         metadata = PreprocessingMetadata(
@@ -153,7 +184,9 @@ class BEVVoxelizer:
         iy = np.clip(((points[:, 1] - y_min) / self.y_step).astype(np.int32), 0, w - 1)
 
         z_norm = (points[:, 2] - z_min) / max(z_max - z_min, 1e-6)
-        intensity = points[:, 3] if points.shape[1] > 3 else np.ones(points.shape[0], dtype=np.float32)
+        intensity = (
+            points[:, 3] if points.shape[1] > 3 else np.ones(points.shape[0], dtype=np.float32)
+        )
         distance = np.sqrt(points[:, 0] ** 2 + points[:, 1] ** 2)
 
         counts = np.zeros((h, w), dtype=np.float32)
@@ -163,7 +196,9 @@ class BEVVoxelizer:
         mean_x = np.zeros((h, w), dtype=np.float32)
         mean_y = np.zeros((h, w), dtype=np.float32)
 
-        for idx, idy, zn, inten, dist, px, py in zip(ix, iy, z_norm, intensity, distance, points[:, 0], points[:, 1]):
+        for idx, idy, zn, inten, dist, px, py in zip(
+            ix, iy, z_norm, intensity, distance, points[:, 0], points[:, 1]
+        ):
             counts[idx, idy] += 1.0
             max_height[idx, idy] = max(max_height[idx, idy], zn)
             intensity_sum[idx, idy] += inten
@@ -187,7 +222,9 @@ class BEVVoxelizer:
         iy = np.clip(((xy[:, 1] - y_min) / self.y_step).astype(np.int32), 0, w - 1)
         return np.stack([ix, iy], axis=1)
 
-    def build_detection_targets(self, boxes: np.ndarray, labels: np.ndarray, num_classes: int) -> dict[str, torch.Tensor]:
+    def build_detection_targets(
+        self, boxes: np.ndarray, labels: np.ndarray, num_classes: int
+    ) -> dict[str, torch.Tensor]:
         h, w = self.grid_size
         heatmap = np.zeros((num_classes, h, w), dtype=np.float32)
         offsets = np.zeros((2, h, w), dtype=np.float32)
@@ -224,7 +261,9 @@ class BEVVoxelizer:
             "mask": torch.from_numpy(mask),
         }
 
-    def build_segmentation_target(self, points: np.ndarray, boxes: np.ndarray, labels: np.ndarray, num_classes: int) -> torch.Tensor:
+    def build_segmentation_target(
+        self, points: np.ndarray, boxes: np.ndarray, labels: np.ndarray, num_classes: int
+    ) -> torch.Tensor:
         h, w = self.grid_size
         target = np.zeros((h, w), dtype=np.int64)
         if points.size > 0:
@@ -251,7 +290,10 @@ class BEVVoxelizer:
         occupancy = np.zeros((1, h, w), dtype=np.float32)
         distance = np.zeros((1, h, w), dtype=np.float32)
         if points.size == 0:
-            return {"occupancy": torch.from_numpy(occupancy), "distance": torch.from_numpy(distance)}
+            return {
+                "occupancy": torch.from_numpy(occupancy),
+                "distance": torch.from_numpy(distance),
+            }
 
         grid = self.points_to_grid(points[:, :2])
         distances = np.sqrt(points[:, 0] ** 2 + points[:, 1] ** 2)
