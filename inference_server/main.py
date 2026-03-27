@@ -23,7 +23,12 @@ from slowapi.util import get_remote_address
 from inference_server.config import InferenceServerConfig, load_server_config
 from inference_server.health import uptime_seconds, utc_now
 from inference_server.middleware import RequestLoggingMiddleware
-from inference_server.models import BEVFrameInput, HealthResponse, MetricsResponse, PredictionResponse
+from inference_server.models import (
+    BEVFrameInput,
+    HealthResponse,
+    MetricsResponse,
+    PredictionResponse,
+)
 from inference_server.predictor import BEVPredictor
 
 logger = logging.getLogger("inference_server")
