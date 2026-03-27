@@ -26,13 +26,24 @@ class BEVPredictor:
         warmup_runs: int = 3,
         p95_latency_threshold_ms: float = 200.0,
         min_healthy_inferences: int = 10,
+        backend: str = "pytorch",
+        onnx_path: str = "outputs/onnx/model.onnx",
     ) -> None:
         self.checkpoint_path = checkpoint_path
         self.config_path = config_path
         self.device = torch.device(device)
         self.config = load_config(config_path)
-        self.model = build_model(self.config["model"]).to(self.device)
-        self.model.eval()
+        self.backend = backend.lower()
+        self.onnx_path = onnx_path
+        self.onnx_session: Any | None = None
+        self.onnx_input_name: str | None = None
+        self.onnx_output_names: list[str] = []
+
+        self.model = None
+        if self.backend == "pytorch":
+            self.model = build_model(self.config["model"]).to(self.device)
+            self.model.eval()
+
         self.model_loaded = False
         self.model_version = "unknown"
         self.model_loaded_at = time.time()
@@ -50,8 +61,26 @@ class BEVPredictor:
         self._warmup(max(0, int(warmup_runs)))
 
     def _load_model(self) -> None:
-        load_checkpoint(self.checkpoint_path, self.model, device=self.device)
-        self.model_loaded = True
+        if self.backend == "pytorch":
+            if self.model is None:
+                raise RuntimeError("PyTorch model is not initialized")
+            load_checkpoint(self.checkpoint_path, self.model, device=self.device)
+            self.model_loaded = True
+            return
+
+        if self.backend == "onnx":
+            import onnxruntime as ort
+
+            providers: list[str] = ["CPUExecutionProvider"]
+            if "CUDAExecutionProvider" in ort.get_available_providers():
+                providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+            self.onnx_session = ort.InferenceSession(self.onnx_path, providers=providers)
+            self.onnx_input_name = self.onnx_session.get_inputs()[0].name
+            self.onnx_output_names = [output.name for output in self.onnx_session.get_outputs()]
+            self.model_loaded = True
+            return
+
+        raise ValueError(f"Unsupported backend: {self.backend}")
 
     def _load_model_version(self) -> None:
         registry_path = Path("outputs/registry/registry.json")
@@ -145,14 +174,64 @@ class BEVPredictor:
             )
         return decoded
 
+    def _decode_onnx_outputs(self, outputs: list[np.ndarray]) -> list[Detection]:
+        if len(outputs) < 2:
+            return []
+
+        detections = outputs[0]
+        confidence_scores = 1.0 / (1.0 + np.exp(-outputs[1]))
+
+        if detections.ndim != 4 or confidence_scores.ndim != 4:
+            return []
+
+        class_names = ["human", "animal", "rock", "post", "vehicle"]
+        conf_map = confidence_scores[0, 0]
+        flat_indices = np.argsort(conf_map.reshape(-1))[::-1][:10]
+        width = conf_map.shape[1]
+
+        decoded: list[Detection] = []
+        for flat_index in flat_indices:
+            score = float(conf_map.reshape(-1)[flat_index])
+            if score < 0.5:
+                continue
+            row = int(flat_index // width)
+            col = int(flat_index % width)
+            class_idx = int(np.argmax(detections[0, :, row, col]))
+            class_name = class_names[class_idx] if class_idx < len(class_names) else "vehicle"
+            distance_m = max(1.0, float((detections.shape[-2] - row) * 0.25))
+            risk = self._risk_for_detection(class_name, distance_m)
+            decoded.append(
+                Detection(
+                    class_name=class_name,
+                    confidence=score,
+                    bbox_bev=[float(col), float(row), 1.0, 1.0, 0.0],
+                    distance_m=distance_m,
+                    risk_level=risk,
+                )
+            )
+        return decoded
+
     def predict(self, frame_array: np.ndarray) -> list[Detection]:
         started = time.perf_counter()
         try:
             frame_array = self._normalize(self._validate_frame(frame_array))
-            tensor = torch.from_numpy(frame_array).unsqueeze(0).to(self.device)
-            with torch.no_grad():
-                outputs = self.model(tensor)
-            detections = self._decode_outputs(outputs)
+            batched = np.expand_dims(frame_array, axis=0).astype(np.float32)
+
+            if self.backend == "pytorch":
+                if self.model is None:
+                    raise RuntimeError("PyTorch model is not initialized")
+                tensor = torch.from_numpy(frame_array).unsqueeze(0).to(self.device)
+                with torch.no_grad():
+                    outputs = self.model(tensor)
+                detections = self._decode_outputs(outputs)
+            elif self.backend == "onnx":
+                if self.onnx_session is None or self.onnx_input_name is None:
+                    raise RuntimeError("ONNX session is not initialized")
+                outputs = self.onnx_session.run(self.onnx_output_names, {self.onnx_input_name: batched})
+                detections = self._decode_onnx_outputs(outputs)
+            else:
+                raise ValueError(f"Unsupported backend: {self.backend}")
+
             self.last_collision_risk = self._collision_risk(detections)
             self._recent_success.append(True)
             return detections

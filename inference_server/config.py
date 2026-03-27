@@ -22,6 +22,8 @@ class ModelConfig:
     config_path: str = "configs/base.yaml"
     device: str = "cpu"
     warmup_runs: int = 3
+    backend: str = "pytorch"
+    onnx_path: str = "outputs/onnx/model.onnx"
 
 
 @dataclass
