@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AgroLidar | Perception for the Field",
-  description:
-    "AgroLidar is a LiDAR perception platform built specifically for agricultural machines operating in harsh real-world field conditions."
+  title: "AgroLidar — Perception for the Field",
+  description: "LiDAR-based safety perception system for agricultural machines."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
