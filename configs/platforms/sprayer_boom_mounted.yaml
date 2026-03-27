@@ -1,0 +1,13 @@
+platform_type: sprayer_boom_mounted
+nominal_speed_kmh: 8.0
+max_speed_kmh: 20.0
+mounting_height_m: 1.9
+forward_offset_m: 1.6
+lateral_offset_m: 1.8
+pitch_deg: -2.0
+vibration_profile: high
+power_voltage_v: 24
+operating_environment: all
+stop_zone_m: 11.0
+hazard_corridor_width_m: 8.0
+notes: Boom-arm mounted LiDAR profile; susceptible to oscillation and spray contamination.

@@ -1,0 +1,13 @@
+platform_type: tractor_generic
+nominal_speed_kmh: 8.0
+max_speed_kmh: 20.0
+mounting_height_m: 2.1
+forward_offset_m: 0.8
+lateral_offset_m: 0.0
+pitch_deg: -3.0
+vibration_profile: medium
+power_voltage_v: 12
+operating_environment: all
+stop_zone_m: 8.0
+hazard_corridor_width_m: 3.5
+notes: Generic tractor baseline profile for pilot deployments.

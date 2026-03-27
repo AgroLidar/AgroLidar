@@ -1,0 +1,13 @@
+platform_type: telehandler_generic
+nominal_speed_kmh: 9.0
+max_speed_kmh: 25.0
+mounting_height_m: 2.4
+forward_offset_m: 0.7
+lateral_offset_m: 0.0
+pitch_deg: -3.0
+vibration_profile: medium
+power_voltage_v: 12
+operating_environment: mud
+stop_zone_m: 9.0
+hazard_corridor_width_m: 3.2
+notes: Suitable for farm telehandlers with front boom occlusion checks.
