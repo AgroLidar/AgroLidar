@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 
 import argparse
 import random
-from pathlib import Path
+from datetime import datetime, timezone
 
 import numpy as np
 import torch
@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 
 from lidar_perception.data.datasets import build_dataset, collate_fn
 from lidar_perception.models.factory import build_model
+from lidar_perception.tracking import MLflowTracker, flatten_dict
 from lidar_perception.training.engine import Trainer
 from lidar_perception.utils.config import load_config
 from lidar_perception.utils.logging import setup_logger
@@ -51,6 +52,8 @@ def resolve_device(device_name: str) -> torch.device:
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    tracker = MLflowTracker("configs/mlflow.yaml")
+    run_name = f"train_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
     seed_everything(int(config["seed"]))
     Path(config["output_dir"]).mkdir(parents=True, exist_ok=True)
     logger = setup_logger(config["output_dir"])
@@ -77,7 +80,37 @@ def main() -> None:
     model = build_model(config["model"]).to(device)
     trainer = Trainer(model=model, config=config, logger=logger, device=device)
     trainer.resume_if_available(args.resume)
-    trainer.fit(train_loader, val_loader)
+    best_epoch: dict[str, int | None] = {"value": None}
+    best_val_loss = float("inf")
+
+    with tracker.start_run(run_name=run_name, tags={"run_type": "training"}):
+        tracker.log_params(flatten_dict(config))
+        tracker.log_config(args.config)
+        tracker.log_model_summary(model)
+
+        def _on_epoch_end(epoch: int, train_metrics: dict, val_metrics: dict, lr: float) -> None:
+            nonlocal best_val_loss
+            train_loss = float(train_metrics.get("loss", 0.0))
+            val_loss = float(max(0.0, 1.0 - float(val_metrics.get("mAP", 0.0))))
+            tracker.log_metric("train_loss", train_loss, step=epoch)
+            tracker.log_metric("val_loss", val_loss, step=epoch)
+            tracker.log_metric("lr", lr, step=epoch)
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                best_epoch["value"] = epoch
+
+        try:
+            trainer.fit(train_loader, val_loader, epoch_end_callback=_on_epoch_end)
+            best_checkpoint = Path(config["output_dir"]) / "checkpoints" / "best.pt"
+            tracker.log_checkpoint(best_checkpoint, name="checkpoint")
+            if best_epoch["value"] is not None:
+                tracker.set_tag("best_epoch", best_epoch["value"])
+            tracker.set_tag("training_status", "completed")
+            tracker.end_run("FINISHED")
+        except Exception:
+            tracker.set_tag("training_status", "failed")
+            tracker.end_run("FAILED")
+            raise
 
 
 if __name__ == "__main__":

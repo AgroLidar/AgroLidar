@@ -1,0 +1,10 @@
+tracking_uri: ./mlruns
+experiment_name: agrolidar-bev-detection
+artifact_location: ./mlruns/artifacts
+tags:
+  project: agrolidar
+  pipeline_version: "1.0"
+auto_log:
+  params: true
+  metrics: true
+  artifacts: true
