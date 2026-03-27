@@ -1,0 +1,7 @@
+theme: jekyll-theme-cayman
+title: "AgroLidar Documentation"
+description: "LiDAR perception system for agricultural machines"
+show_downloads: false
+google_analytics:
+baseurl: ""
+url: "https://agrolidar.github.io/AgroLidar"

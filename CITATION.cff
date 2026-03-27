@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use AgroLidar in your research or product, please cite:"
+type: software
+title: "AgroLidar: LiDAR Perception System for Agricultural Machines"
+version: 0.9.0
+date-released: 2026-03-27
+abstract: >
+  AgroLidar is a field-first LiDAR perception stack for agricultural
+  machines. It provides real-time obstacle detection, hazard scoring,
+  and a safety-gated continuous learning pipeline for safe operation
+  around people, animals, and obstacles in unstructured field conditions.
+url: "https://github.com/AgroLidar/AgroLidar"
+repository-code: "https://github.com/AgroLidar/AgroLidar"
+license: Apache-2.0
+keywords:
+  - lidar
+  - agriculture
+  - autonomous-vehicles
+  - perception
+  - deep-learning
+  - bird-eye-view
+  - obstacle-detection
+  - safety-critical
+  - pytorch
+  - onnx
+  - argentina
+  - agritech
+contact:
+  - name: "AgroLidar Team"
+    email: "contact@agro-lidar.com"
