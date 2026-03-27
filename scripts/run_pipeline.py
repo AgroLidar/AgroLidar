@@ -60,6 +60,16 @@ def run_step(name: str, cmd: list[str]) -> None:
     LOGGER.debug("Step '%s' finished with code %s", name, completed.returncode)
 
 
+def run_step_capture(name: str, cmd: list[str]) -> int:
+    LOGGER.info("▶ Running step '%s': %s", name, " ".join(cmd))
+    try:
+        completed = subprocess.run(cmd, check=False)
+    except Exception as exc:  # pragma: no cover - defensive wrapper
+        raise PipelineError(f"Step '{name}' raised exception: {exc}") from exc
+    LOGGER.debug("Step '%s' finished with code %s", name, completed.returncode)
+    return int(completed.returncode)
+
+
 def summarize_train(metrics_jsonl: Path) -> None:
     if not metrics_jsonl.exists():
         LOGGER.info("train summary unavailable (missing %s)", metrics_jsonl)
@@ -234,6 +244,37 @@ def main() -> int:
                     eval_report_path.read_text(encoding="utf-8"), encoding="utf-8"
                 )
             summarize_evaluate(production_metrics_path, "production")
+
+        safety_gate_report_path = Path("outputs/reports/gate_report.json")
+        safety_gate_code = run_step_capture(
+            "safety_gate",
+            [
+                sys.executable,
+                "scripts/safety_gate.py",
+                "--candidate-report",
+                str(candidate_metrics_path),
+                "--production-report",
+                str(production_metrics_path),
+                "--output",
+                str(safety_gate_report_path),
+            ],
+        )
+        safety_gate_report = read_json(safety_gate_report_path)
+        if not isinstance(safety_gate_report, dict):
+            raise PipelineError(
+                f"Unexpected safety gate report format in {safety_gate_report_path}"
+            )
+        if safety_gate_code == 1:
+            LOGGER.critical("Safety gate BLOCKED promotion. Check gate_report.json")
+            return 1
+        if safety_gate_code == 2:
+            warning_rules = safety_gate_report.get("warning_rules", [])
+            LOGGER.warning(
+                "Safety gate returned WARN. warning_rules=%s",
+                ",".join(warning_rules) if isinstance(warning_rules, list) else warning_rules,
+            )
+        elif safety_gate_code != 0:
+            raise PipelineError(f"Safety gate failed with unexpected exit code {safety_gate_code}")
 
         run_step(
             "compare",

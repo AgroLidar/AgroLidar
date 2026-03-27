@@ -44,7 +44,6 @@ jobs:
   evaluate-on-push:
     runs-on: ubuntu-latest
     needs: lint-and-test
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,6 +77,47 @@ jobs:
       - name: Run evaluation
         if: steps.checkpoint_check.outputs.exists == 'true'
         run: python scripts/evaluate.py --config configs/base.yaml
+
+      - name: Run Safety Gate
+        id: safety_gate
+        if: steps.checkpoint_check.outputs.exists == 'true'
+        run: |
+          if [ -f "outputs/reports/production_eval.json" ]; then
+            python scripts/safety_gate.py \
+              --candidate-report outputs/reports/eval_report.json \
+              --production-report outputs/reports/production_eval.json \
+              --output outputs/reports/gate_report.json
+          else
+            python scripts/safety_gate.py \
+              --candidate-report outputs/reports/eval_report.json \
+              --output outputs/reports/gate_report.json
+          fi
+          echo "gate_decision=$(python -c \"import json; print(json.load(open('outputs/reports/gate_report.json'))['decision'])\")" >> $GITHUB_OUTPUT
+        continue-on-error: true
+
+      - name: Comment Safety Gate Result on PR
+        if: github.event_name == 'pull_request' && steps.checkpoint_check.outputs.exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              const fs = require('fs');
+              const report = JSON.parse(fs.readFileSync('outputs/reports/gate_report.json'));
+              const emoji = report.decision === 'PASS' ? '✅' : report.decision === 'WARN' ? '⚠️' : '🚫';
+              const body = `## ${emoji} Safety Gate: ${report.decision}\n\n${report.summary}\n\n` +
+                `### Rules\n` +
+                report.rules_evaluated.map(r =>
+                  `- ${r.status === 'PASS' ? '✅' : r.status === 'WARN' ? '⚠️' : '🚫'} **${r.rule}**: ${r.message}`
+                ).join('\n');
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body
+              });
+            } catch (error) {
+              core.warning(`Could not publish Safety Gate PR comment: ${error.message}`);
+            }
 
       - name: Upload evaluation reports
         uses: actions/upload-artifact@v4

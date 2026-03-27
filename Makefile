@@ -1,4 +1,4 @@
-.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export
+.PHONY: install setup pre-commit-install pre-commit-run pre-commit-update lint test generate-data train train-smoke mine queue full-loop retrain evaluate compare promote pipeline mlflow-ui mlflow-list serve serve-dev serve-docker export-onnx validate-onnx full-export safety-check regression-report
 
 install:
 	pip install -r requirements.txt
@@ -52,13 +52,22 @@ compare:
 		--production-metrics outputs/reports/production_eval.json \
 		--candidate-metrics outputs/reports/eval_report.json
 
+safety-check:
+	python scripts/safety_gate.py \
+		--candidate-report outputs/reports/eval_report.json \
+		--production-report outputs/reports/production_eval.json \
+		--output outputs/reports/gate_report.json
+
+regression-report:
+	python scripts/regression_report.py
+
 promote:
 	python scripts/promote_model.py \
 		--candidate-model outputs/candidates/latest/checkpoints/best.pt \
 		--production-model outputs/checkpoints/best.pt \
 		--comparison-report outputs/reports/model_comparison.json
 
-pipeline: train retrain evaluate compare promote
+pipeline: train retrain evaluate safety-check compare promote
 
 mlflow-ui:
 	bash scripts/mlflow_ui.sh
