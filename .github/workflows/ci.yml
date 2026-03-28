@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI
 
 on:
   push:
@@ -6,100 +6,52 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  python-quality:
-    name: Python Quality (3.11)
+  python-lint:
+    name: Python Lint & Type Check
     runs-on: ubuntu-latest
-    timeout-minutes: 25
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+      - run: pip install .[dev]
+      - run: ruff check lidar_perception/ scripts/ tests/
+      - run: mypy lidar_perception/ --strict --ignore-missing-imports
 
-      - name: Install dependencies
-        run: |
-          pip install ruff pytest
-          pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-
-      - name: Lint
-        run: ruff check .
-
-      - name: Tests
-        run: pytest tests/ -v --tb=short
-
-  web-build:
-    name: Landing Build (Node 20)
+  python-test:
+    name: Python Tests (CPU)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    needs: python-lint
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          python-version: "3.11"
+      - run: pip install .[dev]
+      - run: pytest tests/ --cov=lidar_perception --cov-fail-under=80 -v
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint frontend
-        run: npm run lint
-
-      - name: Build frontend
-        run: npm run build
-
-  smoke-train:
-    name: Smoke Train (main only)
+  safety-regression:
+    name: Safety Metric Regression Gate
     runs-on: ubuntu-latest
-    needs: python-quality
-    if: github.ref == 'refs/heads/main'
-    timeout-minutes: 30
+    needs: python-test
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: pip
+          python-version: "3.11"
+      - run: pip install .
+      - name: Run safety evaluation on smoke dataset
+        run: python scripts/evaluate.py --config configs/ci_smoke.yaml --fail-on-dangerous-fnr-above 0.10
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
-
-      - name: Generate synthetic dataset
-        run: python scripts/generate_synthetic_data.py --train-samples 20 --val-samples 5
-
-      - name: Train and evaluate
-        run: |
-          python scripts/train.py --config configs/train.yaml
-          python scripts/evaluate.py --config configs/base.yaml
-
-      - name: Export and validate ONNX
-        run: |
-          python scripts/export_onnx.py --checkpoint outputs/checkpoints/best.pt --output outputs/onnx/model.onnx --validate --simplify
-          python scripts/validate_onnx.py --onnx-path outputs/onnx/model.onnx --checkpoint outputs/checkpoints/best.pt --n-samples 20
-
-      - name: Upload smoke artifacts
-        uses: actions/upload-artifact@v4
+  frontend-build:
+    name: Next.js Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: smoke-train-outputs
-          path: outputs/
-          retention-days: 7
+          node-version: "20"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

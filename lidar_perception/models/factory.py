@@ -1,9 +1,21 @@
 from __future__ import annotations
 
+from lidar_perception.models.base import BasePerceptionModel
 from lidar_perception.models.lidar_net import MultiTaskLiDARNet
 
 
-def build_model(config: dict) -> MultiTaskLiDARNet:
+def build_model(config: dict) -> BasePerceptionModel:
+    """Build model architecture from config.
+
+    Args:
+        config: Model configuration dictionary.
+
+    Returns:
+        Instantiated perception model.
+
+    Raises:
+        ValueError: If architecture is unsupported.
+    """
     name = config["name"].lower()
     if name != "pointpillars_bev":
         raise ValueError(f"Unsupported model architecture: {name}")
