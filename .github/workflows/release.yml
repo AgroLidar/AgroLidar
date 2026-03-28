@@ -55,7 +55,7 @@ jobs:
       - name: Archive release metadata
         uses: actions/upload-artifact@v4
         with:
-          name: release-metadata-${{ github.ref_name }}
+          name: release-metadata-${{ replace(github.ref_name || github.run_id, '/', '-') }}-${{ github.run_number }}
           path: |
             CHANGELOG.md
             RELEASE_NOTES.md
