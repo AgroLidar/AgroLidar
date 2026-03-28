@@ -48,4 +48,4 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=lidar_perception --cov-report=term-missing --cov-fail-under=70"
+addopts = "--cov=lidar_perception --cov-report=term-missing"

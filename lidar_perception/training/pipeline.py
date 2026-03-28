@@ -111,7 +111,9 @@ class TrainingPipeline:
             tracker.log_config(str(raw_cfg_path))
             tracker.log_model_summary(model)
 
-            def _on_epoch_end(epoch: int, train_metrics: dict, val_metrics: dict, lr: float) -> None:
+            def _on_epoch_end(
+                epoch: int, train_metrics: dict, val_metrics: dict, lr: float
+            ) -> None:
                 nonlocal best_val_loss
                 train_loss = float(train_metrics.get("loss", 0.0))
                 val_loss = float(max(0.0, 1.0 - float(val_metrics.get("mAP", 0.0))))

@@ -8,6 +8,7 @@ Usage:
     from lidar_perception.logging_config import configure_logging
     configure_logging()  # call once at app entry point
 """
+
 from __future__ import annotations
 
 import json

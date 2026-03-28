@@ -153,7 +153,9 @@ async def infer(request: Request, payload: PointCloudRequest) -> InferenceRespon
             "Invalid point cloud input",
             extra={"frame_id": payload.frame_id, "error": str(exc)},
         )
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
 
 
 @app.get("/healthz", include_in_schema=False)

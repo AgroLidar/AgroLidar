@@ -37,7 +37,7 @@ jobs:
           cache: 'pip'
 
       - name: Install docs tooling
-        run: pip install mkdocs mkdocs-material
+        run: pip install mkdocs==1.6.1 mkdocs-material==9.5.46
 
       - name: Build docs (strict)
         run: mkdocs build --strict
