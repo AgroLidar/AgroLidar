@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
+from typing import Any, TypeAlias
 
 import numpy as np
 import torch
+from numpy.typing import NDArray
+
+DetectionDict = dict[str, Any]
+TargetDict = Mapping[str, torch.Tensor]
+FloatArray: TypeAlias = NDArray[np.float32]
 
 
 def compute_segmentation_iou(
@@ -21,7 +28,7 @@ def compute_segmentation_iou(
     return {"iou": float(sum(ious) / max(len(ious), 1))}
 
 
-def bev_iou(box_a: np.ndarray, box_b: np.ndarray) -> float:
+def bev_iou(box_a: FloatArray, box_b: FloatArray) -> float:
     ax0, ay0 = box_a[0] - box_a[3] / 2.0, box_a[1] - box_a[4] / 2.0
     ax1, ay1 = box_a[0] + box_a[3] / 2.0, box_a[1] + box_a[4] / 2.0
     bx0, by0 = box_b[0] - box_b[3] / 2.0, box_b[1] - box_b[4] / 2.0
@@ -35,11 +42,11 @@ def bev_iou(box_a: np.ndarray, box_b: np.ndarray) -> float:
     area_a = (ax1 - ax0) * (ay1 - ay0)
     area_b = (bx1 - bx0) * (by1 - by0)
     union = area_a + area_b - intersection
-    return intersection / max(union, 1e-6)
+    return float(intersection / max(union, 1e-6))
 
 
 def compute_detection_map(
-    predictions: list[list[dict]], targets: list[dict], iou_threshold: float
+    predictions: list[list[DetectionDict]], targets: list[TargetDict], iou_threshold: float
 ) -> dict[str, float]:
     scores = []
     true_positives = []
@@ -74,7 +81,7 @@ def compute_detection_map(
     cum_fp = np.cumsum(fp)
     precision = cum_tp / np.maximum(cum_tp + cum_fp, 1e-6)
     recall = cum_tp / max(total_gt, 1)
-    ap = np.trapezoid(precision, recall) if len(recall) > 1 else float(precision[0] * recall[0])
+    ap = np.trapz(precision, recall) if len(recall) > 1 else float(precision[0] * recall[0])
     return {"mAP": float(ap), "precision": float(precision[-1]), "recall": float(recall[-1])}
 
 
@@ -89,8 +96,8 @@ def compute_obstacle_distance_error(
 
 
 def compute_per_class_detection_metrics(
-    predictions: list[list[dict]],
-    targets: list[dict],
+    predictions: list[list[DetectionDict]],
+    targets: list[TargetDict],
     class_names: list[str],
     iou_threshold: float,
 ) -> dict[str, dict[str, float]]:
@@ -147,8 +154,8 @@ def compute_per_class_detection_metrics(
 
 
 def compute_dangerous_fnr(
-    predictions: list[list[dict]],
-    targets: list[dict],
+    predictions: list[list[DetectionDict]],
+    targets: list[TargetDict],
     dangerous_labels: set[int],
     iou_threshold: float,
 ) -> dict[str, float]:

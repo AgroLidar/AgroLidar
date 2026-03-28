@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
+from typing import Any, cast
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request, status
@@ -25,7 +27,7 @@ _limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage inference engine lifecycle.
 
     Args:
@@ -51,7 +53,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.state.limiter = _limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(
+    RateLimitExceeded,
+    cast(Any, _rate_limit_exceeded_handler),  # slowapi publishes a narrower signature
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -141,9 +146,20 @@ async def infer(request: Request, payload: PointCloudRequest) -> InferenceRespon
     try:
         points_np = np.array(payload.points, dtype=np.float32)
         result = await asyncio.to_thread(_engine.predict, points_np, payload.sensor_height_m)
+        typed_detections = [
+            DetectedObject(
+                class_name=str(detection["class_name"]),
+                confidence=float(detection["confidence"]),
+                distance_m=float(detection["distance_m"]),
+                hazard_score=float(detection["hazard_score"]),
+                bbox_3d=[float(coord) for coord in detection["bbox_3d"]],
+                is_dangerous_class=bool(detection["is_dangerous_class"]),
+            )
+            for detection in result.detections
+        ]
         return InferenceResponse(
             frame_id=payload.frame_id,
-            detections=result.detections,
+            detections=typed_detections,
             processing_time_ms=result.latency_ms,
             model_version=_engine.model_version,
             collision_risk_level=HazardScorer.classify_risk(result.detections),
