@@ -1,59 +1,33 @@
-"""Centralized structured logging for the AgroLidar perception system."""
+"""
+lidar_perception/logging_config.py
 
+Centralized structured logging for AgroLidar.
+JSON output for field log aggregation. Human-readable for dev.
+
+Usage:
+    from lidar_perception.logging_config import configure_logging
+    configure_logging()  # call once at app entry point
+"""
 from __future__ import annotations
 
 import json
 import logging
 import logging.config
+import logging.handlers
+import os
 from pathlib import Path
 from typing import Any
 
 
-LOGGING_CONFIG: dict[str, Any] = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "json": {
-            "()": "lidar_perception.logging_config.JSONFormatter",
-        },
-        "human": {
-            "format": "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-            "datefmt": "%Y-%m-%dT%H:%M:%S",
-        },
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "human",
-            "stream": "ext://sys.stdout",
-        },
-        "file": {
-            "class": "logging.handlers.RotatingFileHandler",
-            "formatter": "json",
-            "filename": "outputs/logs/agrolidar.log",
-            "maxBytes": 10_485_760,
-            "backupCount": 5,
-        },
-    },
-    "root": {
-        "level": "INFO",
-        "handlers": ["console", "file"],
-    },
-}
-
-
 class JSONFormatter(logging.Formatter):
-    """Structured JSON log formatter for machine-parseable field logs."""
+    """
+    Formats log records as single-line JSON objects.
+
+    Designed for field deployment where logs are shipped to
+    a central aggregator (e.g., Datadog, CloudWatch, Loki).
+    """
 
     def format(self, record: logging.LogRecord) -> str:
-        """Serialize a ``logging.LogRecord`` into a JSON string.
-
-        Args:
-            record: Standard log record emitted by the Python logging framework.
-
-        Returns:
-            A JSON serialized string containing timestamp, level, logger, and context fields.
-        """
         payload: dict[str, Any] = {
             "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
             "level": record.levelname,
@@ -65,15 +39,65 @@ class JSONFormatter(logging.Formatter):
         }
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
-        return json.dumps(payload)
+        if hasattr(record, "extra"):
+            payload.update(record.extra)  # type: ignore[arg-type]
+        return json.dumps(payload, default=str)
 
 
-def configure_logging(level: str = "INFO") -> None:
-    """Configure application-wide logging.
+def configure_logging(
+    level: str | None = None,
+    log_format: str | None = None,
+    log_dir: Path = Path("outputs/logs"),
+) -> None:
+    """
+    Configure application-wide logging for AgroLidar.
+
+    Reads LOG_LEVEL and LOG_FORMAT from environment if not provided.
+    Outputs to console (human format) and rotating file (JSON format).
 
     Args:
-        level: Logging level string (``DEBUG``, ``INFO``, ``WARNING``, ``ERROR``).
+        level: Logging level. Defaults to LOG_LEVEL env var or 'INFO'.
+        log_format: 'json' or 'human'. Defaults to LOG_FORMAT env var or 'human'.
+        log_dir: Directory for log files. Created if it doesn't exist.
     """
-    Path("outputs/logs").mkdir(parents=True, exist_ok=True)
-    LOGGING_CONFIG["root"]["level"] = level
-    logging.config.dictConfig(LOGGING_CONFIG)
+    resolved_level = level or os.getenv("LOG_LEVEL", "INFO")
+    resolved_format = log_format or os.getenv("LOG_FORMAT", "human")
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    config: dict[str, Any] = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "json": {"()": f"{__name__}.JSONFormatter"},
+            "human": {
+                "format": "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+                "datefmt": "%Y-%m-%dT%H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": resolved_format,
+                "stream": "ext://sys.stdout",
+            },
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "formatter": "json",
+                "filename": str(log_dir / "agrolidar.log"),
+                "maxBytes": 10 * 1024 * 1024,  # 10 MB
+                "backupCount": 5,
+                "encoding": "utf-8",
+            },
+        },
+        "root": {
+            "level": resolved_level,
+            "handlers": ["console", "file"],
+        },
+        "loggers": {
+            "uvicorn": {"level": "INFO", "propagate": True},
+            "fastapi": {"level": "INFO", "propagate": True},
+        },
+    }
+
+    logging.config.dictConfig(config)
