@@ -17,7 +17,7 @@ import logging.config
 import logging.handlers
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 class JSONFormatter(logging.Formatter):
@@ -41,7 +41,7 @@ class JSONFormatter(logging.Formatter):
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         if hasattr(record, "extra"):
-            payload.update(record.extra)  # type: ignore[arg-type]
+            payload.update(cast(dict[str, Any], record.extra))
         return json.dumps(payload, default=str)
 
 

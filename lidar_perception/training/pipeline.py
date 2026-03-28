@@ -7,6 +7,7 @@ import random
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -112,7 +113,10 @@ class TrainingPipeline:
             tracker.log_model_summary(model)
 
             def _on_epoch_end(
-                epoch: int, train_metrics: dict, val_metrics: dict, lr: float
+                epoch: int,
+                train_metrics: dict[str, Any],
+                val_metrics: dict[str, Any],
+                lr: float,
             ) -> None:
                 nonlocal best_val_loss
                 train_loss = float(train_metrics.get("loss", 0.0))

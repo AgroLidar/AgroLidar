@@ -21,11 +21,11 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install linting tools
-        run: pip install ruff==0.6.9 mypy==1.13.0 pydantic==2.10.4 PyYAML==6.0.2
+        run: pip install ruff==0.6.9 mypy==1.13.0 pydantic==2.10.4 PyYAML==6.0.2 types-PyYAML==6.0.12.20250915
       - name: Ruff lint
         run: ruff check lidar_perception/ scripts/ tests/
       - name: Mypy type check
-        run: mypy lidar_perception/ --strict --ignore-missing-imports
+        run: mypy --config-file pyproject.toml
 
   python-test:
     name: Tests (CPU)

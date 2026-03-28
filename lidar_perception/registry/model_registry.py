@@ -5,6 +5,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -15,7 +16,7 @@ class RegistryEntry:
     checkpoint: str
     config_hash: str
     dataset_manifest: str
-    metrics: dict
+    metrics: dict[str, float]
     notes: str = ""
 
 
@@ -27,23 +28,24 @@ class ModelRegistry:
         if not self.registry_path.exists():
             self.registry_path.write_text("[]\n", encoding="utf-8")
 
-    def list_entries(self) -> list[dict]:
-        return json.loads(self.registry_path.read_text(encoding="utf-8"))
+    def list_entries(self) -> list[dict[str, Any]]:
+        raw_entries = json.loads(self.registry_path.read_text(encoding="utf-8"))
+        return raw_entries if isinstance(raw_entries, list) else []
 
-    def add(self, entry: RegistryEntry) -> dict:
+    def add(self, entry: RegistryEntry) -> dict[str, Any]:
         entries = self.list_entries()
         entries.append(asdict(entry))
         self.registry_path.write_text(json.dumps(entries, indent=2) + "\n", encoding="utf-8")
         return asdict(entry)
 
-    def latest_by_status(self, status: str) -> dict | None:
+    def latest_by_status(self, status: str) -> dict[str, Any] | None:
         entries = [item for item in self.list_entries() if item.get("status") == status]
         if not entries:
             return None
-        return sorted(entries, key=lambda x: x["timestamp"])[-1]
+        return max(entries, key=lambda entry: str(entry.get("timestamp", "")))
 
 
-def config_hash(config: dict) -> str:
+def config_hash(config: dict[str, Any]) -> str:
     canonical = json.dumps(config, sort_keys=True).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()[:12]
 
@@ -52,9 +54,9 @@ def new_entry(
     version: str,
     status: str,
     checkpoint: str,
-    config: dict,
+    config: dict[str, Any],
     dataset_manifest: str,
-    metrics: dict,
+    metrics: dict[str, float],
     notes: str = "",
 ) -> RegistryEntry:
     return RegistryEntry(

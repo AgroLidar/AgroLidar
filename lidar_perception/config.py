@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -131,12 +131,17 @@ class TrainConfig(BaseModel):
     output_dir: Path = Path("outputs")
     experiment_tag: str = "default"
     seed: int = 42
+    config_path: Path | None = None
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> TrainConfig:
         """Load and validate training config from a YAML file."""
-        with open(path, encoding="utf-8") as f:
-            return cls(**yaml.safe_load(f))
+        with Path(path).open(encoding="utf-8") as f:
+            raw_config = yaml.safe_load(f)
+        if not isinstance(raw_config, dict):
+            raise TypeError("Training config root must be a mapping.")
+        parsed = cls(**raw_config)
+        return parsed.model_copy(update={"config_path": Path(path)})
 
 
 class RetrainConfig(BaseModel):
@@ -156,8 +161,11 @@ class RetrainConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> RetrainConfig:
-        with open(path, encoding="utf-8") as f:
-            return cls(**yaml.safe_load(f))
+        with Path(path).open(encoding="utf-8") as f:
+            raw_config: Any = yaml.safe_load(f)
+        if not isinstance(raw_config, dict):
+            raise TypeError("Retrain config root must be a mapping.")
+        return cls(**raw_config)
 
 
 class EvalConfig(BaseModel):
@@ -175,8 +183,11 @@ class EvalConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> EvalConfig:
-        with open(path, encoding="utf-8") as f:
-            return cls(**yaml.safe_load(f))
+        with Path(path).open(encoding="utf-8") as f:
+            raw_config: Any = yaml.safe_load(f)
+        if not isinstance(raw_config, dict):
+            raise TypeError("Evaluation config root must be a mapping.")
+        return cls(**raw_config)
 
 
 class InferenceConfig(BaseModel):
