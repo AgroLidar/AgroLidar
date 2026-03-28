@@ -15,7 +15,19 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      - dependency-name: "numpy"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pytest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pytest-asyncio"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pytest-cov"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "onnxruntime"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "open3d"
         update-types: ["version-update:semver-major"]
       - dependency-name: "onnxsim"
         update-types: ["version-update:semver-major"]
@@ -35,6 +47,18 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "framer-motion"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "next"
         update-types: ["version-update:semver-major"]
       - dependency-name: "eslint"

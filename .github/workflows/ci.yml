@@ -20,8 +20,8 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install linting tools
-        run: pip install ruff==0.6.9 mypy==1.13.0 pydantic==2.10.4 PyYAML==6.0.2 types-PyYAML==6.0.12.20250915
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
       - name: Ruff lint
         run: ruff check lidar_perception/ scripts/ tests/
       - name: Mypy type check
@@ -70,4 +70,5 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run typecheck
       - run: npm run build
