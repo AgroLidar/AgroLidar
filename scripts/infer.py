@@ -16,6 +16,9 @@ from lidar_perception.data.io import load_point_cloud
 from lidar_perception.inference.runtime import InferenceRuntime
 from lidar_perception.utils.config import load_config
 
+from lidar_perception.embedding import compute_pointcloud_embedding
+from lidar_perception.vector_db import VectorDBService
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run LiDAR inference")
@@ -26,6 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sequence-length", type=int, default=None)
     parser.add_argument("--tractor-speed-mps", type=float, default=None)
     parser.add_argument("--save-json", action="store_true")
+    parser.add_argument("--enable-vector-db", action="store_true")
     return parser.parse_args()
 
 
@@ -51,11 +55,17 @@ def main() -> None:
     save_dir = Path(config.get("inference", {}).get("save_predictions_dir", "outputs/predictions"))
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    vector_db = VectorDBService() if args.enable_vector_db else None
+
     for index, (source, points) in enumerate(zip(sources, points_sequence)):
         result = runtime.infer_points(points, vehicle_speed_mps=args.tractor_speed_mps)
         print(
             f"source={source} risk={result['scene_risk_level']} nearest_distance={result['nearest_obstacle_distance_m']:.2f}m"
         )
+        if vector_db is not None:
+            embedding = compute_pointcloud_embedding(points)
+            vector_db.add_embedding(f"{source}_{index}", embedding, {"source": source})
+
         if args.save_json:
             out = save_dir / f"{source}_{index}.json"
             out.write_text(

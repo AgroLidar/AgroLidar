@@ -35,6 +35,7 @@ class PredictionResponse(BaseModel):
     model_version: str
     dangerous_objects: int = Field(ge=0)
     collision_risk: Literal["high", "medium", "low", "none"]
+    metadata: dict[str, Any] | None = None
 
 
 class HealthResponse(BaseModel):
@@ -59,5 +60,6 @@ class MetricsResponse(BaseModel):
     detections_by_class: dict[str, int] = Field(default_factory=dict)
     dangerous_detections_total: int = Field(ge=0)
     last_inference_timestamp: str | None = None
+    vector_queries: int = Field(ge=0, default=0)
 
     model_config = ConfigDict(extra="forbid")

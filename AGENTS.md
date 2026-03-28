@@ -530,3 +530,8 @@ A **hotfix** targeting `main` directly requires:
 
 *This file is law. When in doubt, ask: “Does this make the field safer?”*
 *If the answer is no, or you’re not sure — don’t merge it.*
+
+<!-- BEGIN:nextjs-agent-rules -->
+# Next.js: ALWAYS read docs before coding
+Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
+<!-- END:nextjs-agent-rules -->

@@ -85,6 +85,10 @@ class TrainingPipeline:
         device = self._resolve_device(raw_config.get("device", self.config.device))
         logger.info("using device=%s", device)
 
+        synthetic_cfg = raw_config.get("synthetic_data", {})
+        if synthetic_cfg.get("enabled", False):
+            logger.info("Synthetic data mixing enabled", extra={"ratio": synthetic_cfg.get("mix_ratio", 0.0), "path": synthetic_cfg.get("path", "data/synthetic")})
+
         train_dataset = build_dataset(raw_config["data"], split="train")
         val_dataset = build_dataset(raw_config["data"], split="val")
         train_loader = DataLoader(
