@@ -1,11 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { IBM_Plex_Mono, Oxanium } from "next/font/google";
 import { useEffect, useMemo, useState } from "react";
 
-const oxanium = Oxanium({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
-const ibmPlexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"] });
+const oxaniumClass = "font-sans";
+const ibmPlexMonoClass = "font-mono";
 
 type RiskLevel = "SAFE" | "CAUTION" | "CRITICAL";
 
@@ -175,7 +174,7 @@ function RiskLevelBadge({ riskLevel }: { riskLevel: RiskLevel }) {
           ? { duration: 1.1, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
           : { duration: 0.2 }
       }
-      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold tracking-[0.12em] ${riskStyles[riskLevel]} ${riskPulse[riskLevel]} ${ibmPlexMono.className}`}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold tracking-[0.12em] ${riskStyles[riskLevel]} ${riskPulse[riskLevel]} ${ibmPlexMonoClass}`}
     >
       <span className="h-2.5 w-2.5 rounded-full bg-current" />
       {riskLevel}
@@ -189,14 +188,14 @@ function DetectionCard({ detection }: { detection: Detection }) {
   return (
     <article className="rounded-lg border border-white/15 bg-black/35 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <p className={`text-sm uppercase tracking-[0.16em] text-white/70 ${ibmPlexMono.className}`}>{detection.className}</p>
+        <p className={`text-sm uppercase tracking-[0.16em] text-white/70 ${ibmPlexMonoClass}`}>{detection.className}</p>
         <RiskLevelBadge riskLevel={detection.zone.risk} />
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs text-white/70">
-          <span className={ibmPlexMono.className}>CONFIDENCE</span>
-          <span className={ibmPlexMono.className}>{confidencePercent}%</span>
+          <span className={ibmPlexMonoClass}>CONFIDENCE</span>
+          <span className={ibmPlexMonoClass}>{confidencePercent}%</span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-[#0f141a]">
           <div
@@ -207,8 +206,8 @@ function DetectionCard({ detection }: { detection: Detection }) {
       </div>
 
       <div className="mt-3 flex items-end justify-between border-t border-white/10 pt-3">
-        <p className={`text-xs text-white/55 ${ibmPlexMono.className}`}>RANGE</p>
-        <p className={`text-lg text-white ${ibmPlexMono.className}`}>{detection.distanceMeters.toFixed(1)} m</p>
+        <p className={`text-xs text-white/55 ${ibmPlexMonoClass}`}>RANGE</p>
+        <p className={`text-lg text-white ${ibmPlexMonoClass}`}>{detection.distanceMeters.toFixed(1)} m</p>
       </div>
     </article>
   );
@@ -218,16 +217,16 @@ function FrameStats({ stats }: { stats: FrameStatsData }) {
   return (
     <section className="grid gap-3 sm:grid-cols-3">
       <article className="rounded-lg border border-white/15 bg-black/35 p-4">
-        <p className={`text-xs tracking-[0.14em] text-white/60 ${ibmPlexMono.className}`}>LATENCY</p>
-        <p className={`mt-2 text-2xl text-[#38BDF8] ${ibmPlexMono.className}`}>{stats.latencyMs} ms</p>
+        <p className={`text-xs tracking-[0.14em] text-white/60 ${ibmPlexMonoClass}`}>LATENCY</p>
+        <p className={`mt-2 text-2xl text-[#38BDF8] ${ibmPlexMonoClass}`}>{stats.latencyMs} ms</p>
       </article>
       <article className="rounded-lg border border-white/15 bg-black/35 p-4">
-        <p className={`text-xs tracking-[0.14em] text-white/60 ${ibmPlexMono.className}`}>POINTS</p>
-        <p className={`mt-2 text-2xl text-[#4ADE80] ${ibmPlexMono.className}`}>{stats.totalPoints.toLocaleString()}</p>
+        <p className={`text-xs tracking-[0.14em] text-white/60 ${ibmPlexMonoClass}`}>POINTS</p>
+        <p className={`mt-2 text-2xl text-[#4ADE80] ${ibmPlexMonoClass}`}>{stats.totalPoints.toLocaleString()}</p>
       </article>
       <article className="rounded-lg border border-white/15 bg-black/35 p-4">
-        <p className={`text-xs tracking-[0.14em] text-white/60 ${ibmPlexMono.className}`}>MODEL</p>
-        <p className={`mt-2 text-2xl text-[#F59E0B] ${ibmPlexMono.className}`}>{stats.modelVersion}</p>
+        <p className={`text-xs tracking-[0.14em] text-white/60 ${ibmPlexMonoClass}`}>MODEL</p>
+        <p className={`mt-2 text-2xl text-[#F59E0B] ${ibmPlexMonoClass}`}>{stats.modelVersion}</p>
       </article>
     </section>
   );
@@ -236,7 +235,7 @@ function FrameStats({ stats }: { stats: FrameStatsData }) {
 function HazardMap({ detections }: { detections: Detection[] }) {
   return (
     <section className="rounded-lg border border-white/15 bg-black/35 p-4">
-      <h2 className={`mb-3 text-sm uppercase tracking-[0.14em] text-white/75 ${ibmPlexMono.className}`}>Hazard Map (BEV)</h2>
+      <h2 className={`mb-3 text-sm uppercase tracking-[0.14em] text-white/75 ${ibmPlexMonoClass}`}>Hazard Map (BEV)</h2>
       <svg viewBox="0 0 100 100" className="h-64 w-full rounded-md border border-white/10 bg-[#090d12]">
         {Array.from({ length: 10 }, (_, idx) => {
           const value = idx * 10;
@@ -254,7 +253,7 @@ function HazardMap({ detections }: { detections: Detection[] }) {
             <g key={det.id}>
               <circle cx={det.zone.x} cy={det.zone.y} r={3.6} fill={color} fillOpacity="0.22" />
               <circle cx={det.zone.x} cy={det.zone.y} r={1.5} fill={color} />
-              <text x={det.zone.x + 2.2} y={det.zone.y - 1.6} fill={color} fontSize="3.2" className={ibmPlexMono.className}>
+              <text x={det.zone.x + 2.2} y={det.zone.y - 1.6} fill={color} fontSize="3.2" className={ibmPlexMonoClass}>
                 {det.className}
               </text>
             </g>
@@ -269,8 +268,8 @@ function LiveFeed({ data }: { data: StatusPayload }) {
   return (
     <section className="rounded-lg border border-white/15 bg-black/35 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className={`text-sm uppercase tracking-[0.14em] text-white/75 ${ibmPlexMono.className}`}>Live Feed</h2>
-        <p className={`text-xs text-white/55 ${ibmPlexMono.className}`}>Frame #{data.frameStats.frameId}</p>
+        <h2 className={`text-sm uppercase tracking-[0.14em] text-white/75 ${ibmPlexMonoClass}`}>Live Feed</h2>
+        <p className={`text-xs text-white/55 ${ibmPlexMonoClass}`}>Frame #{data.frameStats.frameId}</p>
       </div>
       <div className="space-y-3">
         {data.detections.map((det) => (
@@ -338,12 +337,12 @@ export default function DashboardPage() {
         <header className="rounded-xl border border-white/15 bg-black/35 p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className={`text-xs uppercase tracking-[0.22em] text-white/60 ${ibmPlexMono.className}`}>AgroLidar · Real-time Monitoring</p>
-              <h1 className={`mt-2 text-3xl tracking-wide text-white sm:text-4xl ${oxanium.className}`}>Detection Command Dashboard</h1>
+              <p className={`text-xs uppercase tracking-[0.22em] text-white/60 ${ibmPlexMonoClass}`}>AgroLidar · Real-time Monitoring</p>
+              <h1 className={`mt-2 text-3xl tracking-wide text-white sm:text-4xl ${oxaniumClass}`}>Detection Command Dashboard</h1>
             </div>
             <RiskLevelBadge riskLevel={status.riskLevel} />
           </div>
-          <p className={`mt-3 text-xs text-white/55 ${ibmPlexMono.className}`}>Last update: {formattedTime} UTC</p>
+          <p className={`mt-3 text-xs text-white/55 ${ibmPlexMonoClass}`}>Last update: {formattedTime} UTC</p>
         </header>
 
         <FrameStats stats={status.frameStats} />

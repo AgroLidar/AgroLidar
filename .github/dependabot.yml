@@ -4,25 +4,64 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
     labels:
       - dependencies
       - python
+    groups:
+      python-safe-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "onnxruntime"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "onnxsim"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
     labels:
       - dependencies
       - frontend
+    groups:
+      npm-safe-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-next"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
     labels:
       - dependencies
       - ci
+    groups:
+      actions-safe-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "actions/checkout"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/setup-python"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/setup-node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/upload-artifact"
+        update-types: ["version-update:semver-major"]

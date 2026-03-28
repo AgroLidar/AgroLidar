@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install linting tools
-        run: pip install ruff mypy pydantic PyYAML
+        run: pip install ruff==0.6.9 mypy==1.13.0 pydantic==2.10.4 PyYAML==6.0.2
       - name: Ruff lint
         run: ruff check lidar_perception/ scripts/ tests/
       - name: Mypy type check
@@ -64,6 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
+        # stay on v4 until setup-node v6 migration is validated in this repo
         with:
           node-version: "20"
           cache: npm

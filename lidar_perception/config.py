@@ -10,6 +10,7 @@ Example:
     config = TrainConfig.from_yaml("configs/train.yaml")
     learning_rate = config.learning_rate  # typed, validated, IDE-autocompleted
 """
+
 from __future__ import annotations
 
 from enum import StrEnum
@@ -22,6 +23,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # ---------------------------------------------------------------------------
 # Domain constants
 # ---------------------------------------------------------------------------
+
 
 class KnownClass(StrEnum):
     """All obstacle classes AgroLidar is trained to detect."""
@@ -46,6 +48,7 @@ DANGEROUS_CLASSES: frozenset[KnownClass] = frozenset(
 # ---------------------------------------------------------------------------
 # Shared sub-configs
 # ---------------------------------------------------------------------------
+
 
 class DataConfig(BaseModel):
     """Dataset path configuration."""
@@ -110,6 +113,7 @@ class ModelConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # Pipeline configs
 # ---------------------------------------------------------------------------
+
 
 class TrainConfig(BaseModel):
     """Full configuration for the training pipeline (scripts/train.py)."""
