@@ -40,7 +40,7 @@ jobs:
           grep -q "Release date:" RELEASE_NOTES.md || { echo "RELEASE_NOTES.md must include release date"; exit 1; }
 
       - name: Archive release metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-metadata-${{ github.ref_name }}
           path: |
