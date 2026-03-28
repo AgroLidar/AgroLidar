@@ -2,7 +2,7 @@
 # except for torch, because pip-audit cannot reliably resolve local-version CPU
 # wheels installed from the PyTorch index in CI.
 numpy==1.26.4
-PyYAML==6.0.2
+PyYAML==6.0.3
 matplotlib==3.8.4
 tqdm==4.66.4
 fastapi==0.135.2
