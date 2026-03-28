@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from typing import Any, cast
 
 import numpy as np
+import psutil
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -16,6 +18,13 @@ from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from prometheus_fastapi_instrumentator import Instrumentator
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from lidar_perception.inference import InferenceEngine
 from lidar_perception.logging_config import configure_logging
@@ -38,6 +47,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     global _engine
     configure_logging()
+    tracer_provider = TracerProvider(resource=Resource.create({"service.name": "agrolidar-api"}))
+    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    if otlp_endpoint:
+        tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)))
+    trace.set_tracer_provider(tracer_provider)
+
     logger.info("Loading production model")
     _engine = InferenceEngine.load_production()
     logger.info("Inference engine ready", extra={"model_path": str(_engine.model_path)})
@@ -64,6 +79,8 @@ app.add_middleware(
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
+FastAPIInstrumentor.instrument_app(app)
+Instrumentator().instrument(app).expose(app, include_in_schema=False)
 
 
 class PointCloudRequest(BaseModel):
@@ -177,7 +194,10 @@ async def infer(request: Request, payload: PointCloudRequest) -> InferenceRespon
 @app.get("/healthz", include_in_schema=False)
 async def health() -> dict[str, bool | str]:
     """Liveness endpoint for deployment probes."""
-    return {"status": "ok", "engine_loaded": _engine is not None}
+    gpu_utilization = 0.0
+    if hasattr(psutil, "cpu_percent"):
+        gpu_utilization = float(psutil.cpu_percent(interval=None))
+    return {"status": "ok", "engine_loaded": _engine is not None, "gpu_utilization": gpu_utilization}
 
 
 @app.get("/readyz", include_in_schema=False)

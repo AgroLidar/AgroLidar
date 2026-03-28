@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 
+import { LidarViewer } from "@/components/LidarViewer";
+
 const oxaniumClass = "font-sans";
 const ibmPlexMonoClass = "font-mono";
 
@@ -352,6 +354,7 @@ export default function DashboardPage() {
           <LiveFeed data={status} />
         </section>
       </div>
-    </main>
+    <LidarViewer />
+</main>
   );
 }

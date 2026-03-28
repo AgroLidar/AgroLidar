@@ -30,6 +30,8 @@ from inference_server.models import (
     PredictionResponse,
 )
 from inference_server.predictor import BEVPredictor
+from lidar_perception.embedding import compute_pointcloud_embedding
+from lidar_perception.vector_db import VectorDBService
 
 logger = logging.getLogger("inference_server")
 
@@ -73,6 +75,7 @@ async def lifespan(app: FastAPI):
         "detections_by_class": Counter(),
         "dangerous_detections_total": 0,
         "last_inference_timestamp": None,
+        "vector_queries": 0,
     }
 
     try:
@@ -90,6 +93,17 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.exception("Failed to load predictor: %s", exc)
         app.state.predictor = None
+
+    app.state.vector_db = None
+    if config.vector_db.enabled:
+        try:
+            app.state.vector_db = VectorDBService(
+                redis_url=config.vector_db.redis_url,
+                index_name=config.vector_db.index_name,
+            )
+            logger.info("Vector DB enabled")
+        except Exception as exc:
+            logger.exception("Failed to initialize vector DB: %s", exc)
 
     yield
 
@@ -193,6 +207,7 @@ def metrics() -> MetricsResponse:
         detections_by_class=dict(meta["detections_by_class"]),
         dangerous_detections_total=meta["dangerous_detections_total"],
         last_inference_timestamp=meta["last_inference_timestamp"],
+        vector_queries=meta["vector_queries"],
     )
 
 
@@ -240,6 +255,13 @@ def predict(request: Request, payload: BEVFrameInput) -> PredictionResponse:
                 detections_data,
             )
 
+        similar_scene_ids: list[str] = []
+        if app.state.vector_db is not None:
+            embedding = compute_pointcloud_embedding(frame.reshape(-1, frame.shape[0]))
+            app.state.vector_db.add_embedding(payload.frame_id, embedding, {"timestamp": payload.timestamp})
+            similar_scene_ids = app.state.vector_db.query(embedding, k=5)
+            app.state.metrics["vector_queries"] += 1
+
         return PredictionResponse(
             frame_id=payload.frame_id,
             timestamp=payload.timestamp,
@@ -248,6 +270,7 @@ def predict(request: Request, payload: BEVFrameInput) -> PredictionResponse:
             model_version=predictor.model_version,
             dangerous_objects=dangerous_objects,
             collision_risk=collision_risk,
+            metadata={"similar_scene_ids": similar_scene_ids} if similar_scene_ids else None,
         )
     except Exception:
         app.state.metrics["failed_requests"] += 1

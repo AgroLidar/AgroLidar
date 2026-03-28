@@ -1,0 +1,10 @@
+service: "inference_server.bento_service:AgroLidarService"
+labels:
+  project: agrolidar
+include:
+  - "inference_server/**"
+  - "lidar_perception/**"
+  - "configs/**"
+python:
+  packages:
+    - -e .

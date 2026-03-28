@@ -27,6 +27,13 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Quickstart: quickstart.md
+  - API Reference: api-reference.md
+  - Training: training.md
+  - Inference: inference.md
+  - Synthetic Data: synthetic-data.md
+  - Vector Search: vector-search.md
+  - WebGPU Viewer: webgpu-viewer.md
   - Architecture: architecture.md
   - Usage: usage.md
   - Development: development.md

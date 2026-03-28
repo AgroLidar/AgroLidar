@@ -39,12 +39,22 @@ class HealthConfig:
     min_healthy_inferences: int = 10
 
 
+
+
+@dataclass
+class VectorDBConfig:
+    enabled: bool = False
+    redis_url: str = "redis://localhost:6379/0"
+    index_name: str = "agrolidar"
+
+
 @dataclass
 class InferenceServerConfig:
     server: ServerConfig
     model: ModelConfig
     limits: LimitsConfig
     health: HealthConfig
+    vector_db: VectorDBConfig
 
 
 DEFAULT_CONFIG_PATH = Path("configs/server.yaml")
@@ -67,4 +77,5 @@ def load_server_config(path: str | Path = DEFAULT_CONFIG_PATH) -> InferenceServe
         model=ModelConfig(**raw.get("model", {})),
         limits=LimitsConfig(**raw.get("limits", {})),
         health=HealthConfig(**raw.get("health", {})),
+        vector_db=VectorDBConfig(**raw.get("vector_db", {})),
     )

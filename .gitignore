@@ -50,3 +50,4 @@ dist/
 
 # Docs build
 site/
+.next/dev/lock

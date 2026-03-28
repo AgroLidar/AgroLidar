@@ -1,0 +1,8 @@
+base_config: train.yaml
+
+synthetic_data:
+  enabled: false
+  path: data/synthetic
+  mix_ratio: 0.2
+  num_scenes: 100
+  sensor_types: [lidar]
