@@ -8,7 +8,7 @@ Direct dict access to raw YAML is FORBIDDEN in this codebase.
 
 Example:
     config = TrainConfig.from_yaml("configs/train.yaml")
-    print(config.learning_rate)  # typed, validated, IDE-autocompleted
+    learning_rate = config.learning_rate  # typed, validated, IDE-autocompleted
 """
 from __future__ import annotations
 
