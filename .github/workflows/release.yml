@@ -1,9 +1,15 @@
 name: Release
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,16 +34,23 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+        run: pip install -e ".[dev]"
 
       - name: Run core tests
         run: pytest tests/ -q --tb=short
 
-      - name: Validate changelog and release notes
+      - name: Validate changelog and release notes (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           grep -q "## \[$VERSION\]" CHANGELOG.md || { echo "Missing CHANGELOG entry for $VERSION"; exit 1; }
           grep -q "Release date:" RELEASE_NOTES.md || { echo "RELEASE_NOTES.md must include release date"; exit 1; }
+
+      - name: Validate release docs presence (non-tag runs)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          test -f CHANGELOG.md || { echo "CHANGELOG.md is required"; exit 1; }
+          test -f RELEASE_NOTES.md || { echo "RELEASE_NOTES.md is required"; exit 1; }
 
       - name: Archive release metadata
         uses: actions/upload-artifact@v4
@@ -50,6 +63,7 @@ jobs:
 
   create-github-release:
     name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: validate-release
     runs-on: ubuntu-latest
     permissions:
