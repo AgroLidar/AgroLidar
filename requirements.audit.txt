@@ -1,7 +1,7 @@
 # Audit input intentionally mirrors runtime dependencies from requirements.txt
 # except for torch, because pip-audit cannot reliably resolve local-version CPU
 # wheels installed from the PyTorch index in CI.
-numpy==1.26.4
+numpy==2.4.3
 PyYAML==6.0.2
 matplotlib==3.8.4
 tqdm==4.66.4

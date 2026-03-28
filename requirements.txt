@@ -1,5 +1,5 @@
 # Runtime dependencies
-numpy==1.26.4
+numpy==2.4.3
 PyYAML==6.0.2
 matplotlib==3.8.4
 tqdm==4.66.4
