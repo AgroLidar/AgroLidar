@@ -258,7 +258,9 @@ def predict(request: Request, payload: BEVFrameInput) -> PredictionResponse:
         similar_scene_ids: list[str] = []
         if app.state.vector_db is not None:
             embedding = compute_pointcloud_embedding(frame.reshape(-1, frame.shape[0]))
-            app.state.vector_db.add_embedding(payload.frame_id, embedding, {"timestamp": payload.timestamp})
+            app.state.vector_db.add_embedding(
+                payload.frame_id, embedding, {"timestamp": payload.timestamp}
+            )
             similar_scene_ids = app.state.vector_db.query(embedding, k=5)
             app.state.metrics["vector_queries"] += 1
 

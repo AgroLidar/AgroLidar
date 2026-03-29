@@ -23,15 +23,16 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0
+    rev: v1.13.0
     hooks:
       - id: mypy
-        files: "^(lidar_perception|inference_server|scripts)/"
-        args: ["--ignore-missing-imports", "--no-strict-optional"]
+        args: ["--config-file=pyproject.toml"]
+        pass_filenames: false
         additional_dependencies:
           - "pydantic>=2.0"
           - "torch"
           - "numpy"
+          - "types-PyYAML"
 
   - repo: local
     hooks:

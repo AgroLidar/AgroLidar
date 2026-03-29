@@ -170,4 +170,3 @@ AgroLidar is in active development toward an enterprise-ready `v1.0.0` release.
 
 Please review [SECURITY.md](SECURITY.md) for vulnerability reporting and disclosure expectations.
 Dependency audit behavior (including `requirements.audit.txt` and narrow temporary advisory ignores) is documented in [SECURITY_NOTES.md](SECURITY_NOTES.md).
-

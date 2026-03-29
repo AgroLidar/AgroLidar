@@ -50,7 +50,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     tracer_provider = TracerProvider(resource=Resource.create({"service.name": "agrolidar-api"}))
     otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
     if otlp_endpoint:
-        tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)))
+        tracer_provider.add_span_processor(
+            BatchSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True))
+        )
     trace.set_tracer_provider(tracer_provider)
 
     logger.info("Loading production model")
@@ -192,12 +194,16 @@ async def infer(request: Request, payload: PointCloudRequest) -> InferenceRespon
 
 
 @app.get("/healthz", include_in_schema=False)
-async def health() -> dict[str, bool | str]:
+async def health() -> dict[str, bool | str | float]:
     """Liveness endpoint for deployment probes."""
     gpu_utilization = 0.0
     if hasattr(psutil, "cpu_percent"):
         gpu_utilization = float(psutil.cpu_percent(interval=None))
-    return {"status": "ok", "engine_loaded": _engine is not None, "gpu_utilization": gpu_utilization}
+    return {
+        "status": "ok",
+        "engine_loaded": _engine is not None,
+        "gpu_utilization": gpu_utilization,
+    }
 
 
 @app.get("/readyz", include_in_schema=False)

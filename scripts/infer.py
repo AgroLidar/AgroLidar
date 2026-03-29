@@ -13,10 +13,9 @@ from pathlib import Path
 
 from lidar_perception.data.datasets import build_dataset
 from lidar_perception.data.io import load_point_cloud
+from lidar_perception.embedding import compute_pointcloud_embedding
 from lidar_perception.inference.runtime import InferenceRuntime
 from lidar_perception.utils.config import load_config
-
-from lidar_perception.embedding import compute_pointcloud_embedding
 from lidar_perception.vector_db import VectorDBService
 
 

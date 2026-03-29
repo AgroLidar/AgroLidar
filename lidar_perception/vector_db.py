@@ -12,7 +12,9 @@ from redis import Redis
 class VectorDBService:
     """Small vector DB wrapper with Redis JSON payload storage."""
 
-    def __init__(self, redis_url: str = "redis://localhost:6379/0", index_name: str = "agrolidar") -> None:
+    def __init__(
+        self, redis_url: str = "redis://localhost:6379/0", index_name: str = "agrolidar"
+    ) -> None:
         self._redis = Redis.from_url(redis_url)
         self._index_name = index_name
 
