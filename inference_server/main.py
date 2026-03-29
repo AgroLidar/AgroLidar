@@ -205,21 +205,21 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
     app.add_middleware(GZipMiddleware, minimum_size=1024)
     app.add_middleware(RequestLoggingMiddleware)
 
-    @app.exception_handler(ValueError)
+    @app.exception_handler(ValueError)  # type: ignore[misc]
     async def value_error_handler(_: Request, exc: ValueError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"detail": str(exc)})
 
-    @app.exception_handler(TorchError)
+    @app.exception_handler(TorchError)  # type: ignore[misc]
     async def torch_error_handler(_: Request, exc: Exception) -> JSONResponse:
         logger.exception("Torch error during inference: %s", exc)
         return JSONResponse(status_code=500, content={"detail": "Torch inference error"})
 
-    @app.exception_handler(Exception)
+    @app.exception_handler(Exception)  # type: ignore[misc]
     async def generic_exception_handler(_: Request, exc: Exception) -> JSONResponse:
         logger.error("Unhandled server exception: %s\n%s", exc, traceback.format_exc())
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
-    @app.get("/health", response_model=HealthResponse)
+    @app.get("/health", response_model=HealthResponse)  # type: ignore[misc]
     def health() -> JSONResponse:
         predictor = getattr(app.state, "predictor", None)
         if predictor is None:
@@ -248,7 +248,7 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
         ).model_dump()
         return JSONResponse(status_code=200 if status == "healthy" else 503, content=payload)
 
-    @app.get("/metrics", response_model=MetricsResponse)
+    @app.get("/metrics", response_model=MetricsResponse)  # type: ignore[misc]
     def metrics() -> MetricsResponse:
         predictor = getattr(app.state, "predictor", None)
         meta = app.state.metrics
@@ -266,7 +266,7 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
             vector_queries=meta["vector_queries"],
         )
 
-    @app.get("/model/info")
+    @app.get("/model/info")  # type: ignore[misc]
     def model_info() -> dict[str, Any]:
         predictor = _get_predictor_or_503(app)
         return {
@@ -282,12 +282,12 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
             ).isoformat(),
         }
 
-    @limiter.limit(f"{runtime_config.limits.rate_limit_per_second}/second")
-    @app.post("/predict", response_model=PredictionResponse)
+    @limiter.limit(f"{runtime_config.limits.rate_limit_per_second}/second")  # type: ignore[misc]
+    @app.post("/predict", response_model=PredictionResponse)  # type: ignore[misc]
     def predict(request: Request, payload: BEVFrameInput) -> PredictionResponse:
         return _predict_one(app, payload, request)
 
-    @app.post("/predict/batch", response_model=list[PredictionResponse])
+    @app.post("/predict/batch", response_model=list[PredictionResponse])  # type: ignore[misc]
     def predict_batch(request: Request, payloads: list[BEVFrameInput]) -> list[PredictionResponse]:
         if len(payloads) > app.state.config.limits.max_batch_size:
             raise ValueError(
@@ -295,14 +295,14 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
             )
         return [_predict_one(app, payload, request) for payload in payloads]
 
-    @app.get("/ready")
+    @app.get("/ready")  # type: ignore[misc]
     def ready() -> JSONResponse:
         predictor = getattr(app.state, "predictor", None)
         if predictor is None or not predictor.model_loaded:
             return JSONResponse(status_code=503, content={"status": "not_ready"})
         return JSONResponse(status_code=200, content={"status": "ready"})
 
-    @app.get("/live")
+    @app.get("/live")  # type: ignore[misc]
     def live() -> dict[str, str]:
         return {"status": "alive"}
 
