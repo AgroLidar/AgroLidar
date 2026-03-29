@@ -17,7 +17,13 @@ export interface VehicleState {
   pitch: number;
   wheelSpin: number;
   suspensionTravel: number;
+  suspensionActivity: number;
   payload: number;
+  slipRatio: number;
+  traction: number;
+  wheelLoadFront: number;
+  wheelLoadRear: number;
+  stability: number;
 }
 
 export function defaultVehicleState(kind: VehicleType = 'tractor'): VehicleState {
@@ -36,7 +42,13 @@ export function defaultVehicleState(kind: VehicleType = 'tractor'): VehicleState
     pitch: 0,
     wheelSpin: 0,
     suspensionTravel: 0,
+    suspensionActivity: 0,
     payload: 1,
+    slipRatio: 0,
+    traction: 1,
+    wheelLoadFront: 0.5,
+    wheelLoadRear: 0.5,
+    stability: 1,
   };
 }
 
@@ -50,25 +62,51 @@ export function stepVehicle(
   surfaceTraction: number,
 ): VehicleState {
   if (state.kind === 'drone') return state;
-  const traction = clamp((1 - gripPenalty) * surfaceTraction, 0.28, 1);
-  const heavyMassFactor = 1.18 + (1 - traction) * 0.5;
-  const accel = (input.throttle * 7.2 * traction) / heavyMassFactor;
-  const reverseAccel = (input.brake * 4.2) / heavyMassFactor;
-  const rollingResistance = 2.4 + Math.abs(state.speed) * 0.22;
-  const emergency = input.handbrake ? 14 : 0;
-  const targetSteer = input.steer * clamp(0.5 - Math.abs(state.speed) * 0.011, 0.16, 0.5);
-  const steerAngle = damp(state.steerAngle, targetSteer, 4.2, dt);
-  const forwardForce = accel - (input.throttle > 0 ? rollingResistance * 0.25 : rollingResistance * Math.sign(state.speed));
-  const brakingForce = input.brake > 0 ? 10.8 * input.brake : 0;
-  const speed = clamp(state.speed + (forwardForce - brakingForce - emergency - reverseAccel * (state.speed > 0 ? 0.35 : -1)) * dt, -4.2, 14.8);
 
-  const steeringDamping = clamp(Math.abs(speed) / 11, 0.16, 1);
-  const turnRate = steerAngle * steeringDamping * (0.14 + traction * 0.18);
+  const speedSign = state.speed >= 0 ? 1 : -1;
+  const targetSteer = input.steer * clamp(0.56 - Math.abs(state.speed) * 0.015, 0.16, 0.56);
+  const steerAngle = damp(state.steerAngle, targetSteer, 5.2, dt);
+
+  const loadTransferLong = clamp((input.throttle - input.brake) * 0.16 + terrainPitch * 0.5, -0.2, 0.2);
+  const loadTransferLat = clamp(steerAngle * Math.abs(state.speed) * 0.07 + terrainRoll * 0.34, -0.22, 0.22);
+  const wheelLoadFront = clamp(0.5 - loadTransferLong, 0.32, 0.68);
+  const wheelLoadRear = clamp(1 - wheelLoadFront, 0.32, 0.68);
+
+  const baseTraction = clamp((1 - gripPenalty) * surfaceTraction, 0.26, 1);
+  const tractionFromSlip = clamp(1 - Math.abs(state.slipRatio) * 0.9, 0.4, 1);
+  const traction = clamp(baseTraction * tractionFromSlip, 0.24, 1);
+
+  const engineTorque = (10.8 + (Math.abs(state.speed) < 4 ? 4.8 : 0)) * input.throttle * (0.72 + wheelLoadRear * 0.55);
+  const brakeTorque = (9.6 + (input.handbrake ? 8 : 0)) * input.brake * (0.7 + wheelLoadFront * 0.6);
+  const slopeDrag = terrainPitch * 8.2;
+  const rollingResistance = 2.5 + Math.abs(state.speed) * 0.38 + Math.abs(loadTransferLat) * 2.4;
+
+  const accelForce = engineTorque * traction - rollingResistance * speedSign - slopeDrag;
+  const brakeForce = brakeTorque * (state.speed > 0 ? 1 : -0.8);
+  const reverseAssist = input.brake > 0.1 && state.speed < 0.2 ? input.brake * 5.2 : 0;
+
+  let speed = state.speed + (accelForce - brakeForce - reverseAssist) * dt * 0.6;
+  speed = clamp(speed, -5.5, 18.8);
+
+  const yawAuthority = clamp(0.1 + traction * 0.22, 0.08, 0.28);
+  const yawDamping = clamp(1 - Math.abs(state.speed) / 28, 0.38, 1);
+  const turnRate = steerAngle * (0.4 + Math.abs(speed) * 0.11) * yawAuthority * yawDamping;
   const heading = wrapAngle(state.heading + turnRate * dt);
+
   const dx = Math.sin(heading) * speed * dt;
   const dz = Math.cos(heading) * speed * dt;
 
-  const suspensionTarget = clamp((Math.abs(terrainPitch) + Math.abs(terrainRoll)) * 0.42 + Math.abs(speed) * 0.006, 0.02, 0.19);
+  const desiredSlip = clamp((engineTorque - traction * 8) / 12 + Math.abs(loadTransferLat) * 0.4, -0.7, 0.7);
+  const slipRatio = damp(state.slipRatio, desiredSlip, 4.8, dt);
+
+  const bodyRollTarget = terrainRoll + loadTransferLat * (1.6 - traction * 0.75);
+  const bodyPitchTarget = terrainPitch - loadTransferLong * 1.2;
+  const suspensionTarget = clamp(0.025 + Math.abs(loadTransferLat) * 0.15 + Math.abs(terrainPitch) * 0.12 + Math.abs(speed) * 0.005, 0.02, 0.24);
+  const suspensionTravel = damp(state.suspensionTravel, suspensionTarget, 8.2, dt);
+  const suspensionActivity = clamp(Math.abs(suspensionTravel - state.suspensionTravel) * 35 + Math.abs(terrainRoll) * 0.9, 0, 1);
+
+  const instability = clamp(Math.abs(slipRatio) * 0.45 + Math.abs(loadTransferLat) * 0.6 + suspensionActivity * 0.4, 0, 1);
+  const stability = clamp(1 - instability, 0.2, 1);
 
   return {
     ...state,
@@ -77,10 +115,16 @@ export function stepVehicle(
     heading,
     speed,
     steerAngle,
-    pitch: damp(state.pitch, terrainPitch, 4.2, dt),
-    roll: damp(state.roll, terrainRoll + steerAngle * speed * -0.026 * (2 - traction), 3.2, dt),
-    wheelSpin: state.wheelSpin + speed * dt * 1.7,
-    suspensionTravel: damp(state.suspensionTravel, suspensionTarget, 8, dt),
+    pitch: damp(state.pitch, bodyPitchTarget, 4.2, dt),
+    roll: damp(state.roll, bodyRollTarget, 3.4, dt),
+    wheelSpin: state.wheelSpin + speed * dt * 2.2,
+    suspensionTravel,
+    suspensionActivity,
+    slipRatio,
+    traction,
+    wheelLoadFront,
+    wheelLoadRear,
+    stability,
   };
 }
 

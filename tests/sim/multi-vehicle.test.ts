@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { cameraModesForVehicle, defaultSettings } from '../../lib/sim/config';
-import { defaultVehicleState, stepDrone } from '../../lib/sim/vehicle/dynamics';
 import { createInputState } from '../../lib/sim/vehicle/controller';
+import { defaultVehicleState, stepDrone } from '../../lib/sim/vehicle/dynamics';
 
 test('vehicle camera mode presets are deterministic', () => {
-  assert.deepEqual(cameraModesForVehicle('tractor'), ['chase', 'hood', 'cinematic', 'top', 'lidar']);
+  assert.deepEqual(cameraModesForVehicle('tractor'), ['chase', 'hood', 'cinematic', 'top', 'lidar', 'debug-dynamics', 'sensor-inspect']);
   assert.deepEqual(cameraModesForVehicle('drone'), ['drone-follow', 'drone-mission', 'drone-survey', 'top', 'lidar', 'cinematic']);
 });
 
@@ -14,6 +14,7 @@ test('default simulator starts with tractor + survey-ready drone profile', () =>
   assert.equal(defaultSettings.vehicle, 'tractor');
   assert.equal(defaultSettings.droneMission, 'survey');
   assert.equal(defaultSettings.presentationMode, false);
+  assert.equal(defaultSettings.lidarMode, 'sector-sweep');
 });
 
 test('drone mission profile affects forward speed envelope', () => {

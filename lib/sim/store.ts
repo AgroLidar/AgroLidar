@@ -1,13 +1,20 @@
 import { useSyncExternalStore } from 'react';
 
-import { defaultSettings, type SimulatorSettings, type VehicleType, type DroneMissionMode } from '@/lib/sim/config';
-import type { ObstacleClass } from '@/lib/sim/world/props';
+import {
+  defaultSettings,
+  type DroneMissionMode,
+  type LidarMode,
+  type LidarRigPreset,
+  type VehicleType,
+} from '@/lib/sim/config';
 import type { RiskLevel } from '@/lib/sim/lidar/hazards';
+import type { ObstacleClass } from '@/lib/sim/world/props';
 
 export interface TelemetrySnapshot {
   speed: number;
   altitude: number;
   headingDeg: number;
+  steeringDeg: number;
   nearestHazard: number;
   risk: RiskLevel;
   pointCount: number;
@@ -22,10 +29,20 @@ export interface TelemetrySnapshot {
   payloadPct: number;
   coveragePct: number;
   routeProgressPct: number;
+  surfaceType: string;
+  slipRatio: number;
+  tractionPct: number;
+  rollDeg: number;
+  pitchDeg: number;
+  suspensionActivityPct: number;
+  stabilityPct: number;
+  lidarMode: LidarMode;
+  lidarRigPreset: LidarRigPreset;
+  scanCoveragePct: number;
 }
 
 interface SimStore {
-  settings: SimulatorSettings;
+  settings: typeof defaultSettings;
   telemetry: TelemetrySnapshot;
 }
 
@@ -37,6 +54,7 @@ const state: SimStore = {
     speed: 0,
     altitude: 0,
     headingDeg: 0,
+    steeringDeg: 0,
     nearestHazard: Infinity,
     risk: 'SAFE',
     pointCount: 0,
@@ -51,6 +69,16 @@ const state: SimStore = {
     payloadPct: 100,
     coveragePct: 0,
     routeProgressPct: 0,
+    surfaceType: 'dirt',
+    slipRatio: 0,
+    tractionPct: 100,
+    rollDeg: 0,
+    pitchDeg: 0,
+    suspensionActivityPct: 0,
+    stabilityPct: 100,
+    lidarMode: defaultSettings.lidarMode,
+    lidarRigPreset: defaultSettings.lidarRigPreset,
+    scanCoveragePct: 0,
   },
 };
 
@@ -69,7 +97,7 @@ export function getStore(): SimStore {
   return state;
 }
 
-export function setSettings(next: Partial<SimulatorSettings>): void {
+export function setSettings(next: Partial<typeof defaultSettings>): void {
   state.settings = { ...state.settings, ...next };
   emit();
 }

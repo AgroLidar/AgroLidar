@@ -1,8 +1,9 @@
-import type { WeatherConfig } from '@/lib/sim/scenarios';
-import type { ObstacleClass, WorldObstacle } from '@/lib/sim/world/props';
+import type { LidarMode } from '@/lib/sim/config';
 import { clamp } from '@/lib/sim/math';
-import { sampleTerrainHeight } from '@/lib/sim/world/terrain';
+import type { WeatherConfig } from '@/lib/sim/scenarios';
 import { ObstacleSpatialIndex } from '@/lib/sim/lidar/spatial-index';
+import { sampleTerrainHeight } from '@/lib/sim/world/terrain';
+import type { ObstacleClass, WorldObstacle } from '@/lib/sim/world/props';
 
 export interface LidarConfig {
   range: number;
@@ -10,6 +11,10 @@ export interface LidarConfig {
   channels: number;
   pointBudget: number;
   dropout: number;
+  verticalFovDeg: number;
+  rotationRateHz: number;
+  mode: LidarMode;
+  semanticColoring: boolean;
 }
 
 export interface LidarPoint {
@@ -20,6 +25,11 @@ export interface LidarPoint {
   distance: number;
   cls: ObstacleClass | 'ground';
   intensity: number;
+}
+
+export interface LidarSampleResult {
+  points: LidarPoint[];
+  scanCoveragePct: number;
 }
 
 export interface LidarPose {
@@ -45,6 +55,14 @@ function intersectObstacleRay(ox: number, oz: number, dx: number, dz: number, ob
   return hit >= 0 ? hit : null;
 }
 
+function modeFov(config: LidarConfig): number {
+  if (config.mode === 'spin-360') return 360;
+  if (config.mode === 'forward-static') return Math.min(110, config.horizontalFovDeg);
+  if (config.mode === 'survey-grid') return Math.max(220, config.horizontalFovDeg);
+  if (config.mode === 'bev-hazard') return 180;
+  return config.horizontalFovDeg;
+}
+
 export function sampleLidarPoints(
   nearbyObstacles: WorldObstacle[],
   config: LidarConfig,
@@ -53,21 +71,36 @@ export function sampleLidarPoints(
   pose: LidarPose,
   seed: number,
   spatialIndex: ObstacleSpatialIndex,
-): LidarPoint[] {
+): LidarSampleResult {
   const points: LidarPoint[] = [];
   spatialIndex.reset(nearbyObstacles);
-  const azimuthCount = Math.max(110, Math.floor(config.pointBudget / Math.max(4, config.channels)));
+
+  const effectiveFov = modeFov(config);
+  const densityBias = config.mode === 'survey-grid' ? 1.2 : config.mode === 'bev-hazard' ? 0.82 : 1;
+  const azimuthCount = Math.max(110, Math.floor((config.pointBudget * densityBias) / Math.max(4, config.channels)));
+
+  let raysCast = 0;
+  let raysHit = 0;
 
   for (let az = 0; az < azimuthCount; az += 1) {
-    const sweep = (az / azimuthCount + scanPhase * 0.22) % 1;
-    const yaw = (sweep - 0.5) * (config.horizontalFovDeg * Math.PI / 180) + pose.heading;
+    const sweepOffset = scanPhase * config.rotationRateHz * 0.14;
+    const sweep = (az / azimuthCount + sweepOffset) % 1;
+    const yaw = (sweep - 0.5) * ((effectiveFov * Math.PI) / 180) + pose.heading;
     const dirX = Math.sin(yaw);
     const dirZ = Math.cos(yaw);
     const candidates = spatialIndex.queryCircle(pose.x + dirX * config.range * 0.45, pose.z + dirZ * config.range * 0.45, config.range * 0.72);
 
     for (let ch = 0; ch < config.channels; ch += 1) {
-      if (points.length >= config.pointBudget) return points;
-      const beamVertical = verticalSpread[ch % verticalSpread.length] + Math.floor(ch / verticalSpread.length) * 0.01 + pose.pitch * 0.45;
+      if (points.length >= config.pointBudget) {
+        return { points, scanCoveragePct: (raysHit / Math.max(1, raysCast)) * 100 };
+      }
+
+      const channelPitchScale = clamp(config.verticalFovDeg / 30, 0.4, 1.8);
+      const beamVertical =
+        verticalSpread[ch % verticalSpread.length] * channelPitchScale +
+        Math.floor(ch / verticalSpread.length) * 0.01 +
+        pose.pitch * 0.45;
+
       let hitDistance = config.range;
       let hitClass: LidarPoint['cls'] = 'ground';
       let hazard = false;
@@ -107,10 +140,13 @@ export function sampleLidarPoints(
       const distance = hitDistance + wobble;
       const px = pose.x + dirX * distance;
       const pz = pose.z + dirZ * distance;
-      const intensity = clamp(1 - distance / config.range + (hitClass === 'ground' ? 0.06 : 0.18), 0.06, 1);
+      const intensityBoost = config.semanticColoring && hitClass !== 'ground' ? 0.25 : 0.12;
+      const intensity = clamp(1 - distance / config.range + (hitClass === 'ground' ? 0.06 : intensityBoost), 0.06, 1);
       points.push({ x: px, y: hitY, z: pz, hazard, distance, cls: hitClass, intensity });
+      raysCast += 1;
+      if (hitClass !== 'ground') raysHit += 1;
     }
   }
 
-  return points;
+  return { points, scanCoveragePct: (raysHit / Math.max(1, raysCast)) * 100 };
 }

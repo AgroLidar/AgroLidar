@@ -54,10 +54,20 @@ test('lidar sensor sampling is deterministic for fixed scan phase', () => {
 
   const run = () => sampleLidarPoints(
     obstacles,
-    { range: 40, horizontalFovDeg: 120, channels: 12, pointBudget: 1400, dropout: 0.01 },
+    {
+      range: 40,
+      horizontalFovDeg: 120,
+      channels: 12,
+      pointBudget: 1400,
+      dropout: 0.01,
+      verticalFovDeg: 24,
+      rotationRateHz: 15,
+      mode: 'sector-sweep',
+      semanticColoring: true,
+    },
     0.35,
     WEATHER_PRESETS.clear,
-    { x: 0, y: 2, z: 0, heading: 0 },
+    { x: 0, y: 2, z: 0, heading: 0, pitch: 0, roll: 0 },
     1337,
     spatial,
   );

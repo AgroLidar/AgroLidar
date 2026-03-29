@@ -7,7 +7,7 @@ import { CameraRig } from '@/components/simulator/CameraRig';
 import { LidarLayer } from '@/components/simulator/LidarLayer';
 import { Vehicle } from '@/components/simulator/Vehicle';
 import { World } from '@/components/simulator/World';
-import type { CameraMode, DroneMissionMode, PointColorMode, VehicleType, ViewMode } from '@/lib/sim/config';
+import type { CameraMode, DroneMissionMode, LidarMode, PointColorMode, VehicleType, ViewMode } from '@/lib/sim/config';
 import { cameraModesForVehicle } from '@/lib/sim/config';
 import { computeHazards } from '@/lib/sim/lidar/hazards';
 import { ObstacleSpatialIndex } from '@/lib/sim/lidar/spatial-index';
@@ -25,6 +25,7 @@ import { sampleTerrainHeight, sampleTerrainSurface } from '@/lib/sim/world/terra
 const lidarModes: PointColorMode[] = ['hazard', 'depth', 'class', 'coverage'];
 const viewModes: ViewMode[] = ['hybrid', 'pointcloud', 'world', 'bev', 'depth', 'hazard'];
 const missionModes: DroneMissionMode[] = ['spray', 'spread', 'lift', 'survey'];
+const lidarSensorModes: LidarMode[] = ['sector-sweep', 'spin-360', 'forward-static', 'survey-grid', 'bev-hazard'];
 
 const qualityProfiles = {
   low: { channels: 12, budget: 7600, shadows: false },
@@ -33,10 +34,19 @@ const qualityProfiles = {
   ultra: { channels: 40, budget: 30000, shadows: true },
 } as const;
 
+const lidarRigTuning = {
+  'hazard-short-range': { rangeMul: 0.72, densityMul: 1.16, verticalFov: 22, rotationRate: 18 },
+  'survey-rig': { rangeMul: 1.2, densityMul: 1.05, verticalFov: 30, rotationRate: 12 },
+  'dense-edge-rig': { rangeMul: 1, densityMul: 1.28, verticalFov: 26, rotationRate: 16 },
+  'wide-fov-rig': { rangeMul: 0.94, densityMul: 1.1, verticalFov: 34, rotationRate: 15 },
+  'performance-safe': { rangeMul: 0.84, densityMul: 0.75, verticalFov: 20, rotationRate: 10 },
+} as const;
+
 function resolveVehicleCollisions(state: VehicleState, obstacles: { x: number; z: number; radius: number }[], dt: number): VehicleState {
   let nx = state.x;
   let nz = state.z;
   let speed = state.speed;
+  let stability = state.stability;
   for (const obstacle of obstacles) {
     const dx = nx - obstacle.x;
     const dz = nz - obstacle.z;
@@ -44,12 +54,13 @@ function resolveVehicleCollisions(state: VehicleState, obstacles: { x: number; z
     const minDistance = obstacle.radius + 1.9;
     if (distance <= 0 || distance >= minDistance) continue;
     const penetration = minDistance - distance;
-    const push = Math.min(0.36, penetration * 0.6);
+    const push = Math.min(0.45, penetration * 0.66);
     nx += (dx / distance) * push;
     nz += (dz / distance) * push;
-    speed *= Math.max(0.25, 1 - penetration * (0.95 + dt));
+    speed *= Math.max(0.22, 1 - penetration * (1 + dt));
+    stability = clamp(stability - penetration * 0.1, 0.2, 1);
   }
-  return { ...state, x: nx, z: nz, speed };
+  return { ...state, x: nx, z: nz, speed, stability };
 }
 
 export function SimulatorCanvas() {
@@ -97,6 +108,7 @@ function SimulationScene() {
       if (k === 'e') inputRef.current.yaw = down ? 1 : inputRef.current.yaw === 1 ? 0 : inputRef.current.yaw;
       if (down && k === 'c') cycleCamera();
       if (down && k === 'l') cycleLidar();
+      if (down && k === 'x') cycleLidarMode();
       if (down && k === 'm') setSettings({ minimapVisible: !getStore().settings.minimapVisible, viewMode: getStore().settings.viewMode === 'bev' ? 'hybrid' : 'bev' });
       if (down && k === 'h') setSettings({ hudVisible: !getStore().settings.hudVisible });
       if (down && k === 'p') setSettings({ paused: !getStore().settings.paused });
@@ -121,6 +133,12 @@ function SimulationScene() {
       const next = lidarModes[(idx + 1) % lidarModes.length];
       const nextView = viewModes[(viewModes.indexOf(getStore().settings.viewMode) + 1) % viewModes.length];
       setSettings({ pointColorMode: next, viewMode: nextView });
+    };
+
+    const cycleLidarMode = () => {
+      const current = getStore().settings.lidarMode;
+      const idx = lidarSensorModes.indexOf(current);
+      setSettings({ lidarMode: lidarSensorModes[(idx + 1) % lidarSensorModes.length] });
     };
 
     const switchVehicle = (nextVehicle: VehicleType) => {
@@ -186,8 +204,8 @@ function SimulationScene() {
     const terrainRoll = Math.cos(vehicleStateRef.current.z * 0.028) * scenario.terrainRoughness * (0.28 + scenario.slopeBias * 0.6);
 
     if (settings.autopilot) {
-      inputRef.current.throttle = settings.vehicle === 'drone' ? 0.58 : 0.76;
-      inputRef.current.steer = Math.sin(performance.now() * 0.00025) * 0.28;
+      inputRef.current.throttle = settings.vehicle === 'drone' ? 0.58 : 0.74;
+      inputRef.current.steer = Math.sin(performance.now() * 0.00025) * 0.3;
       inputRef.current.brake = 0;
       inputRef.current.yaw = Math.sin(performance.now() * 0.00016) * 0.55;
     }
@@ -196,10 +214,14 @@ function SimulationScene() {
     const obstacles = activeChunks.flatMap((chunk) => chunk.obstacles);
 
     const terrainY = sampleTerrainHeight(vehicleStateRef.current.x, vehicleStateRef.current.z, settings.seed, scenario.terrainRoughness);
+    const surface = sampleTerrainSurface(vehicleStateRef.current.x, vehicleStateRef.current.z, settings.seed);
+
     if (settings.vehicle === 'tractor') {
-      const surface = sampleTerrainSurface(vehicleStateRef.current.x, vehicleStateRef.current.z, settings.seed);
-      const surfaceTraction = surface === 'mud' ? 0.52 : surface === 'wet' ? 0.68 : surface === 'grass' ? 0.84 : 0.78;
-      const stepped = stepVehicle(vehicleStateRef.current, inputRef.current, dt, weather.gripPenalty + scenario.mud * 0.08, terrainPitch, terrainRoll, surfaceTraction);
+      const surfaceTraction =
+        surface === 'mud' ? 0.46 :
+        surface === 'wet' ? 0.62 :
+        surface === 'grass' ? 0.8 : 0.86;
+      const stepped = stepVehicle(vehicleStateRef.current, inputRef.current, dt, weather.gripPenalty + scenario.mud * 0.09, terrainPitch, terrainRoll, surfaceTraction);
       vehicleStateRef.current = resolveVehicleCollisions(stepped, obstacles, dt);
       vehicleStateRef.current.y = terrainY;
     } else {
@@ -207,19 +229,33 @@ function SimulationScene() {
       vehicleStateRef.current = stepDrone(vehicleStateRef.current, inputRef.current, dt, terrainY, settings.droneMission, settings.terrainFollow, wind);
       missionProgress.current = (missionProgress.current + dt * (settings.droneMission === 'lift' ? 1.8 : 3.2)) % 100;
     }
-    const hazardRange = settings.vehicle === 'drone' ? settings.lidarRange * 1.3 : settings.lidarRange;
+
+    const rig = lidarRigTuning[settings.lidarRigPreset];
+    const baseRange = settings.vehicle === 'drone' ? settings.lidarRange * 1.3 : settings.lidarRange;
+    const hazardRange = baseRange * rig.rangeMul;
     const hazards = computeHazards(obstacles, vehicleStateRef.current.x, vehicleStateRef.current.z, hazardRange, vehicleStateRef.current.heading);
     scanPhase.current += dt;
 
     const quality = qualityProfiles[settings.quality];
-    const nextPoints = sampleLidarPoints(
+    const fovByMode =
+      settings.lidarMode === 'spin-360' ? 360 :
+      settings.lidarMode === 'forward-static' ? 105 :
+      settings.lidarMode === 'survey-grid' ? 240 :
+      settings.lidarMode === 'bev-hazard' ? 180 :
+      settings.vehicle === 'drone' ? 170 : 130;
+
+    const sampleResult = sampleLidarPoints(
       obstacles,
       {
         range: hazardRange,
-        horizontalFovDeg: settings.vehicle === 'drone' ? (settings.viewMode === 'bev' ? 220 : 170) : (settings.viewMode === 'bev' ? 170 : 130),
+        horizontalFovDeg: fovByMode,
         channels: quality.channels,
-        pointBudget: Math.floor(quality.budget * settings.lidarDensity),
+        pointBudget: Math.floor(quality.budget * settings.lidarDensity * rig.densityMul),
         dropout: clamp(0.01 + (1 - settings.lidarDensity) * 0.12 + (settings.vehicle === 'drone' ? 0.02 : 0), 0.01, 0.18),
+        verticalFovDeg: rig.verticalFov,
+        rotationRateHz: rig.rotationRate,
+        mode: settings.lidarMode,
+        semanticColoring: settings.semanticColoring,
       },
       scanPhase.current,
       weather,
@@ -236,7 +272,7 @@ function SimulationScene() {
     );
 
     if (Math.floor(scanPhase.current * (settings.vehicle === 'drone' ? 16 : 22)) % 2 === 0) {
-      setPoints(nextPoints);
+      setPoints(sampleResult.points);
       setChunks(activeChunks);
     }
 
@@ -247,10 +283,11 @@ function SimulationScene() {
       speed: vehicleStateRef.current.speed,
       altitude: Math.max(0, vehicleStateRef.current.y - terrainY),
       headingDeg: ((vehicleStateRef.current.heading * 180) / Math.PI + 360) % 360,
+      steeringDeg: (vehicleStateRef.current.steerAngle * 180) / Math.PI,
       nearestHazard: nearest,
       risk: hazards[0]?.risk ?? 'SAFE',
-      pointCount: nextPoints.length,
-      latencyMs: (settings.vehicle === 'drone' ? 13 : 11) + nextPoints.length * 0.0014,
+      pointCount: sampleResult.points.length,
+      latencyMs: (settings.vehicle === 'drone' ? 14 : 10) + sampleResult.points.length * 0.0016 + (100 - vehicleStateRef.current.stability * 100) * 0.04,
       classes,
       seed: settings.seed,
       scenarioLabel: scenario.label,
@@ -261,6 +298,16 @@ function SimulationScene() {
       payloadPct: vehicleStateRef.current.payload * 100,
       coveragePct: coverageRate,
       routeProgressPct: coverageRate,
+      surfaceType: surface,
+      slipRatio: vehicleStateRef.current.slipRatio,
+      tractionPct: vehicleStateRef.current.traction * 100,
+      rollDeg: (vehicleStateRef.current.roll * 180) / Math.PI,
+      pitchDeg: (vehicleStateRef.current.pitch * 180) / Math.PI,
+      suspensionActivityPct: vehicleStateRef.current.suspensionActivity * 100,
+      stabilityPct: vehicleStateRef.current.stability * 100,
+      lidarMode: settings.lidarMode,
+      lidarRigPreset: settings.lidarRigPreset,
+      scanCoveragePct: sampleResult.scanCoveragePct,
     });
   });
 
