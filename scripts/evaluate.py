@@ -1,26 +1,19 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
 import argparse
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
-from torch.utils.data import DataLoader
 import torch
+from torch.utils.data import DataLoader
 
+from lidar_perception.config import EvalConfig
 from lidar_perception.data.datasets import build_dataset, collate_fn
 from lidar_perception.models.factory import build_model
 from lidar_perception.tracking import MLflowTracker, flatten_dict
 from lidar_perception.training.engine import Trainer, maybe_load_weights
-from lidar_perception.utils.config import load_config
 from lidar_perception.utils.logging import setup_logger
-
 
 SAFETY_CLASSES = ["human", "animal", "rock", "post", "vehicle"]
 
@@ -33,14 +26,14 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _resolve_checkpoint(config: dict, checkpoint_arg: str | None) -> str:
+def _resolve_checkpoint(config: EvalConfig, checkpoint_arg: str | None) -> str:
     if checkpoint_arg:
         return checkpoint_arg
-    output_dir = Path(config.get("output_dir", "outputs"))
-    for candidate in [
-        output_dir / "checkpoints" / "best.pt",
-        output_dir / "checkpoints" / "latest.pt",
-    ]:
+    if config.checkpoint_path is not None and config.checkpoint_path.exists():
+        return str(config.checkpoint_path)
+
+    output_dir = Path(config.output_dir)
+    for candidate in [output_dir / "checkpoints" / "best.pt", output_dir / "checkpoints" / "latest.pt"]:
         if candidate.exists():
             return str(candidate)
 
@@ -57,7 +50,7 @@ def _resolve_checkpoint(config: dict, checkpoint_arg: str | None) -> str:
     )
 
 
-def render_markdown(metrics: dict) -> str:
+def render_markdown(metrics: dict[str, float | int | dict[str, dict[str, float]]]) -> str:
     lines = [
         "# AgroLidar Evaluation Report",
         "",
@@ -92,48 +85,50 @@ def render_markdown(metrics: dict) -> str:
         "|---|---:|---:|---:|---:|",
     ]
     for cls in SAFETY_CLASSES:
-        rec = metrics.get(f"recall_{cls}", 0.0)
-        fnr = metrics.get(f"fnr_{cls}", 1.0)
-        prec = metrics.get(f"precision_{cls}", 0.0)
-        dist = metrics.get(f"distance_error_{cls}", float("inf"))
+        rec = float(metrics.get(f"recall_{cls}", 0.0))
+        fnr = float(metrics.get(f"fnr_{cls}", 1.0))
+        prec = float(metrics.get(f"precision_{cls}", 0.0))
+        dist = float(metrics.get(f"distance_error_{cls}", float("inf")))
         lines.append(f"| {cls} | {rec:.6f} | {fnr:.6f} | {prec:.6f} | {dist:.6f} |")
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
+def main() -> int:
     args = parse_args()
-    config = load_config(args.config)
+    config = EvalConfig.from_yaml(args.config)
     tracker = MLflowTracker("configs/mlflow.yaml")
     run_name = f"eval_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
-    if "training" not in config:
-        config["training"] = {"learning_rate": 1e-3, "weight_decay": 0.0, "mixed_precision": False}
-    else:
-        config["training"].setdefault("learning_rate", 1e-3)
-        config["training"].setdefault("weight_decay", 0.0)
-        config["training"].setdefault("mixed_precision", False)
-    split = args.split or config.get("evaluation", {}).get("split", "test")
-    checkpoint = _resolve_checkpoint(config, args.checkpoint)
-    device = torch.device(
-        "cuda" if config.get("device") == "cuda" and torch.cuda.is_available() else "cpu"
-    )
-    logger = setup_logger(config["output_dir"])
 
-    dataset = build_dataset(config["data"], split=split)
+    training_cfg = dict(config.training)
+    training_cfg.setdefault("learning_rate", 1e-3)
+    training_cfg.setdefault("weight_decay", 0.0)
+    training_cfg.setdefault("mixed_precision", False)
+
+    split = args.split or str(config.evaluation.get("split", "test"))
+    checkpoint = _resolve_checkpoint(config, args.checkpoint)
+    device = torch.device("cuda" if config.device == "cuda" and torch.cuda.is_available() else "cpu")
+    logger = setup_logger(str(config.output_dir))
+
+    dataset = build_dataset(config.data, split=split)
     loader = DataLoader(
         dataset,
-        batch_size=config["data"]["batch_size"],
+        batch_size=config.batch_size,
         shuffle=False,
-        num_workers=config["data"]["num_workers"],
+        num_workers=int(config.data.get("num_workers", 0)),
         collate_fn=collate_fn,
     )
 
-    model = build_model(config["model"]).to(device)
-    trainer = Trainer(model=model, config=config, logger=logger, device=device)
+    runtime_config = config.model_dump(mode="python")
+    runtime_config["training"] = training_cfg
+    model = build_model(config.model).to(device)
+    trainer = Trainer(model=model, config=runtime_config, logger=logger, device=device)
     maybe_load_weights(model, trainer.optimizer, checkpoint, device)
-    metrics = trainer.evaluate(loader)
-    per_class = {}
-    for cls in config["data"].get("class_names", SAFETY_CLASSES):
-        per_class[cls] = {
+    metrics: dict[str, float | int | dict[str, dict[str, float]]] = trainer.evaluate(loader)
+
+    per_class: dict[str, dict[str, float]] = {}
+    class_names = config.data.get("class_names", SAFETY_CLASSES)
+    for cls in class_names:
+        per_class[str(cls)] = {
             "recall": float(metrics.get(f"recall_{cls}", 0.0)),
             "precision": float(metrics.get(f"precision_{cls}", 0.0)),
             "fnr": float(metrics.get(f"fnr_{cls}", 1.0)),
@@ -143,10 +138,8 @@ def main() -> None:
     metrics["latency"] = float(metrics.get("latency_ms", metrics.get("avg_batch_latency_ms", 0.0)))
     logger.info("evaluation metrics: %s", metrics)
 
-    json_path = Path(
-        config.get("evaluation", {}).get("save_json", "outputs/reports/eval_report.json")
-    )
-    md_path = Path(config.get("evaluation", {}).get("save_md", "outputs/reports/eval_report.md"))
+    json_path = Path(str(config.evaluation.get("save_json", "outputs/reports/eval_report.json")))
+    md_path = Path(str(config.evaluation.get("save_md", "outputs/reports/eval_report.md")))
     json_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     md_path.write_text(render_markdown(metrics), encoding="utf-8")
@@ -155,26 +148,23 @@ def main() -> None:
         latest_train_run = tracker.latest_run_id(run_type="training")
         if latest_train_run:
             tracker.set_tag("train_run_id", latest_train_run)
-        tracker.log_params(flatten_dict(config))
-        eval_metrics = {}
-        for key, value in metrics.items():
-            if isinstance(value, (int, float)):
-                eval_metrics[f"eval/{key}"] = float(value)
+        tracker.log_params(flatten_dict(runtime_config))
+        eval_metrics = {f"eval/{k}": float(v) for k, v in metrics.items() if isinstance(v, (int, float))}
         tracker.log_metrics(eval_metrics)
         if "dangerous_fnr" in metrics:
             tracker.log_metric("eval/dangerous_fnr", float(metrics["dangerous_fnr"]))
         tracker.log_eval_report(json_path)
         tracker.log_eval_report(md_path)
-        model_tag = str(
-            config.get("model_tag", config.get("evaluation", {}).get("model_tag", "candidate"))
-        )
+        model_tag = str(config.evaluation.get("model_tag", "candidate"))
         tracker.set_tag("model_tag", model_tag)
         tracker.end_run("FINISHED")
 
-    print(
-        f"evaluation_saved_json={json_path} evaluation_saved_md={md_path} checkpoint={checkpoint}"
+    logger.info(
+        "evaluation reports written",
+        extra={"json": str(json_path), "markdown": str(md_path), "checkpoint": checkpoint},
     )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

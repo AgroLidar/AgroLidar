@@ -19,7 +19,6 @@ from lidar_perception.logging_config import configure_logging
 from lidar_perception.models.factory import build_model
 from lidar_perception.tracking import MLflowTracker, flatten_dict
 from lidar_perception.training.engine import Trainer
-from lidar_perception.utils.config import load_config
 
 logger = logging.getLogger(__name__)
 
@@ -76,16 +75,16 @@ class TrainingPipeline:
         """
         configure_logging()
         raw_cfg_path = self.config.config_path or Path("configs/train.yaml")
-        raw_config = load_config(str(raw_cfg_path))
+        runtime_config = self.config.model_dump(mode="python")
         tracker = MLflowTracker("configs/mlflow.yaml")
         run_name = f"train_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
         self._seed_everything(self.config.seed)
-        Path(raw_config["output_dir"]).mkdir(parents=True, exist_ok=True)
-        device = self._resolve_device(raw_config.get("device", self.config.device))
+        Path(self.config.output_dir).mkdir(parents=True, exist_ok=True)
+        device = self._resolve_device(self.config.device)
         logger.info("using device=%s", device)
 
-        synthetic_cfg = raw_config.get("synthetic_data", {})
+        synthetic_cfg = self.config.synthetic_data
         if synthetic_cfg.get("enabled", False):
             logger.info(
                 "Synthetic data mixing enabled",
@@ -95,30 +94,30 @@ class TrainingPipeline:
                 },
             )
 
-        train_dataset = build_dataset(raw_config["data"], split="train")
-        val_dataset = build_dataset(raw_config["data"], split="val")
+        train_dataset = build_dataset(self.config.data, split="train")
+        val_dataset = build_dataset(self.config.data, split="val")
         train_loader = DataLoader(
             train_dataset,
-            batch_size=raw_config["data"]["batch_size"],
+            batch_size=self.config.batch_size,
             shuffle=True,
-            num_workers=raw_config["data"]["num_workers"],
+            num_workers=self.config.num_workers,
             collate_fn=collate_fn,
         )
         val_loader = DataLoader(
             val_dataset,
-            batch_size=raw_config["data"]["batch_size"],
+            batch_size=self.config.batch_size,
             shuffle=False,
-            num_workers=raw_config["data"]["num_workers"],
+            num_workers=self.config.num_workers,
             collate_fn=collate_fn,
         )
 
-        model = build_model(raw_config["model"]).to(device)
-        trainer = Trainer(model=model, config=raw_config, logger=logger, device=device)
+        model = build_model(self.config.model).to(device)
+        trainer = Trainer(model=model, config=runtime_config, logger=logger, device=device)
         best_epoch: dict[str, int | None] = {"value": None}
         best_val_loss = float("inf")
 
         with tracker.start_run(run_name=run_name, tags={"run_type": "training"}):
-            tracker.log_params(flatten_dict(raw_config))
+            tracker.log_params(flatten_dict(runtime_config))
             tracker.log_config(str(raw_cfg_path))
             tracker.log_model_summary(model)
 
@@ -140,7 +139,7 @@ class TrainingPipeline:
 
             try:
                 trainer.fit(train_loader, val_loader, epoch_end_callback=_on_epoch_end)
-                best_checkpoint = Path(raw_config["output_dir"]) / "checkpoints" / "best.pt"
+                best_checkpoint = Path(self.config.output_dir) / "checkpoints" / "best.pt"
                 tracker.log_checkpoint(best_checkpoint, name="checkpoint")
                 if best_epoch["value"] is not None:
                     tracker.set_tag("best_epoch", best_epoch["value"])

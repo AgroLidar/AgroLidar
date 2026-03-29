@@ -1,3 +1,4 @@
+# NOTE: Runtime/developer pins for CI; dependency ranges live in pyproject.toml
 # Runtime dependencies
 numpy==1.26.4
 PyYAML==6.0.2

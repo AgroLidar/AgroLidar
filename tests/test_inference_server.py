@@ -39,6 +39,18 @@ class FakePredictor:
     def is_healthy(self) -> bool:
         return self.model_loaded
 
+    @property
+    def last_latency_ms(self) -> float:
+        return self._latencies_ms[-1] if self._latencies_ms else 0.0
+
+    @property
+    def supported_classes(self) -> list[str]:
+        return ["human", "animal", "rock", "post", "vehicle"]
+
+    @property
+    def input_shape(self) -> tuple[int, int, int]:
+        return self.EXPECTED_SHAPE
+
     def predict(self, frame_array: np.ndarray) -> list[Detection]:
         if frame_array.shape != self.EXPECTED_SHAPE:
             raise ValueError("Invalid shape")
@@ -178,3 +190,10 @@ def test_ready_probe_returns_200(client: TestClient):
 def test_live_probe_returns_200(client: TestClient):
     response = client.get("/live")
     assert response.status_code == 200
+
+
+def test_single_and_batch_prediction_are_consistent(client: TestClient):
+    single = client.post("/predict", json=_payload(frame_id="frame-single")).json()
+    batched = client.post("/predict/batch", json=[_payload(frame_id="frame-batch")]).json()[0]
+    assert single["detections"][0]["class_name"] == batched["detections"][0]["class_name"]
+    assert single["collision_risk"] == batched["collision_risk"]
