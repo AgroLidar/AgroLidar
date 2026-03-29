@@ -11,9 +11,29 @@ export interface HazardInfo {
   risk: RiskLevel;
 }
 
-export function classifyRisk(distance: number, inForwardZone: boolean): RiskLevel {
-  const critical = inForwardZone ? 10 : 7;
-  const caution = inForwardZone ? 22 : 16;
+function classRiskWeight(obstacle: WorldObstacle): number {
+  switch (obstacle.cls) {
+    case 'human':
+    case 'animal':
+      return 1.35;
+    case 'vehicle':
+    case 'tractor':
+    case 'machinery':
+      return 1.2;
+    case 'tree':
+    case 'rock':
+    case 'post':
+    case 'pole':
+      return 1.05;
+    default:
+      return 0.92;
+  }
+}
+
+export function classifyRisk(distance: number, inForwardZone: boolean, obstacle: WorldObstacle): RiskLevel {
+  const weight = classRiskWeight(obstacle);
+  const critical = (inForwardZone ? 11 : 7.5) * weight;
+  const caution = (inForwardZone ? 25 : 17) * weight;
   if (distance < critical) return 'CRITICAL';
   if (distance < caution) return 'CAUTION';
   return 'SAFE';
@@ -29,8 +49,8 @@ export function computeHazards(obstacles: WorldObstacle[], px: number, pz: numbe
       const distance = Math.hypot(ox, oz);
       const forwardDistance = ox * fx + oz * fz;
       const lateralOffset = Math.abs(ox * fz - oz * fx);
-      const inForwardZone = forwardDistance > -1 && forwardDistance < range * 0.75 && lateralOffset < Math.max(2.5, obstacle.radius + 2);
-      return { obstacle, distance, forwardDistance, lateralOffset, inForwardZone, risk: classifyRisk(distance, inForwardZone) };
+      const inForwardZone = forwardDistance > -2 && forwardDistance < range * 0.85 && lateralOffset < Math.max(3.1, obstacle.radius + 2.4);
+      return { obstacle, distance, forwardDistance, lateralOffset, inForwardZone, risk: classifyRisk(distance, inForwardZone, obstacle) };
     })
     .filter((item) => item.distance <= range)
     .sort((a, b) => {
