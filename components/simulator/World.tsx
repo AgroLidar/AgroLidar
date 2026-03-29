@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { BackSide, Color, InstancedMesh, Object3D } from 'three';
 
 import type { ChunkData } from '@/lib/sim/world/generator';
 import type { WorldObstacle } from '@/lib/sim/world/props';
-import { sampleTerrainHeight, sampleTerrainSurface } from '@/lib/sim/world/terrain';
+import { sampleTerrainHeight } from '@/lib/sim/world/terrain';
 
 interface WorldProps {
   chunks: ChunkData[];
@@ -15,6 +16,17 @@ interface WorldProps {
   viewMode: 'world' | 'pointcloud' | 'hybrid' | 'bev' | 'depth' | 'hazard';
 }
 
+interface CropInstance {
+  x: number;
+  y: number;
+  z: number;
+  sx: number;
+  sy: number;
+  sz: number;
+  rotY: number;
+  color: string;
+}
+
 export function World({ chunks, weatherSky, seed, terrainRoughness, wetness, viewMode }: WorldProps) {
   const obstacles = useMemo(() => chunks.flatMap((chunk) => chunk.obstacles), [chunks]);
   const dimmed = viewMode === 'pointcloud' || viewMode === 'bev' || viewMode === 'hazard';
@@ -22,11 +34,13 @@ export function World({ chunks, weatherSky, seed, terrainRoughness, wetness, vie
   return (
     <>
       <color attach="background" args={[weatherSky]} />
-      <fog attach="fog" args={[weatherSky, 34, 250]} />
-      <hemisphereLight intensity={dimmed ? 0.28 : 0.54} groundColor="#283528" color="#cfdef6" />
-      <directionalLight castShadow intensity={dimmed ? 0.44 : 1.08} position={[52, 58, 24]} shadow-mapSize={[1536, 1536]} shadow-bias={-0.0002} />
+      <fog attach="fog" args={[dimmed ? '#405066' : '#d3a670', 58, 460]} />
+      <hemisphereLight intensity={dimmed ? 0.24 : 0.42} groundColor="#35291c" color="#ffe9d1" />
+      <directionalLight castShadow intensity={dimmed ? 0.44 : 1.38} color="#ffcb85" position={[-96, 48, -36]} shadow-mapSize={[2048, 2048]} shadow-bias={-0.00012} />
+      <directionalLight intensity={0.24} color="#9ab8d8" position={[70, 26, 130]} />
 
       <Ground seed={seed} terrainRoughness={terrainRoughness} wetness={wetness} dimmed={dimmed} />
+      <AtmosphereBackdrop dimmed={dimmed} />
       {obstacles.map((obstacle) => (
         <ObstacleMesh key={obstacle.id} obstacle={obstacle} muted={dimmed} />
       ))}
@@ -35,22 +49,39 @@ export function World({ chunks, weatherSky, seed, terrainRoughness, wetness, vie
 }
 
 function Ground({ seed, terrainRoughness, wetness, dimmed }: { seed: number; terrainRoughness: number; wetness: number; dimmed: boolean }) {
-  const tileSize = 18;
-  const tiles = useMemo(() => {
-    const list: Array<{ x: number; z: number; y: number; color: string; cropTint: string; rough: number }> = [];
-    for (let x = -21; x <= 21; x += 1) {
-      for (let z = -21; z <= 21; z += 1) {
-        const wx = x * tileSize;
-        const wz = z * tileSize;
-        const y = sampleTerrainHeight(wx, wz, seed, terrainRoughness);
-        const surface = sampleTerrainSurface(wx, wz, seed);
-        const color =
-          surface === 'mud' ? '#604734' :
-          surface === 'wet' ? '#495945' :
-          surface === 'dirt' ? '#7a603c' : '#3f6d3f';
-        const cropTint = surface === 'grass' ? '#5e8f3f' : '#5f7e35';
-        const rough = 0.8 + ((x + z + seed) % 5) * 0.04;
-        list.push({ x: wx, z: wz, y, color, cropTint, rough });
+  const rowInstances = useMemo<CropInstance[]>(() => {
+    const list: CropInstance[] = [];
+    for (let lane = -54; lane <= 54; lane += 1) {
+      const laneOffset = lane * 1.95;
+      for (let segment = -90; segment <= 90; segment += 1) {
+        if ((segment + lane + seed) % 3 === 0) continue;
+        const z = segment * 3.9;
+        const x = laneOffset + Math.sin((segment + seed) * 0.08) * 0.28;
+        const y = sampleTerrainHeight(x, z, seed, terrainRoughness) - 0.16;
+        const cropTone = 86 + ((lane * 3 + segment * 5 + seed) % 24);
+        list.push({
+          x,
+          y,
+          z,
+          sx: 1.4,
+          sy: 0.1 + (((segment + seed) % 5) * 0.02),
+          sz: 3.0,
+          rotY: Math.sin(lane * 0.02) * 0.08,
+          color: `rgb(${Math.max(36, cropTone - 28)} ${cropTone} ${Math.max(26, cropTone - 46)})`,
+        });
+      }
+    }
+    return list;
+  }, [seed, terrainRoughness]);
+
+  const furrowInstances = useMemo<CropInstance[]>(() => {
+    const list: CropInstance[] = [];
+    for (let lane = -60; lane <= 60; lane += 1) {
+      const x = lane * 1.95;
+      for (let segment = -95; segment <= 95; segment += 1) {
+        const z = segment * 3.8;
+        const y = sampleTerrainHeight(x, z, seed, terrainRoughness) - 0.2;
+        list.push({ x, y, z, sx: 0.72, sy: 0.05, sz: 3.35, rotY: 0, color: '#6a4a2c' });
       }
     }
     return list;
@@ -58,21 +89,105 @@ function Ground({ seed, terrainRoughness, wetness, dimmed }: { seed: number; ter
 
   return (
     <group>
-      {tiles.map((tile, idx) => (
-        <group key={idx} position={[tile.x, tile.y, tile.z]}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.3, 0]}>
-            <planeGeometry args={[tileSize + 0.9, tileSize + 0.9]} />
-            <meshStandardMaterial color={dimmed ? '#1f2937' : tile.color} roughness={tile.rough - wetness * 0.16} metalness={wetness * 0.16} />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[0, -0.28, 0]}>
-            <ringGeometry args={[tileSize * 0.1, tileSize * 0.5, 6]} />
-            <meshStandardMaterial color={dimmed ? '#1e293b' : tile.cropTint} roughness={0.96} metalness={0.02} transparent opacity={0.34} />
-          </mesh>
-        </group>
-      ))}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.84, 0]} receiveShadow>
-        <planeGeometry args={[2200, 2200]} />
-        <meshStandardMaterial color={dimmed ? '#0a1320' : '#213c27'} roughness={1} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.88, 0]} receiveShadow>
+        <planeGeometry args={[2600, 2600]} />
+        <meshStandardMaterial color={dimmed ? '#131f2b' : '#5a3f29'} roughness={1} metalness={0} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.62, 0]} receiveShadow>
+        <planeGeometry args={[1220, 1220]} />
+        <meshStandardMaterial color={dimmed ? '#1b2a3b' : '#7a5a36'} roughness={0.95 - wetness * 0.1} metalness={wetness * 0.1} />
+      </mesh>
+      <InstancedRows rows={furrowInstances} dimmed={dimmed} metalness={wetness * 0.12} roughness={0.92} />
+      <InstancedRows rows={rowInstances} dimmed={dimmed} metalness={0.04} roughness={0.76} />
+      <CropClumps seed={seed} terrainRoughness={terrainRoughness} dimmed={dimmed} />
+    </group>
+  );
+}
+
+function InstancedRows({ rows, dimmed, roughness, metalness }: { rows: CropInstance[]; dimmed: boolean; roughness: number; metalness: number }) {
+  const meshRef = useRef<InstancedMesh>(null);
+  const temp = useMemo(() => new Object3D(), []);
+
+  useEffect(() => {
+    if (!meshRef.current) return;
+    rows.forEach((row, idx) => {
+      temp.position.set(row.x, row.y, row.z);
+      temp.rotation.set(0, row.rotY, 0);
+      temp.scale.set(row.sx, row.sy, row.sz);
+      temp.updateMatrix();
+      meshRef.current?.setMatrixAt(idx, temp.matrix);
+      meshRef.current?.setColorAt(idx, new Color(dimmed ? '#1f2d3f' : row.color));
+    });
+    meshRef.current.instanceMatrix.needsUpdate = true;
+    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+  }, [dimmed, rows, temp]);
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, rows.length]} receiveShadow castShadow={false}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial vertexColors roughness={roughness} metalness={metalness} />
+    </instancedMesh>
+  );
+}
+
+function CropClumps({ seed, terrainRoughness, dimmed }: { seed: number; terrainRoughness: number; dimmed: boolean }) {
+  const clumps = useMemo<CropInstance[]>(() => {
+    const list: CropInstance[] = [];
+    for (let lane = -42; lane <= 42; lane += 3) {
+      for (let segment = -56; segment <= 56; segment += 2) {
+        const x = lane * 2.5 + Math.sin((seed + segment) * 0.17) * 0.45;
+        const z = segment * 6.2;
+        const y = sampleTerrainHeight(x, z, seed, terrainRoughness) - 0.05;
+        list.push({
+          x,
+          y,
+          z,
+          sx: 0.5,
+          sy: 0.65 + Math.abs(Math.sin((segment + seed) * 0.2)) * 0.45,
+          sz: 0.5,
+          rotY: (segment % 7) * 0.25,
+          color: '#6a9a41',
+        });
+      }
+    }
+    return list;
+  }, [seed, terrainRoughness]);
+
+  const meshRef = useRef<InstancedMesh>(null);
+  const temp = useMemo(() => new Object3D(), []);
+
+  useEffect(() => {
+    if (!meshRef.current) return;
+    clumps.forEach((clump, idx) => {
+      temp.position.set(clump.x, clump.y, clump.z);
+      temp.rotation.set(0, clump.rotY, 0);
+      temp.scale.set(clump.sx, clump.sy, clump.sz);
+      temp.updateMatrix();
+      meshRef.current?.setMatrixAt(idx, temp.matrix);
+      meshRef.current?.setColorAt(idx, new Color(dimmed ? '#223041' : '#6a9a41'));
+    });
+    meshRef.current.instanceMatrix.needsUpdate = true;
+    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+  }, [clumps, dimmed, temp]);
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, clumps.length]} castShadow={false} receiveShadow>
+      <coneGeometry args={[0.45, 1, 5]} />
+      <meshStandardMaterial vertexColors roughness={0.88} metalness={0.02} />
+    </instancedMesh>
+  );
+}
+
+function AtmosphereBackdrop({ dimmed }: { dimmed: boolean }) {
+  return (
+    <group>
+      <mesh position={[0, 30, -380]} rotation={[0, 0, 0]}>
+        <planeGeometry args={[1200, 280]} />
+        <meshBasicMaterial color={dimmed ? '#394960' : '#f0bf86'} transparent opacity={0.22} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 18, -460]}>
+        <cylinderGeometry args={[420, 520, 78, 48, 1, true]} />
+        <meshStandardMaterial color={dimmed ? '#25364a' : '#6a7b5c'} roughness={1} metalness={0} side={BackSide} />
       </mesh>
     </group>
   );
