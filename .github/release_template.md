@@ -3,16 +3,16 @@
 Release date: YYYY-MM-DD
 
 ### Highlights
-- 
+-
 
 ### Safety and governance changes
-- 
+-
 
 ### Developer and CI improvements
-- 
+-
 
 ### Documentation updates
-- 
+-
 
 ### Upgrade notes
 - Breaking changes: `none` / describe

@@ -39,8 +39,6 @@ class HealthConfig:
     min_healthy_inferences: int = 10
 
 
-
-
 @dataclass
 class VectorDBConfig:
     enabled: bool = False

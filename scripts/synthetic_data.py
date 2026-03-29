@@ -38,7 +38,9 @@ def main() -> int:
                 {"class_name": "vehicle", "x": -4.1, "y": 12.0, "z": 0.0},
             ],
         }
-        (labels_dir / f"scene_{idx:05d}.json").write_text(json.dumps(label, indent=2) + "\n", encoding="utf-8")
+        (labels_dir / f"scene_{idx:05d}.json").write_text(
+            json.dumps(label, indent=2) + "\n", encoding="utf-8"
+        )
 
     return 0
 
