@@ -27,7 +27,7 @@
     "three": "^0.183.2"
   },
   "devDependencies": {
-    "@types/node": "^22.10.1",
+    "@types/node": "^25.5.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "autoprefixer": "^10.4.20",
