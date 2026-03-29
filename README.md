@@ -69,6 +69,41 @@ make evaluate
 make safety-check
 ```
 
+
+## Web Simulator
+
+AgroLidar now includes a browser-native, procedural simulator at `/simulator` focused on replayable agricultural driving with live LiDAR-style perception overlays.
+
+### Controls
+
+- `W` / `ArrowUp`: accelerate
+- `S` / `ArrowDown`: brake / reverse
+- `A` / `ArrowLeft`: steer left
+- `D` / `ArrowRight`: steer right
+- `Space`: emergency stop
+- `R`: reset vehicle
+- `C`: cycle camera (chase, hood, top-down, lidar)
+- `P`: pause/resume
+
+### Run locally
+
+```bash
+npm ci
+npm run dev
+# open http://localhost:3000/simulator
+```
+
+### Production build
+
+```bash
+npm run build
+npm run start
+```
+
+### Vercel deployment model
+
+The simulator core loop runs entirely on the client (React + Three.js in the browser), so it deploys to Vercel without any custom realtime backend service requirements.
+
 ## Architecture at a glance
 
 - `lidar_perception/`: model, data, training, evaluation, and registry-facing core logic.

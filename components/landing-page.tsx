@@ -105,7 +105,7 @@ export function LandingPage() {
             ))}
           </nav>
           <a
-            href="#final-cta"
+            href="/simulator"
             className="rounded-full border border-brand-300/30 bg-brand-400/10 px-5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-brand-100 transition hover:bg-brand-400/20"
           >
             Contact
@@ -128,16 +128,16 @@ export function LandingPage() {
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <a
-              href="#solution"
+              href="/simulator"
               className="inline-flex items-center gap-2 rounded-full bg-brand-400 px-6 py-3 text-sm font-semibold text-black transition hover:bg-brand-300"
             >
-              Explore Technology <ArrowRight className="h-4 w-4" />
+              Enter Simulator <ArrowRight className="h-4 w-4" />
             </a>
             <a
-              href="#final-cta"
+              href="/simulator"
               className="rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
             >
-              View Project
+              Launch Drive
             </a>
           </div>
         </motion.div>
@@ -290,13 +290,13 @@ export function LandingPage() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a className="rounded-full bg-brand-300 px-5 py-3 text-sm font-semibold text-black" href="#top">
-              View Project
+              Launch Drive
             </a>
             <a className="rounded-full border border-white/20 px-5 py-3 text-sm font-semibold" href="mailto:geromendez199@gmail.com">
               Contact
             </a>
-            <a className="rounded-full border border-brand-200/35 bg-brand-300/10 px-5 py-3 text-sm font-semibold text-brand-100" href="#solution">
-              Explore Technology
+            <a className="rounded-full border border-brand-200/35 bg-brand-300/10 px-5 py-3 text-sm font-semibold text-brand-100" href="/simulator">
+              Enter Simulator
             </a>
           </div>
         </motion.div>

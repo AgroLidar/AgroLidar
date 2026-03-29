@@ -35,10 +35,10 @@ export default function Page() {
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
-              href="#sandbox"
+              href="/simulator"
               className="rounded-md bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-black transition duration-300 hover:-translate-y-0.5 hover:bg-emerald-300"
             >
-              Try the Sandbox
+              Launch Simulator
             </a>
             <a
               href="/docs"
@@ -113,12 +113,12 @@ export default function Page() {
         </section>
 
         <section
-          id="sandbox"
+          id="simulator"
           className="scroll-mt-24 rounded-2xl border border-white/10 bg-white/5 p-6"
         >
           <SectionTitle
-            title="Sandbox"
-            subtitle="Run the full local workflow and test the landing stack quickly."
+            title="Web Simulator"
+            subtitle="Enter the playable browser-native AgroLidar simulator."
           />
           <div className="mt-4">
             <CodeBlock>{`git clone https://github.com/AgroLidar/AgroLidar
