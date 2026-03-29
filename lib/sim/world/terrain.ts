@@ -24,7 +24,21 @@ export function noise2d(x: number, z: number, seed: number): number {
 }
 
 export function sampleTerrainHeight(x: number, z: number, seed: number, roughness: number): number {
-  const base = noise2d(x * 0.05, z * 0.05, seed) * 1.8;
-  const detail = noise2d(x * 0.21, z * 0.21, seed ^ 0x9e3779b9) * 0.45;
-  return (base + detail) * roughness * 4;
+  const macro = noise2d(x * 0.022, z * 0.022, seed) * 3.6;
+  const fieldWave = Math.sin((x + seed * 0.001) * 0.07) * 0.65 + Math.cos(z * 0.08) * 0.45;
+  const detail = noise2d(x * 0.18, z * 0.18, seed ^ 0x9e3779b9) * 0.9;
+  return (macro + fieldWave + detail) * roughness * 2.8;
+}
+
+export function sampleTerrainSurface(
+  x: number,
+  z: number,
+  seed: number,
+): 'dirt' | 'grass' | 'mud' | 'wet' {
+  const moisture = noise2d(x * 0.05, z * 0.05, seed ^ 0xabcddcba) * 0.5 + 0.5;
+  const pathMask = Math.abs(Math.sin((x + z) * 0.03 + seed * 0.0002));
+  if (moisture > 0.72) return 'mud';
+  if (moisture > 0.56) return 'wet';
+  if (pathMask > 0.78) return 'dirt';
+  return 'grass';
 }

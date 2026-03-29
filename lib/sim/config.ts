@@ -1,9 +1,18 @@
 import { hashStringToSeed } from '@/lib/sim/rng';
 
-export type ScenarioId = 'farm-road' | 'field-edge' | 'orchard' | 'rough-terrain' | 'hazard-dense';
-export type WeatherId = 'clear' | 'dusty' | 'rain' | 'sunset';
+export type ScenarioId =
+  | 'farm-road'
+  | 'crop-corridor'
+  | 'orchard-rows'
+  | 'rough-field-edge'
+  | 'hazard-dense'
+  | 'mud-rain'
+  | 'sunset-test';
+export type WeatherId = 'clear' | 'dusty' | 'wet-ground' | 'light-rain' | 'sunset' | 'dawn-haze';
 export type QualityPreset = 'low' | 'medium' | 'high';
-export type ViewMode = 'raw' | 'pointcloud' | 'hybrid' | 'bev';
+export type ViewMode = 'world' | 'pointcloud' | 'hybrid' | 'bev' | 'depth';
+export type PointColorMode = 'hazard' | 'depth' | 'class';
+export type CameraMode = 'chase' | 'hood' | 'cinematic' | 'top' | 'lidar';
 
 export interface SimulatorSettings {
   seedText: string;
@@ -17,18 +26,28 @@ export interface SimulatorSettings {
   paused: boolean;
   autopilot: boolean;
   viewMode: ViewMode;
+  pointColorMode: PointColorMode;
+  hudVisible: boolean;
+  minimapVisible: boolean;
+  controlsOpen: boolean;
+  cameraMode: CameraMode;
 }
 
 export const defaultSettings: SimulatorSettings = {
-  seedText: 'agrolidar-001',
-  seed: hashStringToSeed('agrolidar-001'),
+  seedText: 'agrolidar-flagship',
+  seed: hashStringToSeed('agrolidar-flagship'),
   scenario: 'farm-road',
   weather: 'clear',
   quality: 'high',
   hazardDensity: 0.5,
-  lidarRange: 55,
-  lidarDensity: 0.6,
+  lidarRange: 70,
+  lidarDensity: 0.68,
   paused: false,
   autopilot: false,
   viewMode: 'hybrid',
+  pointColorMode: 'hazard',
+  hudVisible: true,
+  minimapVisible: true,
+  controlsOpen: false,
+  cameraMode: 'chase',
 };

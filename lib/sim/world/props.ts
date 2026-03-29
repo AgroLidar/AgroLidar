@@ -1,4 +1,4 @@
-export type ObstacleClass = 'human' | 'animal' | 'rock' | 'post' | 'vehicle' | 'hay' | 'tree';
+export type ObstacleClass = 'human' | 'animal' | 'rock' | 'post' | 'vehicle' | 'hay-bale' | 'tree' | 'machinery';
 
 export interface WorldObstacle {
   id: string;

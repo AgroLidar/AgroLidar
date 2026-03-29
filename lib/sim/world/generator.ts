@@ -11,6 +11,7 @@ export interface ChunkData {
 }
 
 const hazardClasses: WorldObstacle['cls'][] = ['human', 'animal', 'rock', 'post', 'vehicle'];
+const propClasses: WorldObstacle['cls'][] = ['hay-bale', 'tree', 'rock', 'post', 'machinery'];
 
 export function generateChunk(
   seed: number,
@@ -22,23 +23,36 @@ export function generateChunk(
 ): ChunkData {
   const combined = (seed ^ (cx * 92837111) ^ (cz * 689287499)) >>> 0;
   const rng = createRng(combined || 1);
-  const count = Math.floor(sampleRange(rng, 6, 24) * (0.4 + scenario.obstacleWeight * 0.7 + hazardDensity));
+  const corridorBias = Math.sin((cx + cz) * 0.35 + seed * 0.00001) * 0.5 + 0.5;
+  const count = Math.floor(sampleRange(rng, 10, 38) * (0.45 + scenario.obstacleWeight * 0.65 + hazardDensity * 0.55));
   const obstacles: WorldObstacle[] = [];
 
   for (let i = 0; i < count; i += 1) {
+    const rowSnap = Math.floor(rng() * Math.max(2, scenario.cropRows));
+    const rowSpacing = 4 + 1.8 * (1 - scenario.terrainRoughness);
     const x = cx * chunkSize + rng() * chunkSize;
-    const z = cz * chunkSize + rng() * chunkSize;
-    const isHazard = rng() < scenario.hazardWeight * (0.35 + hazardDensity * 0.75);
-    const cls = isHazard
-      ? hazardClasses[Math.floor(rng() * hazardClasses.length)]
-      : (['hay', 'tree', 'rock', 'post'] as const)[Math.floor(rng() * 4)];
-    const radius = cls === 'vehicle' ? 2.2 : cls === 'human' ? 0.7 : cls === 'animal' ? 1.1 : 1.4;
+    const rowAlignedZ = cz * chunkSize + rowSnap * rowSpacing + (rng() - 0.5) * 0.9;
+    const freeZ = cz * chunkSize + rng() * chunkSize;
+    const pathWeight = Math.abs((x % (scenario.pathWidth * 1.8)) - scenario.pathWidth * 0.9) / (scenario.pathWidth * 0.9);
+    const z = pathWeight < 0.28 || corridorBias > 0.78 ? freeZ : rowAlignedZ;
+
+    const isHazard = rng() < scenario.hazardWeight * (0.28 + hazardDensity * 0.8);
+    const cls = isHazard ? hazardClasses[Math.floor(rng() * hazardClasses.length)] : propClasses[Math.floor(rng() * propClasses.length)];
+    const radius =
+      cls === 'vehicle' || cls === 'machinery' ? 2.4 :
+      cls === 'human' ? 0.55 :
+      cls === 'animal' ? 0.9 :
+      cls === 'post' ? 0.35 :
+      cls === 'hay-bale' ? 1.15 :
+      cls === 'tree' ? 1.65 :
+      1.0;
+
     obstacles.push({
       id: `${cx}:${cz}:${i}`,
       cls,
       x,
       z,
-      y: sampleTerrainHeight(x, z, seed, scenario.terrainRoughness) + 0.2,
+      y: sampleTerrainHeight(x, z, seed, scenario.terrainRoughness) + (cls === 'post' ? 0.6 : 0.2),
       radius,
       hazard: isHazard,
     });

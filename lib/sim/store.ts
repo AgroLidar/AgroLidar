@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import { defaultSettings, type SimulatorSettings } from '@/lib/sim/config';
+import type { ObstacleClass } from '@/lib/sim/world/props';
 import type { RiskLevel } from '@/lib/sim/lidar/hazards';
 
 export interface TelemetrySnapshot {
@@ -9,9 +10,11 @@ export interface TelemetrySnapshot {
   risk: RiskLevel;
   pointCount: number;
   latencyMs: number;
-  classes: string[];
+  classes: ObstacleClass[];
   seed: number;
   scenarioLabel: string;
+  cameraMode: string;
+  frameRate: number;
 }
 
 interface SimStore {
@@ -32,6 +35,8 @@ const state: SimStore = {
     classes: [],
     seed: defaultSettings.seed,
     scenarioLabel: 'Farm Road',
+    cameraMode: defaultSettings.cameraMode,
+    frameRate: 0,
   },
 };
 
