@@ -7,6 +7,7 @@ import { generateChunk } from '../../lib/sim/world/generator';
 import { computeHazards } from '../../lib/sim/lidar/hazards';
 import { sampleLidarPoints } from '../../lib/sim/lidar/sensor';
 import { ObstacleSpatialIndex } from '../../lib/sim/lidar/spatial-index';
+import { runLidarPipeline } from '../../lib/sim/lidar/pipeline';
 
 test('seed hash is deterministic', () => {
   const a = hashStringToSeed('seed-alpha');
@@ -63,4 +64,33 @@ test('lidar sensor sampling is deterministic for fixed scan phase', () => {
   );
 
   assert.deepEqual(run(), run());
+});
+
+
+test('lidar pipeline outputs deterministic map trace and histogram', () => {
+  const spatial = new ObstacleSpatialIndex(10);
+  const obstacles = [
+    { id: 'a1', cls: 'animal' as const, x: 12, y: 0, z: 3, radius: 0.8, hazard: true },
+    { id: 'p1', cls: 'post' as const, x: 16, y: 0, z: -2, radius: 0.4, hazard: true },
+  ];
+
+  const run = () => runLidarPipeline({
+    obstacles,
+    weather: WEATHER_PRESETS.clear,
+    basePose: { x: 0, y: 0, z: 0, heading: 0 },
+    scanPhase: 0.2,
+    seed: 7,
+    rangeOverride: 70,
+    densityOverride: 0.8,
+    viewMode: 'hybrid',
+    vehicle: 'tractor',
+    spatialIndex: spatial,
+    presetId: 'hazard-sweep',
+    mountId: 'tractor-mast',
+  });
+
+  const first = run();
+  const second = run();
+  assert.deepEqual(first.mapTrace, second.mapTrace);
+  assert.deepEqual(first.classHistogram, second.classHistogram);
 });

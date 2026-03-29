@@ -52,13 +52,13 @@ export function stepVehicle(
   if (state.kind === 'drone') return state;
 
   const traction = clamp((1 - gripPenalty) * surfaceTraction, 0.28, 1);
-  const maxForwardSpeed = clamp(18.6 * (0.78 + traction * 0.26), 11.8, 19.2);
-  const maxReverseSpeed = -6.4;
+  const maxForwardSpeed = clamp(16.8 * (0.8 + traction * 0.24), 10.2, 17.4);
+  const maxReverseSpeed = -4.8;
 
-  const torque = 14.2 * (0.62 + traction * 0.52);
+  const torque = 15.6 * (0.7 + traction * 0.48);
   const lowSpeedBoost = 1 + clamp((4.5 - Math.abs(state.speed)) / 4.5, 0, 0.75);
   const throttleAccel = input.throttle * torque * lowSpeedBoost;
-  const reverseAccel = input.brake * 8.5 * (state.speed < 0.8 ? 1 : 0.4);
+  const reverseAccel = input.brake * 9.2 * (state.speed < 0.8 ? 1 : 0.36);
   const gradePenalty = terrainPitch * 7.4;
   const drag = (1.2 + Math.abs(state.speed) * 0.55) * (state.speed >= 0 ? 1 : -0.6);
   const coastBrake = input.throttle < 0.02 && input.brake < 0.02 ? 2.6 * Math.sign(state.speed) : 0;
@@ -70,7 +70,7 @@ export function stepVehicle(
   const steeringAuthority = clamp(0.52 - Math.abs(speed) * 0.016, 0.16, 0.48);
   const targetSteer = input.steer * steeringAuthority;
   const steerAngle = damp(state.steerAngle, targetSteer, 6.2, dt);
-  const effectiveWheelBase = 3.2;
+  const effectiveWheelBase = 3.45;
   const turnRate = (Math.tan(steerAngle) * speed) / effectiveWheelBase;
   const yawGrip = clamp(traction * 1.2, 0.35, 1.15);
   const heading = wrapAngle(state.heading + turnRate * yawGrip * dt);
@@ -81,7 +81,7 @@ export function stepVehicle(
   const dx = fx * speed * (1 - lateralSlip) * dt;
   const dz = fz * speed * (1 - lateralSlip) * dt;
 
-  const suspensionTarget = clamp((Math.abs(terrainPitch) + Math.abs(terrainRoll)) * 0.48 + Math.abs(speed) * 0.0055, 0.01, 0.16);
+  const suspensionTarget = clamp((Math.abs(terrainPitch) + Math.abs(terrainRoll)) * 0.52 + Math.abs(speed) * 0.0048, 0.01, 0.18);
   const bodyRollTarget = terrainRoll + clamp(-steerAngle * speed * 0.018, -0.18, 0.18) * (1.7 - traction);
 
   return {

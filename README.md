@@ -70,6 +70,7 @@ AgroLidar is not only a backend ML repository. It includes a browser-native simu
 - Two mission platforms in one world state: **Tractor** and **Agro Drone**.
 - Drone mission profiles: **Spray**, **Spread**, **Lift**, **LiDAR Survey**.
 - Telemetry surfaces: HUD, mission overlays, minimap, LiDAR rendering modes.
+- Mission/parcel operations layer with sensor presets and JSON run export for evaluation workflows.
 - Presentation controls including a 4K-oriented quality mode.
 
 **Run it locally**
@@ -123,6 +124,8 @@ Data generation/collection
 ```
 
 Primary reference: [`docs/architecture.md`](docs/architecture.md).
+
+Simulator architecture deep-dive: [`docs/simulator-architecture.md`](docs/simulator-architecture.md).
 
 ---
 

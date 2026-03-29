@@ -23,6 +23,12 @@ export function SimulatorHUD() {
             <span>Points: {telemetry.pointCount.toLocaleString()}</span>
             <span>Latency: {telemetry.latencyMs.toFixed(1)} ms</span>
             <span>FPS: {telemetry.frameRate.toFixed(0)}</span>
+            <span>Filtered: {telemetry.filteredPointCount.toLocaleString()}</span>
+            <span>Terrain roughness: {telemetry.terrainRoughness.toFixed(2)}</span>
+            <span>Depression risk: {(telemetry.depressionRisk * 100).toFixed(0)}%</span>
+            <span>Puddle risk: {(telemetry.puddleRisk * 100).toFixed(0)}%</span>
+            <span>Mission: {telemetry.missionType}</span>
+            <span className="truncate">Parcel: {telemetry.fieldParcel}</span>
             {telemetry.vehicle === 'drone' && (
               <>
                 <span>Mission: {telemetry.droneMission}</span>

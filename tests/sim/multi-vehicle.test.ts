@@ -14,6 +14,8 @@ test('default simulator starts with tractor + survey-ready drone profile', () =>
   assert.equal(defaultSettings.vehicle, 'tractor');
   assert.equal(defaultSettings.droneMission, 'survey');
   assert.equal(defaultSettings.presentationMode, false);
+  assert.equal(defaultSettings.sensorPreset, 'hazard-sweep');
+  assert.equal(defaultSettings.missionType, 'hazard-sweep');
 });
 
 test('drone mission profile affects forward speed envelope', () => {

@@ -1,3 +1,5 @@
+import type { SensorMountId, SensorPresetId } from '@/lib/sim/lidar/presets';
+import type { MissionType } from '@/lib/sim/ops/missions';
 import { hashStringToSeed } from '@/lib/sim/rng';
 
 export type ScenarioId =
@@ -37,6 +39,10 @@ export interface SimulatorSettings {
   hazardDensity: number;
   lidarRange: number;
   lidarDensity: number;
+  sensorPreset: SensorPresetId;
+  sensorMount: SensorMountId;
+  missionType: MissionType;
+  fieldParcelId: string;
   paused: boolean;
   autopilot: boolean;
   terrainFollow: boolean;
@@ -61,6 +67,10 @@ export const defaultSettings: SimulatorSettings = {
   hazardDensity: 0.5,
   lidarRange: 70,
   lidarDensity: 0.68,
+  sensorPreset: 'hazard-sweep',
+  sensorMount: 'tractor-mast',
+  missionType: 'hazard-sweep',
+  fieldParcelId: 'north-40',
   paused: false,
   autopilot: false,
   terrainFollow: true,
