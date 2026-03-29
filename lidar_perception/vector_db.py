@@ -6,7 +6,8 @@ import json
 from typing import Any
 
 import numpy as np
-from redis import Redis
+from numpy.typing import NDArray
+from redis import Redis  # type: ignore[import-untyped]
 
 
 class VectorDBService:
@@ -18,7 +19,12 @@ class VectorDBService:
         self._redis = Redis.from_url(redis_url)
         self._index_name = index_name
 
-    def add_embedding(self, id: str, vector: np.ndarray, metadata: dict[str, Any]) -> None:
+    def add_embedding(
+        self,
+        id: str,
+        vector: NDArray[np.float32],
+        metadata: dict[str, Any],
+    ) -> None:
         payload = {
             "id": id,
             "vector": np.asarray(vector, dtype=np.float32).tolist(),
@@ -26,7 +32,7 @@ class VectorDBService:
         }
         self._redis.hset(f"{self._index_name}:vectors", id, json.dumps(payload))
 
-    def query(self, vector: np.ndarray, k: int) -> list[str]:
+    def query(self, vector: NDArray[np.float32], k: int) -> list[str]:
         query_vec = np.asarray(vector, dtype=np.float32)
         ids: list[str] = []
         scores: list[tuple[float, str]] = []

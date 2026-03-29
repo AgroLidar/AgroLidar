@@ -4,6 +4,7 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Mapping
 
 import torch
 from torch.utils.data import DataLoader
@@ -16,6 +17,7 @@ from lidar_perception.training.engine import Trainer, maybe_load_weights
 from lidar_perception.utils.logging import setup_logger
 
 SAFETY_CLASSES = ["human", "animal", "rock", "post", "vehicle"]
+MetricsMap = dict[str, Any]
 
 
 def parse_args() -> argparse.Namespace:
@@ -50,7 +52,14 @@ def _resolve_checkpoint(config: EvalConfig, checkpoint_arg: str | None) -> str:
     )
 
 
-def render_markdown(metrics: dict[str, float | int | dict[str, dict[str, float]]]) -> str:
+def _metric_as_float(metrics: Mapping[str, Any], key: str, default: float) -> float:
+    value = metrics.get(key, default)
+    if isinstance(value, (int, float)):
+        return float(value)
+    return default
+
+
+def render_markdown(metrics: Mapping[str, Any]) -> str:
     lines = [
         "# AgroLidar Evaluation Report",
         "",
@@ -85,10 +94,10 @@ def render_markdown(metrics: dict[str, float | int | dict[str, dict[str, float]]
         "|---|---:|---:|---:|---:|",
     ]
     for cls in SAFETY_CLASSES:
-        rec = float(metrics.get(f"recall_{cls}", 0.0))
-        fnr = float(metrics.get(f"fnr_{cls}", 1.0))
-        prec = float(metrics.get(f"precision_{cls}", 0.0))
-        dist = float(metrics.get(f"distance_error_{cls}", float("inf")))
+        rec = _metric_as_float(metrics, f"recall_{cls}", 0.0)
+        fnr = _metric_as_float(metrics, f"fnr_{cls}", 1.0)
+        prec = _metric_as_float(metrics, f"precision_{cls}", 0.0)
+        dist = _metric_as_float(metrics, f"distance_error_{cls}", float("inf"))
         lines.append(f"| {cls} | {rec:.6f} | {fnr:.6f} | {prec:.6f} | {dist:.6f} |")
     return "\n".join(lines) + "\n"
 
@@ -123,19 +132,23 @@ def main() -> int:
     model = build_model(config.model).to(device)
     trainer = Trainer(model=model, config=runtime_config, logger=logger, device=device)
     maybe_load_weights(model, trainer.optimizer, checkpoint, device)
-    metrics: dict[str, float | int | dict[str, dict[str, float]]] = trainer.evaluate(loader)
+    metrics: MetricsMap = trainer.evaluate(loader)
 
     per_class: dict[str, dict[str, float]] = {}
     class_names = config.data.get("class_names", SAFETY_CLASSES)
     for cls in class_names:
         per_class[str(cls)] = {
-            "recall": float(metrics.get(f"recall_{cls}", 0.0)),
-            "precision": float(metrics.get(f"precision_{cls}", 0.0)),
-            "fnr": float(metrics.get(f"fnr_{cls}", 1.0)),
-            "distance_error": float(metrics.get(f"distance_error_{cls}", float("inf"))),
+            "recall": _metric_as_float(metrics, f"recall_{cls}", 0.0),
+            "precision": _metric_as_float(metrics, f"precision_{cls}", 0.0),
+            "fnr": _metric_as_float(metrics, f"fnr_{cls}", 1.0),
+            "distance_error": _metric_as_float(metrics, f"distance_error_{cls}", float("inf")),
         }
     metrics["per_class"] = per_class
-    metrics["latency"] = float(metrics.get("latency_ms", metrics.get("avg_batch_latency_ms", 0.0)))
+    metrics["latency"] = _metric_as_float(
+        metrics,
+        "latency_ms",
+        _metric_as_float(metrics, "avg_batch_latency_ms", 0.0),
+    )
     logger.info("evaluation metrics: %s", metrics)
 
     json_path = Path(str(config.evaluation.get("save_json", "outputs/reports/eval_report.json")))
@@ -152,7 +165,7 @@ def main() -> int:
         eval_metrics = {f"eval/{k}": float(v) for k, v in metrics.items() if isinstance(v, (int, float))}
         tracker.log_metrics(eval_metrics)
         if "dangerous_fnr" in metrics:
-            tracker.log_metric("eval/dangerous_fnr", float(metrics["dangerous_fnr"]))
+            tracker.log_metric("eval/dangerous_fnr", _metric_as_float(metrics, "dangerous_fnr", 0.0))
         tracker.log_eval_report(json_path)
         tracker.log_eval_report(md_path)
         model_tag = str(config.evaluation.get("model_tag", "candidate"))
