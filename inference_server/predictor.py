@@ -14,6 +14,8 @@ from lidar_perception.models.factory import build_model
 from lidar_perception.utils.checkpoint import load_checkpoint
 from lidar_perception.utils.config import load_config
 
+KNOWN_CLASSES = ["human", "animal", "rock", "post", "vehicle"]
+
 
 class BEVPredictor:
     EXPECTED_SHAPE = (4, 512, 512)
@@ -59,6 +61,18 @@ class BEVPredictor:
         self._load_model()
         self._load_model_version()
         self._warmup(max(0, int(warmup_runs)))
+
+    @property
+    def supported_classes(self) -> list[str]:
+        return KNOWN_CLASSES
+
+    @property
+    def input_shape(self) -> tuple[int, int, int]:
+        return self.EXPECTED_SHAPE
+
+    @property
+    def last_latency_ms(self) -> float:
+        return self._latencies_ms[-1] if self._latencies_ms else 0.0
 
     def _load_model(self) -> None:
         if self.backend == "pytorch":
@@ -109,9 +123,7 @@ class BEVPredictor:
 
     def _validate_frame(self, frame_array: np.ndarray) -> np.ndarray:
         if frame_array.shape != self.EXPECTED_SHAPE:
-            raise ValueError(
-                f"Invalid frame shape {frame_array.shape}; expected {self.EXPECTED_SHAPE}"
-            )
+            raise ValueError(f"Invalid frame shape {frame_array.shape}; expected {self.EXPECTED_SHAPE}")
         if frame_array.dtype != np.float32:
             frame_array = frame_array.astype(np.float32)
         return frame_array
@@ -156,15 +168,12 @@ class BEVPredictor:
 
         for item in source:
             class_name = str(item.get("class_name", "vehicle"))
-            if class_name not in {"human", "animal", "rock", "post", "vehicle"}:
+            if class_name not in KNOWN_CLASSES:
                 continue
             distance_m = float(item.get("distance_m", 999.0))
             risk = self._risk_for_detection(class_name, distance_m)
             bbox = item.get("bbox_bev") or item.get("box") or [0.0, 0.0, 1.0, 1.0, 0.0]
-            if len(bbox) >= 5:
-                bbox = [float(v) for v in bbox[:5]]
-            else:
-                bbox = [0.0, 0.0, 1.0, 1.0, 0.0]
+            bbox = [float(v) for v in bbox[:5]] if len(bbox) >= 5 else [0.0, 0.0, 1.0, 1.0, 0.0]
             decoded.append(
                 Detection(
                     class_name=class_name,
@@ -182,11 +191,9 @@ class BEVPredictor:
 
         detections = outputs[0]
         confidence_scores = 1.0 / (1.0 + np.exp(-outputs[1]))
-
         if detections.ndim != 4 or confidence_scores.ndim != 4:
             return []
 
-        class_names = ["human", "animal", "rock", "post", "vehicle"]
         conf_map = confidence_scores[0, 0]
         flat_indices = np.argsort(conf_map.reshape(-1))[::-1][:10]
         width = conf_map.shape[1]
@@ -199,16 +206,15 @@ class BEVPredictor:
             row = int(flat_index // width)
             col = int(flat_index % width)
             class_idx = int(np.argmax(detections[0, :, row, col]))
-            class_name = class_names[class_idx] if class_idx < len(class_names) else "vehicle"
+            class_name = KNOWN_CLASSES[class_idx] if class_idx < len(KNOWN_CLASSES) else "vehicle"
             distance_m = max(1.0, float((detections.shape[-2] - row) * 0.25))
-            risk = self._risk_for_detection(class_name, distance_m)
             decoded.append(
                 Detection(
                     class_name=class_name,
                     confidence=score,
                     bbox_bev=[float(col), float(row), 1.0, 1.0, 0.0],
                     distance_m=distance_m,
-                    risk_level=risk,
+                    risk_level=self._risk_for_detection(class_name, distance_m),
                 )
             )
         return decoded
@@ -229,9 +235,7 @@ class BEVPredictor:
             elif self.backend == "onnx":
                 if self.onnx_session is None or self.onnx_input_name is None:
                     raise RuntimeError("ONNX session is not initialized")
-                outputs = self.onnx_session.run(
-                    self.onnx_output_names, {self.onnx_input_name: batched}
-                )
+                outputs = self.onnx_session.run(self.onnx_output_names, {self.onnx_input_name: batched})
                 detections = self._decode_onnx_outputs(outputs)
             else:
                 raise ValueError(f"Unsupported backend: {self.backend}")
@@ -244,15 +248,13 @@ class BEVPredictor:
             self._recent_success.append(False)
             raise
         finally:
-            latency_ms = (time.perf_counter() - started) * 1000.0
-            self._latencies_ms.append(latency_ms)
+            self._latencies_ms.append((time.perf_counter() - started) * 1000.0)
             self.total_inferences += 1
 
     def get_percentile_latency(self, p: int) -> float:
         if not self._latencies_ms:
             return 0.0
-        values = np.array(self._latencies_ms, dtype=np.float64)
-        return float(np.percentile(values, p))
+        return float(np.percentile(np.array(self._latencies_ms, dtype=np.float64), p))
 
     @property
     def avg_latency_ms(self) -> float:
@@ -263,11 +265,7 @@ class BEVPredictor:
     def is_healthy(self) -> bool:
         if not self.model_loaded:
             return False
-        if (
-            self.total_inferences >= self.min_healthy_inferences
-            and len(self._recent_success) >= self.min_healthy_inferences
-        ):
-            recent = list(self._recent_success)[-self.min_healthy_inferences :]
-            if not all(recent):
+        if self.total_inferences >= self.min_healthy_inferences and len(self._recent_success) >= self.min_healthy_inferences:
+            if not all(list(self._recent_success)[-self.min_healthy_inferences :]):
                 return False
         return self.get_percentile_latency(95) < self.p95_latency_threshold_ms
