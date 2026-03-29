@@ -1,0 +1,46 @@
+<svg width="1600" height="720" viewBox="0 0 1600 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AgroLidar simulator preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="720" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071222"/>
+      <stop offset="1" stop-color="#0B2A2F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="720" rx="24" fill="url(#bg)"/>
+
+  <rect x="42" y="42" width="1516" height="636" rx="18" fill="#0E1E34" stroke="#2D4E74"/>
+  <rect x="42" y="42" width="1516" height="42" rx="18" fill="#122845"/>
+  <circle cx="76" cy="63" r="7" fill="#EF4444"/>
+  <circle cx="99" cy="63" r="7" fill="#F59E0B"/>
+  <circle cx="122" cy="63" r="7" fill="#22C55E"/>
+  <text x="150" y="68" fill="#AAC7E2" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">AgroLidar Flagship Simulator · /simulator</text>
+
+  <rect x="86" y="124" width="1030" height="500" rx="14" fill="#10253F" stroke="#2F5A84"/>
+  <path d="M100 514L1110 312" stroke="#1B5E52" stroke-width="2"/>
+  <path d="M100 548L1110 346" stroke="#1B5E52" stroke-width="2"/>
+  <path d="M100 582L1110 380" stroke="#1B5E52" stroke-width="2"/>
+  <path d="M100 624L1110 422" stroke="#1B5E52" stroke-width="2"/>
+  <rect x="350" y="378" width="92" height="44" rx="8" fill="#6B7280"/>
+  <rect x="334" y="396" width="124" height="28" rx="10" fill="#4B5563"/>
+  <circle cx="360" cy="428" r="11" fill="#1F2937"/>
+  <circle cx="432" cy="428" r="11" fill="#1F2937"/>
+
+  <circle cx="790" cy="250" r="5" fill="#34D399"/>
+  <circle cx="760" cy="280" r="4" fill="#34D399"/>
+  <circle cx="834" cy="300" r="4" fill="#34D399"/>
+  <circle cx="700" cy="320" r="5" fill="#34D399"/>
+  <circle cx="882" cy="340" r="5" fill="#34D399"/>
+
+  <rect x="1150" y="124" width="366" height="250" rx="14" fill="#11243F" stroke="#345D88"/>
+  <text x="1174" y="162" fill="#E4EDF7" font-size="22" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="650">Mission Control</text>
+  <text x="1174" y="198" fill="#A4C1DE" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Vehicle: Tractor / Agro Drone</text>
+  <text x="1174" y="226" fill="#A4C1DE" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Modes: Spray · Spread · Lift · LiDAR Survey</text>
+  <text x="1174" y="254" fill="#A4C1DE" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Overlays: HUD · Minimap · LiDAR view</text>
+  <text x="1174" y="282" fill="#A4C1DE" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Display: 4K/Presentation profile</text>
+
+  <rect x="1150" y="398" width="366" height="226" rx="14" fill="#102E2C" stroke="#2D7A73"/>
+  <text x="1174" y="438" fill="#DDF8F3" font-size="22" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="650">Field Telemetry</text>
+  <text x="1174" y="472" fill="#ACDDD2" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Hazard classes: human, animal, vehicle, rock, post</text>
+  <text x="1174" y="500" fill="#ACDDD2" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Live point cloud & mission coverage overlays</text>
+  <text x="1174" y="528" fill="#ACDDD2" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Seeded scenarios for reproducible demos</text>
+  <text x="1174" y="556" fill="#ACDDD2" font-size="16" font-family="Inter, Segoe UI, Arial, sans-serif">Keyboard-first control surface</text>
+</svg>
