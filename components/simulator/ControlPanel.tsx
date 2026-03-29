@@ -1,6 +1,9 @@
 'use client';
 
 import { hashStringToSeed } from '@/lib/sim/rng';
+import { downloadRunExport } from '@/lib/sim/export/run-export';
+import { SENSOR_MOUNTS, SENSOR_PRESETS } from '@/lib/sim/lidar/presets';
+import { FIELD_PARCELS, MISSION_PROFILES } from '@/lib/sim/ops/missions';
 import { SCENARIOS, WEATHER_PRESETS } from '@/lib/sim/scenarios';
 import { getStore, setSettings, useSimStore } from '@/lib/sim/store';
 
@@ -13,12 +16,13 @@ export function ControlPanel() {
         <QuickButton label="Reset" onClick={() => setSettings({ paused: false })} extraAction={() => window.dispatchEvent(new CustomEvent('sim-reset'))} />
         <QuickButton label="Camera" onClick={() => window.dispatchEvent(new CustomEvent('sim-camera-cycle'))} />
         <QuickButton label="LiDAR" onClick={() => window.dispatchEvent(new CustomEvent('sim-lidar-cycle'))} />
+        <QuickButton label="Export" onClick={() => window.dispatchEvent(new CustomEvent('sim-export-run'))} />
         <QuickButton label={settings.presentationMode ? '4K On' : '4K'} onClick={() => setSettings({ presentationMode: !settings.presentationMode, quality: !settings.presentationMode ? 'ultra' : 'high' })} />
         <QuickButton label={settings.hudVisible ? 'Hide HUD' : 'Show HUD'} onClick={() => setSettings({ hudVisible: !settings.hudVisible })} />
         <QuickButton label={settings.controlsOpen ? 'Close' : 'Controls'} onClick={() => setSettings({ controlsOpen: !settings.controlsOpen })} />
       </div>
 
-      <aside className={`pointer-events-auto absolute right-3 top-14 z-30 w-[min(24rem,calc(100vw-1.5rem))] rounded-2xl border border-white/20 bg-black/55 p-3 text-xs shadow-2xl backdrop-blur-md transition-all duration-300 sm:top-5 sm:w-80 ${settings.controlsOpen ? 'max-h-[80vh] opacity-100' : 'max-h-11 overflow-hidden opacity-85'}`}>
+      <aside className={`pointer-events-auto absolute right-3 top-14 z-30 w-[min(25rem,calc(100vw-1.5rem))] rounded-2xl border border-white/20 bg-black/55 p-3 text-xs shadow-2xl backdrop-blur-md transition-all duration-300 sm:top-5 sm:w-[24.5rem] ${settings.controlsOpen ? 'max-h-[82vh] opacity-100' : 'max-h-11 overflow-hidden opacity-85'}`}>
         <button
           className="mb-2 flex w-full items-center justify-between text-left text-[11px] uppercase tracking-[0.14em] text-white/80"
           onClick={() => setSettings({ controlsOpen: !settings.controlsOpen })}
@@ -42,9 +46,13 @@ export function ControlPanel() {
               Regen
             </button>
           </div>
+          <Select label="Field Parcel" value={settings.fieldParcelId} onChange={(value) => setSettings({ fieldParcelId: value })} options={FIELD_PARCELS.map((item) => ({ value: item.id, label: `${item.label} (${item.crop})` }))} />
+          <Select label="Mission" value={settings.missionType} onChange={(value) => setSettings({ missionType: value as keyof typeof MISSION_PROFILES })} options={Object.values(MISSION_PROFILES).map((item) => ({ value: item.id, label: item.label }))} />
           <Select label="Scenario" value={settings.scenario} onChange={(value) => setSettings({ scenario: value as keyof typeof SCENARIOS })} options={Object.values(SCENARIOS).map((item) => ({ value: item.id, label: item.label }))} />
           <Select label="Weather" value={settings.weather} onChange={(value) => setSettings({ weather: value as keyof typeof WEATHER_PRESETS })} options={Object.values(WEATHER_PRESETS).map((item) => ({ value: item.id, label: item.label }))} />
-          {settings.vehicle === 'drone' && <Select label="Mission" value={settings.droneMission} onChange={(value) => setSettings({ droneMission: value as 'spray' | 'spread' | 'lift' | 'survey' })} options={[{ value: 'spray', label: 'Spray' }, { value: 'spread', label: 'Spread' }, { value: 'lift', label: 'Lift' }, { value: 'survey', label: 'LiDAR Survey' }]} />}
+          {settings.vehicle === 'drone' && <Select label="Drone Profile" value={settings.droneMission} onChange={(value) => setSettings({ droneMission: value as 'spray' | 'spread' | 'lift' | 'survey' })} options={[{ value: 'spray', label: 'Spray' }, { value: 'spread', label: 'Spread' }, { value: 'lift', label: 'Lift' }, { value: 'survey', label: 'LiDAR Survey' }]} />}
+          <Select label="Sensor Preset" value={settings.sensorPreset} onChange={(value) => setSettings({ sensorPreset: value as keyof typeof SENSOR_PRESETS })} options={Object.values(SENSOR_PRESETS).map((item) => ({ value: item.id, label: item.label }))} />
+          <Select label="Sensor Mount" value={settings.sensorMount} onChange={(value) => setSettings({ sensorMount: value as keyof typeof SENSOR_MOUNTS })} options={Object.values(SENSOR_MOUNTS).map((item) => ({ value: item.id, label: item.label }))} />
           <Select label="Quality" value={settings.quality} onChange={(value) => setSettings({ quality: value as 'low' | 'medium' | 'high' | 'ultra' })} options={[{ value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' }, { value: 'ultra', label: 'Ultra / Presentation' }]} />
           <Slider label="Render scale" min={0.65} max={1.25} step={0.05} value={settings.renderScale} onChange={(value) => setSettings({ renderScale: value })} />
           <Slider label="Hazard density" min={0} max={1} step={0.05} value={settings.hazardDensity} onChange={(value) => setSettings({ hazardDensity: value })} />
@@ -55,6 +63,25 @@ export function ControlPanel() {
             Autopilot
           </label>
           {settings.vehicle === 'drone' && <label className="mt-1 flex items-center gap-2 text-white/85"><input type="checkbox" checked={settings.terrainFollow} onChange={(event) => setSettings({ terrainFollow: event.target.checked })} />Terrain-follow</label>}
+          <button
+            className="mt-2 rounded border border-emerald-300/40 bg-emerald-500/20 px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-200"
+            onClick={() => {
+              const { telemetry, settings } = getStore();
+              const report = JSON.stringify({
+                summary: {
+                  mission: settings.missionType,
+                  fieldParcel: settings.fieldParcelId,
+                  scenario: settings.scenario,
+                  weather: settings.weather,
+                  sensorPreset: settings.sensorPreset,
+                },
+                telemetry,
+              }, null, 2);
+              downloadRunExport(`agrolidar-summary-${Date.now()}.json`, report);
+            }}
+          >
+            Quick Mission Summary Export
+          </button>
         </div>
       </aside>
     </>

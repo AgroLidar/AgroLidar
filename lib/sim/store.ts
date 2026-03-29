@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { defaultSettings, type SimulatorSettings, type VehicleType, type DroneMissionMode } from '@/lib/sim/config';
 import type { ObstacleClass } from '@/lib/sim/world/props';
 import type { RiskLevel } from '@/lib/sim/lidar/hazards';
+import type { MissionType } from '@/lib/sim/ops/missions';
 
 export interface TelemetrySnapshot {
   speed: number;
@@ -22,6 +23,12 @@ export interface TelemetrySnapshot {
   payloadPct: number;
   coveragePct: number;
   routeProgressPct: number;
+  missionType: MissionType;
+  fieldParcel: string;
+  terrainRoughness: number;
+  depressionRisk: number;
+  puddleRisk: number;
+  filteredPointCount: number;
 }
 
 interface SimStore {
@@ -51,6 +58,12 @@ const state: SimStore = {
     payloadPct: 100,
     coveragePct: 0,
     routeProgressPct: 0,
+    missionType: defaultSettings.missionType,
+    fieldParcel: defaultSettings.fieldParcelId,
+    terrainRoughness: 0,
+    depressionRisk: 0,
+    puddleRisk: 0,
+    filteredPointCount: 0,
   },
 };
 
