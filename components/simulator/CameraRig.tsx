@@ -13,11 +13,11 @@ const look = new Vector3();
 const up = new Vector3(0, 1, 0);
 
 const offsets: Record<CameraMode, Vector3> = {
-  chase: new Vector3(0, 4.8, -11),
-  hood: new Vector3(0, 2.35, 2.5),
-  cinematic: new Vector3(-7, 6.2, -8),
-  top: new Vector3(0, 28, -0.1),
-  lidar: new Vector3(0, 3.1, 0.2),
+  chase: new Vector3(0, 5.1, -11.6),
+  hood: new Vector3(0, 2.6, 2.9),
+  cinematic: new Vector3(-8.4, 6.8, -8.6),
+  top: new Vector3(0, 30, -0.1),
+  lidar: new Vector3(0, 3.45, 0.9),
   'drone-follow': new Vector3(0, 5.8, -13),
   'drone-mission': new Vector3(0, 8, -5),
   'drone-survey': new Vector3(0, 24, 0),
@@ -34,7 +34,7 @@ export function CameraRig({ stateRef, mode }: { stateRef: MutableRefObject<Vehic
     camera.position.y = damp(camera.position.y, temp.y, 4.8, dt);
     camera.position.z = damp(camera.position.z, temp.z, 4.8, dt);
 
-    look.set(state.x, state.y + (mode === 'top' || mode === 'drone-survey' ? 0 : 1.5), state.z + (mode === 'hood' ? 24 : mode === 'cinematic' ? 8 : 0));
+    look.set(state.x, state.y + (mode === 'top' || mode === 'drone-survey' ? 0 : 1.7), state.z + (mode === 'hood' ? 28 : mode === 'cinematic' ? 9 : 0));
     camera.lookAt(look);
   });
 

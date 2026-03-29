@@ -33,6 +33,25 @@ const qualityProfiles = {
   ultra: { channels: 40, budget: 30000, shadows: true },
 } as const;
 
+function resolveVehicleCollisions(state: VehicleState, obstacles: { x: number; z: number; radius: number }[], dt: number): VehicleState {
+  let nx = state.x;
+  let nz = state.z;
+  let speed = state.speed;
+  for (const obstacle of obstacles) {
+    const dx = nx - obstacle.x;
+    const dz = nz - obstacle.z;
+    const distance = Math.hypot(dx, dz);
+    const minDistance = obstacle.radius + 1.9;
+    if (distance <= 0 || distance >= minDistance) continue;
+    const penetration = minDistance - distance;
+    const push = Math.min(0.36, penetration * 0.6);
+    nx += (dx / distance) * push;
+    nz += (dz / distance) * push;
+    speed *= Math.max(0.25, 1 - penetration * (0.95 + dt));
+  }
+  return { ...state, x: nx, z: nz, speed };
+}
+
 export function SimulatorCanvas() {
   const [settingsVersion, setSettingsVersion] = useState(0);
   const settings = getStore().settings;
@@ -173,22 +192,23 @@ function SimulationScene() {
       inputRef.current.yaw = Math.sin(performance.now() * 0.00016) * 0.55;
     }
 
+    const activeChunks = chunkManager.getActiveChunks(settings.seed, vehicleStateRef.current.x, vehicleStateRef.current.z, scenario, settings.hazardDensity);
+    const obstacles = activeChunks.flatMap((chunk) => chunk.obstacles);
+
     const terrainY = sampleTerrainHeight(vehicleStateRef.current.x, vehicleStateRef.current.z, settings.seed, scenario.terrainRoughness);
     if (settings.vehicle === 'tractor') {
       const surface = sampleTerrainSurface(vehicleStateRef.current.x, vehicleStateRef.current.z, settings.seed);
       const surfaceTraction = surface === 'mud' ? 0.52 : surface === 'wet' ? 0.68 : surface === 'grass' ? 0.84 : 0.78;
-      vehicleStateRef.current = stepVehicle(vehicleStateRef.current, inputRef.current, dt, weather.gripPenalty + scenario.mud * 0.08, terrainPitch, terrainRoll, surfaceTraction);
+      const stepped = stepVehicle(vehicleStateRef.current, inputRef.current, dt, weather.gripPenalty + scenario.mud * 0.08, terrainPitch, terrainRoll, surfaceTraction);
+      vehicleStateRef.current = resolveVehicleCollisions(stepped, obstacles, dt);
       vehicleStateRef.current.y = terrainY;
     } else {
       const wind = Math.sin(scanPhase.current * 0.4 + settings.seed * 0.001) * (weather.id === 'light-rain' ? 1.4 : 0.8);
       vehicleStateRef.current = stepDrone(vehicleStateRef.current, inputRef.current, dt, terrainY, settings.droneMission, settings.terrainFollow, wind);
       missionProgress.current = (missionProgress.current + dt * (settings.droneMission === 'lift' ? 1.8 : 3.2)) % 100;
     }
-
-    const activeChunks = chunkManager.getActiveChunks(settings.seed, vehicleStateRef.current.x, vehicleStateRef.current.z, scenario, settings.hazardDensity);
-    const obstacles = activeChunks.flatMap((chunk) => chunk.obstacles);
     const hazardRange = settings.vehicle === 'drone' ? settings.lidarRange * 1.3 : settings.lidarRange;
-    const hazards = computeHazards(obstacles, vehicleStateRef.current.x, vehicleStateRef.current.z, hazardRange);
+    const hazards = computeHazards(obstacles, vehicleStateRef.current.x, vehicleStateRef.current.z, hazardRange, vehicleStateRef.current.heading);
     scanPhase.current += dt;
 
     const quality = qualityProfiles[settings.quality];
@@ -204,10 +224,12 @@ function SimulationScene() {
       scanPhase.current,
       weather,
       {
-        x: vehicleStateRef.current.x,
-        y: vehicleStateRef.current.y + (settings.vehicle === 'drone' ? 0 : 2),
-        z: vehicleStateRef.current.z,
+        x: vehicleStateRef.current.x + Math.sin(vehicleStateRef.current.heading) * 0.25,
+        y: vehicleStateRef.current.y + (settings.vehicle === 'drone' ? 0 : 2.45),
+        z: vehicleStateRef.current.z + Math.cos(vehicleStateRef.current.heading) * 0.82,
         heading: vehicleStateRef.current.heading,
+        pitch: vehicleStateRef.current.pitch,
+        roll: vehicleStateRef.current.roll,
       },
       settings.seed,
       lidarIndex,
@@ -226,7 +248,7 @@ function SimulationScene() {
       altitude: Math.max(0, vehicleStateRef.current.y - terrainY),
       headingDeg: ((vehicleStateRef.current.heading * 180) / Math.PI + 360) % 360,
       nearestHazard: nearest,
-      risk: nearest < (settings.vehicle === 'drone' ? 12 : 8) ? 'CRITICAL' : nearest < (settings.vehicle === 'drone' ? 26 : 18) ? 'CAUTION' : 'SAFE',
+      risk: hazards[0]?.risk ?? 'SAFE',
       pointCount: nextPoints.length,
       latencyMs: (settings.vehicle === 'drone' ? 13 : 11) + nextPoints.length * 0.0014,
       classes,
