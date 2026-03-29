@@ -12,6 +12,8 @@ export type ObstacleClass =
   | 'fence-line'
   | 'field-boundary';
 
+export type CollisionProfile = 'solid' | 'soft' | 'ghost';
+
 export interface WorldObstacle {
   id: string;
   cls: ObstacleClass;
@@ -20,4 +22,7 @@ export interface WorldObstacle {
   z: number;
   radius: number;
   hazard: boolean;
+  height?: number;
+  variant?: number;
+  collision?: CollisionProfile;
 }

@@ -14,15 +14,15 @@ export function LidarLayer({ points, visible, colorMode }: { points: LidarPoint[
 
   if (!visible) return null;
 
-  const materialSize = colorMode === 'hazard' ? 0.19 : colorMode === 'class' ? 0.17 : 0.14;
-  const opacity = colorMode === 'hazard' ? 0.96 : colorMode === 'depth' ? 0.88 : 0.92;
+  const materialSize = colorMode === 'hazard' ? 0.24 : colorMode === 'class' ? 0.2 : 0.18;
+  const opacity = colorMode === 'hazard' ? 0.98 : colorMode === 'depth' ? 0.9 : 0.94;
 
   return (
     <points geometry={geometry} frustumCulled={false}>
       <pointsMaterial
         size={materialSize}
         vertexColors
-        blending={THREE.AdditiveBlending}
+        blending={colorMode === 'hazard' ? THREE.AdditiveBlending : THREE.NormalBlending}
         transparent
         opacity={opacity}
         sizeAttenuation

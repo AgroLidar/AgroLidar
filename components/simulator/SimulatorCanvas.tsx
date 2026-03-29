@@ -33,23 +33,34 @@ const qualityProfiles = {
   ultra: { channels: 40, budget: 30000, shadows: true },
 } as const;
 
-function resolveVehicleCollisions(state: VehicleState, obstacles: { x: number; z: number; radius: number }[], dt: number): VehicleState {
+function resolveVehicleCollisions(
+  state: VehicleState,
+  obstacles: { x: number; z: number; radius: number; hazard: boolean; collision?: 'solid' | 'soft' | 'ghost' }[],
+  dt: number,
+): VehicleState {
   let nx = state.x;
   let nz = state.z;
   let speed = state.speed;
+  let heading = state.heading;
   for (const obstacle of obstacles) {
+    if (obstacle.collision === 'ghost') continue;
     const dx = nx - obstacle.x;
     const dz = nz - obstacle.z;
     const distance = Math.hypot(dx, dz);
-    const minDistance = obstacle.radius + 1.9;
+    const vehicleRadius = 1.45;
+    const buffer = obstacle.collision === 'soft' ? 0.2 : 0.5;
+    const minDistance = obstacle.radius + vehicleRadius + buffer;
     if (distance <= 0 || distance >= minDistance) continue;
     const penetration = minDistance - distance;
-    const push = Math.min(0.36, penetration * 0.6);
+    const pushStrength = obstacle.collision === 'soft' ? 0.45 : 0.72;
+    const push = Math.min(0.4, penetration * pushStrength);
     nx += (dx / distance) * push;
     nz += (dz / distance) * push;
-    speed *= Math.max(0.25, 1 - penetration * (0.95 + dt));
+    const speedLoss = obstacle.collision === 'soft' ? 0.35 : obstacle.hazard ? 0.7 : 0.52;
+    speed *= Math.max(0.28, 1 - penetration * speedLoss * (0.9 + dt));
+    heading += (dx * 0.02 - dz * 0.02) * penetration;
   }
-  return { ...state, x: nx, z: nz, speed };
+  return { ...state, x: nx, z: nz, speed, heading };
 }
 
 export function SimulatorCanvas() {
@@ -224,9 +235,9 @@ function SimulationScene() {
       scanPhase.current,
       weather,
       {
-        x: vehicleStateRef.current.x + Math.sin(vehicleStateRef.current.heading) * 0.25,
-        y: vehicleStateRef.current.y + (settings.vehicle === 'drone' ? 0 : 2.45),
-        z: vehicleStateRef.current.z + Math.cos(vehicleStateRef.current.heading) * 0.82,
+        x: vehicleStateRef.current.x + Math.sin(vehicleStateRef.current.heading) * 0.62,
+        y: vehicleStateRef.current.y + (settings.vehicle === 'drone' ? 0 : 2.55),
+        z: vehicleStateRef.current.z + Math.cos(vehicleStateRef.current.heading) * 1.18,
         heading: vehicleStateRef.current.heading,
         pitch: vehicleStateRef.current.pitch,
         roll: vehicleStateRef.current.roll,

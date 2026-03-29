@@ -9,7 +9,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { VehicleState } from '@/lib/sim/vehicle/dynamics';
 
 const TRACTOR_STL_PATH = '/assets/models/tractors/John_Deere_6195M_primary.stl';
-const targetBodySize = new Vector3(2.6, 2.85, 4.8);
+const targetBodySize = new Vector3(2.95, 2.78, 5.35);
 
 function prepareTractorGeometry(rawGeometry: BufferGeometry): BufferGeometry {
   const geometry = mergeVertices(rawGeometry.clone(), 1e-4);
@@ -48,7 +48,7 @@ export function TractorVehicle({ stateRef }: { stateRef: MutableRefObject<Vehicl
     if (!group) return;
 
     const state = stateRef.current;
-    group.position.set(state.x, state.y + 1.15 + state.suspensionTravel, state.z);
+    group.position.set(state.x, state.y + 1.02 + state.suspensionTravel, state.z);
     group.rotation.set(state.pitch, state.heading, state.roll);
 
     for (const wheel of wheelRefs.current) wheel.rotation.x = state.wheelSpin;
@@ -57,35 +57,48 @@ export function TractorVehicle({ stateRef }: { stateRef: MutableRefObject<Vehicl
 
   return (
     <group ref={rootRef}>
-      <group position={[0, 1.2, -0.18]}>
+      <group position={[0, 1.04, -0.05]}>
         <mesh castShadow receiveShadow geometry={tractorGeometry}>
-          <meshStandardMaterial color="#1f7a2f" metalness={0.18} roughness={0.5} />
+          <meshStandardMaterial color="#1c7430" metalness={0.22} roughness={0.46} />
         </mesh>
 
-        <mesh castShadow position={[0, 0.34, 0.28]}>
-          <boxGeometry args={[2.4, 0.45, 3.1]} />
-          <meshStandardMaterial color="#2a9d3a" metalness={0.24} roughness={0.44} />
+        <mesh castShadow position={[0, 0.42, 1.82]}>
+          <boxGeometry args={[1.58, 0.48, 1.6]} />
+          <meshStandardMaterial color="#246b2b" metalness={0.24} roughness={0.45} />
         </mesh>
 
-        <mesh castShadow position={[0, 1.05, -0.66]}>
-          <boxGeometry args={[1.55, 0.95, 1.68]} />
-          <meshStandardMaterial color="#222c34" metalness={0.32} roughness={0.28} />
-        </mesh>
+        <group position={[0, 1.05, -0.88]}>
+          <mesh castShadow>
+            <boxGeometry args={[1.36, 0.85, 1.5]} />
+            <meshStandardMaterial color="#1c262f" metalness={0.38} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0.02, 0.03]}>
+            <boxGeometry args={[1.2, 0.72, 1.26]} />
+            <meshStandardMaterial color="#95aab8" metalness={0.08} roughness={0.08} transparent opacity={0.44} />
+          </mesh>
+        </group>
 
-        <mesh castShadow position={[0, 1.09, -0.64]}>
-          <boxGeometry args={[1.35, 0.82, 1.44]} />
-          <meshStandardMaterial color="#7f9ead" metalness={0.08} roughness={0.12} transparent opacity={0.46} />
+        <mesh castShadow position={[0, -0.02, -2.42]}>
+          <boxGeometry args={[1.62, 0.2, 0.42]} />
+          <meshStandardMaterial color="#3a3f46" roughness={0.68} metalness={0.24} />
         </mesh>
       </group>
 
-      <group position={[0, 2.4, 0.82]}>
+      <group position={[0, 2.22, 0.95]}>
         <mesh castShadow>
-          <cylinderGeometry args={[0.05, 0.05, 0.42, 10]} />
-          <meshStandardMaterial color="#f6cc2f" roughness={0.34} metalness={0.58} />
+          <cylinderGeometry args={[0.048, 0.048, 0.5, 10]} />
+          <meshStandardMaterial color="#e9bf2e" roughness={0.3} metalness={0.64} />
         </mesh>
-        <mesh castShadow position={[0, 0.22, 0]}>
-          <sphereGeometry args={[0.08, 12, 12]} />
-          <meshStandardMaterial color="#66e3ff" emissive="#3ecbff" emissiveIntensity={0.75} roughness={0.12} metalness={0.42} />
+        <mesh castShadow position={[0, 0.29, 0]}>
+          <sphereGeometry args={[0.09, 12, 12]} />
+          <meshStandardMaterial color="#5ce3ff" emissive="#43c4ff" emissiveIntensity={0.9} roughness={0.1} metalness={0.42} />
+        </mesh>
+      </group>
+
+      <group position={[0, 0.92, -2.28]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.68, 0.18, 0.28]} />
+          <meshStandardMaterial color="#454a51" roughness={0.66} metalness={0.3} />
         </mesh>
       </group>
 
@@ -95,15 +108,15 @@ export function TractorVehicle({ stateRef }: { stateRef: MutableRefObject<Vehicl
 }
 
 function WheelSet({ wheelRefs, steerRefs }: { wheelRefs: MutableRefObject<Group[]>; steerRefs: MutableRefObject<Group[]> }) {
-  const rearScale: [number, number, number] = [1.36, 1.36, 0.78];
-  const frontScale: [number, number, number] = [0.88, 0.88, 0.58];
+  const rearScale: [number, number, number] = [1.42, 1.42, 0.82];
+  const frontScale: [number, number, number] = [0.92, 0.92, 0.62];
 
   return (
     <>
-      <Wheel position={[-1.52, 0.74, -1.48]} scale={rearScale} wheelRefs={wheelRefs} />
-      <Wheel position={[1.52, 0.74, -1.48]} scale={rearScale} wheelRefs={wheelRefs} />
-      <SteerWheel position={[-1.26, 0.66, 1.58]} scale={frontScale} wheelRefs={wheelRefs} steerRefs={steerRefs} />
-      <SteerWheel position={[1.26, 0.66, 1.58]} scale={frontScale} wheelRefs={wheelRefs} steerRefs={steerRefs} />
+      <Wheel position={[-1.58, 0.64, -1.53]} scale={rearScale} wheelRefs={wheelRefs} />
+      <Wheel position={[1.58, 0.64, -1.53]} scale={rearScale} wheelRefs={wheelRefs} />
+      <SteerWheel position={[-1.3, 0.55, 1.65]} scale={frontScale} wheelRefs={wheelRefs} steerRefs={steerRefs} />
+      <SteerWheel position={[1.3, 0.55, 1.65]} scale={frontScale} wheelRefs={wheelRefs} steerRefs={steerRefs} />
     </>
   );
 }
@@ -117,12 +130,12 @@ function Wheel({ position, scale, wheelRefs }: { position: [number, number, numb
       }}
     >
       <mesh castShadow rotation={[0, 0, Math.PI / 2]} scale={scale}>
-        <cylinderGeometry args={[0.5, 0.5, 0.5, 20]} />
-        <meshStandardMaterial color="#141b22" roughness={0.92} metalness={0.06} />
+        <cylinderGeometry args={[0.5, 0.5, 0.5, 24]} />
+        <meshStandardMaterial color="#11161b" roughness={0.93} metalness={0.04} />
       </mesh>
-      <mesh castShadow rotation={[0, 0, Math.PI / 2]} scale={[scale[0] * 0.35, scale[1] * 0.35, scale[2] * 0.54]}>
+      <mesh castShadow rotation={[0, 0, Math.PI / 2]} scale={[scale[0] * 0.38, scale[1] * 0.38, scale[2] * 0.5]}>
         <cylinderGeometry args={[0.5, 0.5, 0.5, 16]} />
-        <meshStandardMaterial color="#f3c623" roughness={0.35} metalness={0.72} />
+        <meshStandardMaterial color="#e7b81f" roughness={0.34} metalness={0.74} />
       </mesh>
     </group>
   );
@@ -139,12 +152,12 @@ function SteerWheel({ position, scale, wheelRefs, steerRefs }: { position: [numb
       }}
     >
       <mesh castShadow rotation={[0, 0, Math.PI / 2]} scale={scale}>
-        <cylinderGeometry args={[0.5, 0.5, 0.4, 18]} />
-        <meshStandardMaterial color="#111827" roughness={0.9} metalness={0.04} />
+        <cylinderGeometry args={[0.5, 0.5, 0.4, 20]} />
+        <meshStandardMaterial color="#10151c" roughness={0.9} metalness={0.05} />
       </mesh>
-      <mesh castShadow rotation={[0, 0, Math.PI / 2]} scale={[scale[0] * 0.36, scale[1] * 0.36, scale[2] * 0.54]}>
+      <mesh castShadow rotation={[0, 0, Math.PI / 2]} scale={[scale[0] * 0.38, scale[1] * 0.38, scale[2] * 0.56]}>
         <cylinderGeometry args={[0.5, 0.5, 0.4, 14]} />
-        <meshStandardMaterial color="#f3c623" roughness={0.34} metalness={0.7} />
+        <meshStandardMaterial color="#ebb924" roughness={0.32} metalness={0.72} />
       </mesh>
     </group>
   );
