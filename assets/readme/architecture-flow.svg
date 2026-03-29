@@ -1,0 +1,46 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AgroLidar architecture flow">
+  <rect width="1600" height="520" rx="24" fill="#0B172A"/>
+  <text x="64" y="70" fill="#E2ECF7" font-size="34" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="700">AgroLidar system flow</text>
+  <text x="64" y="104" fill="#8FB3CF" font-size="18" font-family="Inter, Segoe UI, Arial, sans-serif">From simulated or field LiDAR data to governed model promotion and deployment.</text>
+
+  <g font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600">
+    <rect x="64" y="160" width="240" height="104" rx="16" fill="#12324D" stroke="#2D5E86"/>
+    <text x="88" y="204" fill="#D9ECFF">Data Sources</text>
+    <text x="88" y="232" fill="#9FC6E8" font-size="14" font-weight="500">simulator / datasets / hard cases</text>
+
+    <rect x="352" y="160" width="240" height="104" rx="16" fill="#173C3A" stroke="#2C7B73"/>
+    <text x="376" y="204" fill="#DDF8F3">Training & Retraining</text>
+    <text x="376" y="232" fill="#A9D8CF" font-size="14" font-weight="500">scripts/train.py · scripts/retrain.py</text>
+
+    <rect x="640" y="160" width="240" height="104" rx="16" fill="#1F3D28" stroke="#3E8A52"/>
+    <text x="664" y="204" fill="#E8FAED">Evaluation & Comparison</text>
+    <text x="664" y="232" fill="#B4DFBE" font-size="14" font-weight="500">evaluate.py · compare_models.py</text>
+
+    <rect x="928" y="160" width="240" height="104" rx="16" fill="#4A3A1D" stroke="#8C6C2F"/>
+    <text x="952" y="204" fill="#FFF3D8">Safety Gate</text>
+    <text x="952" y="232" fill="#E9D6AA" font-size="14" font-weight="500">scripts/safety_gate.py</text>
+
+    <rect x="1216" y="160" width="320" height="104" rx="16" fill="#2D2248" stroke="#5D4A89"/>
+    <text x="1240" y="204" fill="#ECE5FF">Promotion & Serving</text>
+    <text x="1240" y="232" fill="#C8BCE7" font-size="14" font-weight="500">registry.json · FastAPI · ONNX export</text>
+  </g>
+
+  <g stroke="#7FB7E6" stroke-width="3" stroke-linecap="round">
+    <path d="M304 212H344"/>
+    <path d="M592 212H632"/>
+    <path d="M880 212H920"/>
+    <path d="M1168 212H1208"/>
+  </g>
+  <g fill="#7FB7E6">
+    <path d="M344 206L352 212L344 218Z"/>
+    <path d="M632 206L640 212L632 218Z"/>
+    <path d="M920 206L928 212L920 218Z"/>
+    <path d="M1208 206L1216 212L1208 218Z"/>
+  </g>
+
+  <rect x="64" y="316" width="1472" height="140" rx="16" fill="#101F35" stroke="#2F4D73"/>
+  <text x="92" y="356" fill="#E2ECF7" font-size="22" font-family="Inter, Segoe UI, Arial, sans-serif" font-weight="650">Runtime surfaces</text>
+  <text x="92" y="388" fill="#A8C0D9" font-size="17" font-family="Inter, Segoe UI, Arial, sans-serif">• Web simulator (Next.js + React Three Fiber) for field-like mission previews</text>
+  <text x="92" y="416" fill="#A8C0D9" font-size="17" font-family="Inter, Segoe UI, Arial, sans-serif">• FastAPI inference service for programmatic integration and deployment workflows</text>
+  <text x="92" y="444" fill="#A8C0D9" font-size="17" font-family="Inter, Segoe UI, Arial, sans-serif">• Outputs and reports persisted in outputs/ for traceability and governance</text>
+</svg>
