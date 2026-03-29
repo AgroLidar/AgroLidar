@@ -31,16 +31,16 @@ def test_dangerous_recall_cannot_exceed_one() -> None:
 
 def test_dangerous_fnr_threshold_is_strict() -> None:
     config = SafetyConfig()
-    assert config.max_dangerous_fnr <= 0.05, (
-        "FNR threshold must be <= 5% — relaxing this puts humans at risk"
-    )
+    assert (
+        config.max_dangerous_fnr <= 0.05
+    ), "FNR threshold must be <= 5% — relaxing this puts humans at risk"
 
 
 def test_min_recall_threshold_is_strict() -> None:
     config = SafetyConfig()
-    assert config.min_dangerous_recall >= 0.95, (
-        "Recall threshold must be >= 95% — relaxing this puts humans at risk"
-    )
+    assert (
+        config.min_dangerous_recall >= 0.95
+    ), "Recall threshold must be >= 95% — relaxing this puts humans at risk"
 
 
 def test_human_in_known_classes() -> None:

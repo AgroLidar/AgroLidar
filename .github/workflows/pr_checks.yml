@@ -33,7 +33,7 @@ jobs:
           cache: pip
 
       - name: Install tools
-        run: pip install pre-commit ruff pytest
+        run: pip install pre-commit ruff pytest pyyaml
 
       - name: Install dependencies (CPU torch wheels)
         run: pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
@@ -74,10 +74,15 @@ jobs:
 
       - name: Check PR has description
         run: |
-          PR_BODY=$(gh pr view ${{ github.event.pull_request.number }} --json body -q .body)
-          if [ -z "$PR_BODY" ] || [ "$PR_BODY" = "null" ]; then
-            echo "ERROR: PR description is empty. Fill out the PR template."
-            exit 1
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+
+          event_path = os.environ["GITHUB_EVENT_PATH"]
+          payload = json.loads(pathlib.Path(event_path).read_text(encoding="utf-8"))
+          body = (payload.get("pull_request", {}) or {}).get("body", "")
+          if not body or not body.strip():
+              raise SystemExit("ERROR: PR description is empty. Fill out the PR template.")
+          print("PR description check passed.")
+          PY

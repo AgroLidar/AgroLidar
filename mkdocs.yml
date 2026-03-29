@@ -35,6 +35,7 @@ nav:
   - Vector Search: vector-search.md
   - WebGPU Viewer: webgpu-viewer.md
   - Architecture: architecture.md
+  - Simulator Architecture: simulator-architecture.md
   - Usage: usage.md
   - Development: development.md
   - Operations Manual: OPERATIONS_MANUAL.md
