@@ -11,7 +11,7 @@ from starlette.responses import Response
 logger = logging.getLogger("inference_server.request")
 
 
-class RequestLoggingMiddleware(BaseHTTPMiddleware):
+class RequestLoggingMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
     async def dispatch(
         self,
         request: Request,
