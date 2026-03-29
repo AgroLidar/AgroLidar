@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>AgroLidar Interactive Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030508;
+      --lidar-beam: #00FFB2;
+      --danger: #FF3B3B;
+      --safe: #00C9FF;
+      --ground: #1A2B1A;
+      --hud: #0A1A0A;
+      --amber: #FFB300;
+      --text: #A0C0A0;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 35%, #08121d 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    #container, #three-canvas, #hud-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #hud-canvas { pointer-events: none; z-index: 2; }
+    #ui-controls {
+      position: absolute;
+      z-index: 4;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: rgba(10, 26, 10, 0.65);
+      border: 1px solid rgba(0, 255, 178, 0.35);
+      padding: 8px;
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+    }
+    #ui-controls button {
+      background: #0f2215;
+      color: var(--text);
+      border: 1px solid rgba(0, 255, 178, 0.55);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    #ui-controls button:active { transform: scale(0.97); }
+    #intro-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(3, 5, 8, 0.96);
+      color: var(--lidar-beam);
+      transition: opacity 1s ease;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.1em;
+    }
+    #intro-title { font-size: clamp(36px, 10vw, 84px); font-weight: 800; }
+    #intro-sub { margin-top: 12px; opacity: 0.85; font-size: clamp(14px, 2.2vw, 24px); }
+    #loading {
+      margin-top: 18px;
+      width: min(420px, 82vw);
+      border: 1px solid rgba(0, 255, 178, 0.45);
+      padding: 4px;
+    }
+    #loading-bar {
+      height: 10px;
+      width: 0%;
+      background: linear-gradient(90deg, #0088aa, #00ffb2);
+      transition: width 0.24s linear;
+    }
+    .vignette, .scanline {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .vignette {
+      background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.56) 100%);
+    }
+    .scanline {
+      background: repeating-linear-gradient(to bottom, rgba(10,20,10,0.0) 0px, rgba(10,20,10,0.0) 2px, rgba(0,255,178,0.03) 3px);
+      mix-blend-mode: screen;
+    }
+    @media (min-width: 901px) { #ui-controls { display: none; } }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="container"></div>
+  <canvas id="hud-canvas"></canvas>
+  <div class="vignette"></div>
+  <div class="scanline"></div>
+  <div id="ui-controls">
+    <button data-cam="aerial">🚁 AÉREA</button>
+    <button data-cam="cockpit">🚜 CABINA</button>
+    <button data-cam="cinematic">🎬 CINE</button>
+    <button id="pause-btn">⏸ PAUSE</button>
+    <button id="reset-btn">🔄 RESET</button>
+  </div>
+  <div id="intro-overlay">
+    <div id="intro-title">AGROLIDAR</div>
+    <div id="intro-sub">LiDAR Perception System v2.1</div>
+    <div id="loading"><div id="loading-bar"></div></div>
+    <div id="loading-text" style="font-family:'Share Tech Mono', monospace; margin-top: 8px; font-size: 12px; color: #9ce8cb;">Initializing sensor array…</div>
+  </div>
+
+<script>
+(function () {
+  var CONFIG = {
+    LIDAR_RANGE: 50,
+    CHANNELS: 32,
+    POINTS_PER_REV: 2048,
+    MOBILE_MIN: 256,
+    MAX_POINTS: 4096,
+    TRACTOR_SPEED_MPS: 0.83,
+    FIELD_W: 200,
+    FIELD_D: 200,
+    ROW_SPACING: 0.7,
+    DANGER_STOP: 5,
+  };
+
+  var isMobile = navigator.maxTouchPoints > 1;
+  if (isMobile) CONFIG.POINTS_PER_REV = 1024;
+
+  var container = document.getElementById('container');
+  var hud = document.getElementById('hud-canvas');
+  var hctx = hud.getContext('2d');
+  var loadingBar = document.getElementById('loading-bar');
+  var loadingText = document.getElementById('loading-text');
+  var intro = document.getElementById('intro-overlay');
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+  renderer.setClearColor(0x030508, 1);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  container.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x030508, 0.015);
+
+  var camera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+  camera.position.set(0, 12, 18);
+
+  var ambient = new THREE.AmbientLight(0x204040, 0.7);
+  scene.add(ambient);
+  var moonLight = new THREE.DirectionalLight(0x89aacc, 0.8);
+  moonLight.position.set(-40, 70, 20);
+  scene.add(moonLight);
+
+  var tractor = new THREE.Group();
+  var lidarSpinner;
+  var tractorPos = new THREE.Vector3(0, 0, 0);
+  var tractorHeading = 0;
+  var simPaused = false;
+  var showHUD = true;
+  var photoMode = false;
+  var hectares = 0;
+  var estop = false;
+
+  var cameraMode = 'cinematic';
+  var camTargetPos = new THREE.Vector3();
+  var camTargetLook = new THREE.Vector3();
+
+  var lidarState = { angle: 0, pointsPerFrame: Math.min(1024, CONFIG.POINTS_PER_REV), scanTime: 0 };
+
+  var obstacles = [
+    { type: 'human', radius: 0.4, height: 1.8, color: 0xFF3B3B, pos: new THREE.Vector3(15, 0, 8), box: null },
+    { type: 'animal', radius: 0.8, height: 1.0, color: 0xFF6B00, pos: new THREE.Vector3(-20, 0, 15), box: null },
+    { type: 'rock', radius: 1.2, height: 0.5, color: 0xFFB300, pos: new THREE.Vector3(30, 0, -5), box: null },
+    { type: 'post', radius: 0.15, height: 2.5, color: 0xFFB300, pos: new THREE.Vector3(-8, 0, 25), box: null }
+  ];
+
+  function noise2(x, y) {
+    var s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+    return (s - Math.floor(s)) * 2 - 1;
+  }
+
+  function generateTerrain(width, depth) {
+    var geo = new THREE.PlaneGeometry(width, depth, 100, 100);
+    var colorAttr = new Float32Array(geo.attributes.position.count * 3);
+    var p = geo.attributes.position;
+    for (var i = 0; i < p.count; i++) {
+      var x = p.getX(i);
+      var y = p.getY(i);
+      var h = noise2(x * 0.06, y * 0.06) * 0.3 + noise2(x * 0.15, y * 0.15) * 0.1;
+      p.setZ(i, h);
+      var rowMod = Math.abs(((x / CONFIG.ROW_SPACING) % 1) - 0.5);
+      var green = rowMod < 0.16 ? 0.18 : 0.09;
+      colorAttr[i * 3 + 0] = 0.08;
+      colorAttr[i * 3 + 1] = green;
+      colorAttr[i * 3 + 2] = 0.07;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colorAttr, 3));
+    geo.computeVertexNormals();
+    var mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    scene.add(mesh);
+
+    var furrow = new THREE.Group();
+    for (var fx = -width / 2; fx <= width / 2; fx += CONFIG.ROW_SPACING * 4) {
+      var g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(fx, 0.02, -depth/2), new THREE.Vector3(fx, 0.02, depth/2)]);
+      var l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x214522, transparent: true, opacity: 0.35 }));
+      furrow.add(l);
+    }
+    scene.add(furrow);
+  }
+
+  function createTractor() {
+    var body = new THREE.Mesh(new THREE.BoxGeometry(4, 2.5, 3), new THREE.MeshStandardMaterial({ color: 0x2A4A2A, roughness: 0.75 }));
+    body.position.y = 1.7;
+    tractor.add(body);
+
+    var cab = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 1.8), new THREE.MeshStandardMaterial({ color: 0x9ac0b0, transparent: true, opacity: 0.45 }));
+    cab.position.set(0.2, 3.0, 0);
+    tractor.add(cab);
+
+    function wheel(r, x, z) {
+      var w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.6, 16), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+      w.rotation.z = Math.PI / 2;
+      w.position.set(x, r, z);
+      tractor.add(w);
+    }
+    wheel(1.1, -1.5, -1.5); wheel(1.1, -1.5, 1.5); wheel(0.8, 1.6, -1.4); wheel(0.8, 1.6, 1.4);
+
+    var exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5), new THREE.MeshStandardMaterial({ color: 0x444444 }));
+    exhaust.position.set(1.7, 3.0, -1.1);
+    tractor.add(exhaust);
+
+    lidarSpinner = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.15, 20), new THREE.MeshBasicMaterial({ color: 0x00FFB2 }));
+    lidarSpinner.position.set(0, 3.7, 0);
+    tractor.add(lidarSpinner);
+
+    var headlights = new THREE.PointLight(0xFFB300, 0.9, 35);
+    headlights.position.set(2.2, 2.1, 0);
+    tractor.add(headlights);
+
+    scene.add(tractor);
+  }
+
+  function createObstacles() {
+    obstacles.forEach(function (o) {
+      var mesh = new THREE.Mesh(new THREE.CylinderGeometry(o.radius, o.radius, o.height, 16), new THREE.MeshStandardMaterial({ color: o.color, emissive: 0x220000 }));
+      mesh.position.copy(o.pos);
+      mesh.position.y = o.height / 2;
+      scene.add(mesh);
+      o.mesh = mesh;
+      var box = new THREE.BoxHelper(mesh, 0x00ffb2);
+      box.visible = false;
+      scene.add(box);
+      o.box = box;
+    });
+  }
+
+  var lidarMax = 120000;
+  var posArray = new Float32Array(lidarMax * 3);
+  var colArray = new Float32Array(lidarMax * 3);
+  var ageArray = new Float32Array(lidarMax);
+  var maxAgeArray = new Float32Array(lidarMax);
+  var cursor = 0;
+
+  var lidarGeo = new THREE.BufferGeometry();
+  lidarGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+  lidarGeo.setAttribute('color', new THREE.BufferAttribute(colArray, 3));
+  lidarGeo.setAttribute('age', new THREE.BufferAttribute(ageArray, 1));
+  lidarGeo.setAttribute('maxAge', new THREE.BufferAttribute(maxAgeArray, 1));
+
+  var lidarMat = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    vertexColors: true,
+    blending: THREE.AdditiveBlending,
+    uniforms: {},
+    vertexShader: [
+      'attribute float age;',
+      'attribute float maxAge;',
+      'varying float vA;',
+      'varying vec3 vC;',
+      'void main(){',
+      'vA = clamp(age / maxAge, 0.0, 1.0);',
+      'vC = color;',
+      'vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
+      'gl_PointSize = mix(3.0, 0.5, vA) * (300.0 / max(1.0, length(mvPosition.xyz)));',
+      'gl_Position = projectionMatrix * mvPosition;',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'varying float vA;',
+      'varying vec3 vC;',
+      'void main(){',
+      'vec2 uv = gl_PointCoord - vec2(0.5);',
+      'float d = length(uv);',
+      'if (d > 0.5) discard;',
+      'float glow = 1.0 - smoothstep(0.0, 0.5, d);',
+      'float alpha = (1.0 - vA) * glow;',
+      'gl_FragColor = vec4(vC * glow, alpha);',
+      '}'
+    ].join('\n')
+  });
+
+  var lidarPoints = new THREE.Points(lidarGeo, lidarMat);
+  scene.add(lidarPoints);
+
+  var trajectory = [];
+  var trailGeo = new THREE.BufferGeometry();
+  var trailMat = new THREE.LineBasicMaterial({ color: 0x00ffb2, transparent: true, opacity: 0.6 });
+  var trail = new THREE.Line(trailGeo, trailMat);
+  scene.add(trail);
+
+  var starsGeo = new THREE.BufferGeometry();
+  var starN = 1000;
+  var starPos = new Float32Array(starN * 3);
+  for (var s = 0; s < starN; s++) {
+    var phi = Math.acos(2 * Math.random() - 1);
+    var theta = Math.random() * Math.PI * 2;
+    var r = 180;
+    starPos[s*3] = r * Math.sin(phi) * Math.cos(theta);
+    starPos[s*3+1] = Math.abs(r * Math.cos(phi));
+    starPos[s*3+2] = r * Math.sin(phi) * Math.sin(theta);
+  }
+  starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 })));
+  var moon = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 16), new THREE.MeshBasicMaterial({ color: 0xcfd4d8 }));
+  moon.position.set(60, 70, -100); scene.add(moon);
+
+  var audioCtx;
+  function beep(freq, duration, gain) {
+    if (!audioCtx) return;
+    var o = audioCtx.createOscillator();
+    var g = audioCtx.createGain();
+    o.frequency.value = freq;
+    g.gain.value = gain;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+    o.stop(audioCtx.currentTime + duration);
+  }
+
+  function colorForDistance(d) {
+    if (d < 5) return [1, 0.23, 0.23];
+    if (d < 15) return [1, 0.7, 0.0];
+    if (d < 30) return [0.0, 1.0, 0.7];
+    return [0.0, 0.53, 0.67];
+  }
+
+  function castRay(origin, dir) {
+    var t = CONFIG.LIDAR_RANGE;
+    for (var i = 0; i < obstacles.length; i++) {
+      var o = obstacles[i];
+      var ocx = origin.x - (tractorPos.x + o.pos.x);
+      var ocz = origin.z - (tractorPos.z + o.pos.z);
+      var b = 2 * (ocx * dir.x + ocz * dir.z);
+      var c = ocx * ocx + ocz * ocz - o.radius * o.radius;
+      var disc = b * b - 4 * c;
+      if (disc >= 0) {
+        var hit = (-b - Math.sqrt(disc)) / 2;
+        if (hit > 0.2 && hit < t) t = hit;
+      }
+    }
+    return t;
+  }
+
+  function emitLidar(dt) {
+    var origin = new THREE.Vector3(tractorPos.x, 3.8, tractorPos.z);
+    var obstacleDetected = 0;
+    for (var p = 0; p < lidarState.pointsPerFrame; p++) {
+      var ch = p % CONFIG.CHANNELS;
+      var vAng = THREE.MathUtils.lerp(-0.26, 0.26, ch / (CONFIG.CHANNELS - 1));
+      var hAng = (p / lidarState.pointsPerFrame) * Math.PI * 2 + lidarState.angle;
+      var dir = new THREE.Vector3(Math.sin(hAng) * Math.cos(vAng), Math.sin(vAng), Math.cos(hAng) * Math.cos(vAng));
+      var dist = castRay(origin, dir);
+      var hit = origin.clone().addScaledVector(dir, dist);
+      var c = colorForDistance(dist);
+      for (var oi = 0; oi < obstacles.length; oi++) {
+        var wp = obstacles[oi].mesh.position;
+        if (hit.distanceTo(wp) < obstacles[oi].radius * 1.2) { c = [1, 0.23, 0.23]; obstacleDetected++; }
+      }
+      posArray[cursor*3] = hit.x; posArray[cursor*3+1] = Math.max(0.2, hit.y); posArray[cursor*3+2] = hit.z;
+      colArray[cursor*3] = c[0]; colArray[cursor*3+1] = c[1]; colArray[cursor*3+2] = c[2];
+      ageArray[cursor] = 0;
+      maxAgeArray[cursor] = 0.5;
+      cursor = (cursor + 1) % lidarMax;
+    }
+    lidarState.angle += dt * Math.PI * 2 * 0.9;
+    lidarGeo.attributes.position.needsUpdate = true;
+    lidarGeo.attributes.color.needsUpdate = true;
+    lidarGeo.attributes.age.needsUpdate = true;
+    lidarGeo.attributes.maxAge.needsUpdate = true;
+
+    obstacles.forEach(function (o) {
+      var worldPos = o.mesh.position;
+      var d = worldPos.distanceTo(origin);
+      o.distance = d;
+      o.box.visible = d < 30;
+      o.box.material.color.setHex(d < 15 ? 0xff3b3b : d < 30 ? 0xffb300 : 0x00ffb2);
+      if (d < 15 && !simPaused) beep(680 + (15 - d) * 30, 0.05, 0.015);
+    });
+
+    var nearest = obstacles.reduce(function (a, b) { return (!a || b.distance < a.distance) ? b : a; }, null);
+    estop = nearest && nearest.distance < CONFIG.DANGER_STOP;
+    if (estop) {
+      simPaused = true;
+      beep(220, 0.25, 0.06);
+    }
+    return obstacleDetected;
+  }
+
+  function updateAges(dt) {
+    for (var i = 0; i < lidarMax; i++) {
+      ageArray[i] = Math.min(maxAgeArray[i], ageArray[i] + dt);
+    }
+    lidarGeo.attributes.age.needsUpdate = true;
+  }
+
+  var serp = { row: 0, dir: 1, z: -80 };
+  function updateTractor(dt) {
+    if (simPaused) return;
+    var maxRun = 90;
+    tractorPos.x += serp.dir * CONFIG.TRACTOR_SPEED_MPS * dt;
+    if (Math.abs(tractorPos.x) > maxRun) {
+      tractorPos.x = Math.sign(tractorPos.x) * maxRun;
+      serp.z += CONFIG.ROW_SPACING * 6;
+      tractorPos.z = -80 + serp.z;
+      serp.dir *= -1;
+      tractorHeading = serp.dir > 0 ? 0 : Math.PI;
+    }
+    hectares += CONFIG.TRACTOR_SPEED_MPS * dt * 0.002;
+    tractor.position.copy(tractorPos);
+    tractor.rotation.y = tractorHeading;
+    lidarSpinner.rotation.y += dt * 0.52;
+
+    trajectory.push(tractorPos.clone());
+    if (trajectory.length > 900) trajectory.shift();
+    trailGeo.setFromPoints(trajectory);
+  }
+
+  function updateCamera(t) {
+    var tp = tractor.position.clone();
+    if (cameraMode === 'aerial') {
+      camTargetPos.set(tp.x, 80, tp.z + 20);
+      camTargetLook.set(tp.x, 0, tp.z);
+      camera.fov = 60;
+    } else if (cameraMode === 'cockpit') {
+      camTargetPos.set(tp.x - Math.sin(tractorHeading) * 1, 3.4, tp.z - Math.cos(tractorHeading) * 1);
+      camTargetLook.set(tp.x + Math.sin(tractorHeading) * 20, 2, tp.z + Math.cos(tractorHeading) * 20);
+      camera.fov = 80;
+    } else if (cameraMode === 'cinematic') {
+      var a = t * 0.14;
+      camTargetPos.set(tp.x + Math.cos(a) * 25, 11, tp.z + Math.sin(a) * 25);
+      camTargetLook.copy(tp);
+      camera.fov = 52;
+    }
+    camera.position.lerp(camTargetPos, 0.08);
+    var look = new THREE.Vector3().copy(camTargetLook);
+    camera.lookAt(look);
+    camera.updateProjectionMatrix();
+  }
+
+  function drawHUD(time, detectionCount) {
+    if (!showHUD || photoMode) { hctx.clearRect(0, 0, hud.width, hud.height); return; }
+    hctx.clearRect(0, 0, hud.width, hud.height);
+    hctx.fillStyle = 'rgba(10, 26, 10, 0.58)';
+    hctx.strokeStyle = 'rgba(0,255,178,0.55)';
+    hctx.lineWidth = 1;
+    function panel(x,y,w,h,title){ hctx.fillRect(x,y,w,h); hctx.strokeRect(x,y,w,h); hctx.fillStyle='#00FFB2'; hctx.font='14px Orbitron'; hctx.fillText(title,x+12,y+20); hctx.fillStyle='#A0C0A0'; hctx.font='13px Share Tech Mono'; }
+
+    panel(18,18,310,190,'AGROLIDAR OS v2.1.0');
+    hctx.fillText('SENSOR  | Ouster OS1-32', 30, 48);
+    hctx.fillText('FREQ    | 20 Hz ████████', 30, 66);
+    hctx.fillText('POINTS  | ' + Math.floor(42847 + Math.sin(time*0.6)*500) + ' / frame', 30, 84);
+    hctx.fillText('RANGE   | 0.3 – 50.0 m', 30, 102);
+    hctx.fillText('CHANNEL | 32 vertical', 30, 120);
+    hctx.fillText('FOV     | 360° × 33°', 30, 138);
+    hctx.fillText('QUALITY | ' + lidarState.pointsPerFrame + ' pts/rev', 30, 156);
+
+    var rw = 340, rh = 220, rx = hud.width - rw - 18, ry = 18;
+    panel(rx,ry,rw,rh,'SAFETY MONITOR');
+    var latency = Math.floor(42 + (Math.sin(time*1.8)+1)*12);
+    var cpu = Math.floor(22 + (Math.sin(time*1.1)+1)*9 + detectionCount*3);
+    hctx.fillText('STATUS   | ' + (estop ? '⛔ E-STOP' : '● OPERATIONAL'), rx+12, ry+44);
+    hctx.fillText('LATENCY  | ' + latency + 'ms', rx+12, ry+64);
+    hctx.fillText('CPU      | ' + cpu + '%', rx+12, ry+84);
+    hctx.fillText('DETECTIONS | ' + detectionCount + ' objects', rx+12, ry+104);
+    var y = ry + 126;
+    obstacles.sort(function(a,b){ return a.distance - b.distance; }).slice(0,2).forEach(function(o){
+      hctx.fillStyle = o.distance < 15 ? '#FF3B3B' : '#A0C0A0';
+      hctx.fillText((o.distance<15?'⚠ ':'● ') + o.type.toUpperCase() + '  ' + o.distance.toFixed(1) + 'm', rx+12, y);
+      y += 20;
+    });
+
+    hctx.fillStyle = '#A0C0A0';
+    hctx.fillRect(20, hud.height - 48, hud.width - 40, 30);
+    hctx.fillStyle = '#051107';
+    hctx.font='13px Share Tech Mono';
+    hctx.fillText('LAT: -31.4127° S | LON: -61.5382° W | ALT: 87m | HDG: '+Math.round(THREE.MathUtils.radToDeg(tractorHeading))+'° | SPD: 3.0 km/h | FIELD: '+hectares.toFixed(2)+' ha', 30, hud.height-28);
+
+    if (obstacles.some(function(o){ return o.distance < 20; })) {
+      hctx.strokeStyle = 'rgba(0,255,178,0.7)';
+      hctx.beginPath(); hctx.arc(hud.width/2, hud.height/2, 26, 0, Math.PI*2); hctx.stroke();
+      hctx.beginPath(); hctx.moveTo(hud.width/2-40, hud.height/2); hctx.lineTo(hud.width/2+40, hud.height/2); hctx.stroke();
+      hctx.beginPath(); hctx.moveTo(hud.width/2, hud.height/2-40); hctx.lineTo(hud.width/2, hud.height/2+40); hctx.stroke();
+    }
+
+    if (estop) {
+      hctx.fillStyle = 'rgba(255, 59, 59, 0.22)';
+      hctx.fillRect(0,0,hud.width,hud.height);
+      hctx.fillStyle = '#FF3B3B';
+      hctx.font = 'bold 48px Orbitron';
+      hctx.fillText('⛔ EMERGENCY STOP', hud.width*0.5-240, hud.height*0.55);
+    }
+
+    // minimap
+    var mapW=150,mapH=150,mx=18,my=hud.height-mapH-58;
+    hctx.fillStyle='rgba(3,8,5,0.78)'; hctx.fillRect(mx,my,mapW,mapH); hctx.strokeStyle='rgba(0,255,178,0.45)'; hctx.strokeRect(mx,my,mapW,mapH);
+    function toMap(vx,vz){ return {x:mx+(vx+100)/200*mapW, y:my+(vz+100)/200*mapH}; }
+    var tmap = toMap(tractorPos.x, tractorPos.z);
+    hctx.fillStyle='#00FFB2'; hctx.beginPath(); hctx.arc(tmap.x,tmap.y,3,0,Math.PI*2); hctx.fill();
+    obstacles.forEach(function(o){ var op=toMap(tractorPos.x+o.pos.x, tractorPos.z+o.pos.z); hctx.fillStyle=o.distance<15?'#FF3B3B':'#FFB300'; hctx.fillRect(op.x-2,op.y-2,4,4); });
+  }
+
+  var last = performance.now();
+  var fpsCounter = { frames: 0, t0: last, goodTime: 0 };
+  function animate(now) {
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    updateAges(dt);
+    updateTractor(dt);
+    var detections = emitLidar(dt);
+    updateCamera(now / 1000);
+    renderer.render(scene, camera);
+    drawHUD(now / 1000, detections);
+
+    fpsCounter.frames++;
+    if (now - fpsCounter.t0 > 2000) {
+      var fps = fpsCounter.frames * 1000 / (now - fpsCounter.t0);
+      if (fps < 25) lidarState.pointsPerFrame = Math.max(CONFIG.MOBILE_MIN, Math.floor(lidarState.pointsPerFrame * 0.5));
+      if (fps > 55) fpsCounter.goodTime += 2; else fpsCounter.goodTime = 0;
+      if (fpsCounter.goodTime >= 5) { lidarState.pointsPerFrame = Math.min(CONFIG.MAX_POINTS, lidarState.pointsPerFrame + 256); fpsCounter.goodTime = 0; }
+      fpsCounter.frames = 0; fpsCounter.t0 = now;
+    }
+    requestAnimationFrame(animate);
+  }
+
+  function onResize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    hud.width = Math.floor(w * Math.min(window.devicePixelRatio || 1, 2));
+    hud.height = Math.floor(h * Math.min(window.devicePixelRatio || 1, 2));
+    hud.style.width = w + 'px'; hud.style.height = h + 'px';
+    hctx.setTransform(hud.width / w, 0, 0, hud.height / h, 0, 0);
+  }
+
+  function randomizeObstacles() {
+    obstacles.forEach(function (o) {
+      o.pos.set((Math.random() - 0.5) * 60, 0, (Math.random() - 0.5) * 60);
+      o.mesh.position.set(tractorPos.x + o.pos.x, o.height/2, tractorPos.z + o.pos.z);
+      o.box.update();
+    });
+    simPaused = false;
+    estop = false;
+  }
+
+  window.addEventListener('resize', onResize);
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Space') simPaused = !simPaused;
+    if (e.key === '1') cameraMode = 'aerial';
+    if (e.key === '2') cameraMode = 'cockpit';
+    if (e.key === '3') cameraMode = 'cinematic';
+    if (e.key.toLowerCase() === 'h') showHUD = !showHUD;
+    if (e.key.toLowerCase() === 'p') { photoMode = !photoMode; showHUD = !photoMode; }
+    if (e.key.toLowerCase() === 'r') randomizeObstacles();
+  });
+
+  document.querySelectorAll('#ui-controls [data-cam]').forEach(function(btn){ btn.addEventListener('touchstart', function(){ cameraMode = btn.getAttribute('data-cam'); }); btn.addEventListener('click', function(){ cameraMode = btn.getAttribute('data-cam'); }); });
+  document.getElementById('pause-btn').addEventListener('click', function(){ simPaused = !simPaused; });
+  document.getElementById('reset-btn').addEventListener('click', randomizeObstacles);
+
+  var touching = false, lx=0, ly=0;
+  renderer.domElement.addEventListener('touchstart', function(e){ if (e.touches.length === 1) { touching = true; lx = e.touches[0].clientX; ly = e.touches[0].clientY; } if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }, { passive: false });
+  renderer.domElement.addEventListener('touchmove', function(e){ if (touching && e.touches.length === 1) { var dx = e.touches[0].clientX - lx; var dy = e.touches[0].clientY - ly; camera.position.x += dx * 0.02; camera.position.y += dy * 0.02; lx = e.touches[0].clientX; ly = e.touches[0].clientY; } e.preventDefault(); }, { passive: false });
+  renderer.domElement.addEventListener('touchend', function(){ touching = false; }, { passive: false });
+
+  function boot() {
+    var stages = ['Initializing sensor array…','Loading terrain mesh…','Calibrating detection algorithms…','Syncing HUD telemetry…','Demo ready.'];
+    var i = 0;
+    var timer = setInterval(function(){
+      loadingBar.style.width = ((i + 1) / stages.length * 100) + '%';
+      loadingText.textContent = stages[i];
+      i++;
+      if (i >= stages.length) {
+        clearInterval(timer);
+        setTimeout(function(){ intro.style.opacity = '0'; setTimeout(function(){ intro.style.display = 'none'; }, 1000); }, 600);
+      }
+    }, 500);
+  }
+
+  generateTerrain(CONFIG.FIELD_W, CONFIG.FIELD_D);
+  createTractor();
+  createObstacles();
+  onResize();
+  boot();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
