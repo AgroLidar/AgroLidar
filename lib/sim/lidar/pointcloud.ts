@@ -8,8 +8,12 @@ function classColor(cls: LidarPoint['cls']): [number, number, number] {
     case 'human': return [1, 0.26, 0.3];
     case 'animal': return [1, 0.72, 0.18];
     case 'vehicle':
+    case 'tractor':
     case 'machinery': return [0.44, 0.92, 1];
-    case 'post': return [0.75, 0.9, 0.3];
+    case 'post':
+    case 'pole': return [0.75, 0.9, 0.3];
+    case 'fence-line':
+    case 'field-boundary': return [0.85, 0.42, 0.92];
     case 'tree': return [0.3, 0.88, 0.45];
     case 'hay-bale': return [0.93, 0.84, 0.35];
     case 'rock': return [0.82, 0.82, 0.88];
@@ -38,6 +42,11 @@ export function pointsToBuffer(points: LidarPoint[], mode: PointColorMode): THRE
       r = 0.2 + 0.8 * t;
       g = 1 - t * 0.55;
       b = 1 - t * 0.82;
+    } else if (mode === 'coverage') {
+      const t = Math.min(1, Math.max(0, (point.y + 2) / 12));
+      r = 0.15 + t * 0.85;
+      g = 0.5 + (1 - t) * 0.45;
+      b = 0.35 + t * 0.55;
     } else {
       r = point.hazard ? 1 : 0.22;
       g = point.hazard ? 0.34 : 0.85;

@@ -10,8 +10,8 @@ export interface ChunkData {
   obstacles: WorldObstacle[];
 }
 
-const hazardClasses: WorldObstacle['cls'][] = ['human', 'animal', 'rock', 'post', 'vehicle'];
-const propClasses: WorldObstacle['cls'][] = ['hay-bale', 'tree', 'rock', 'post', 'machinery'];
+const hazardClasses: WorldObstacle['cls'][] = ['human', 'animal', 'rock', 'post', 'pole', 'vehicle', 'tractor', 'field-boundary'];
+const propClasses: WorldObstacle['cls'][] = ['hay-bale', 'tree', 'rock', 'fence-line', 'machinery'];
 
 export function generateChunk(
   seed: number,
@@ -39,10 +39,11 @@ export function generateChunk(
     const isHazard = rng() < scenario.hazardWeight * (0.28 + hazardDensity * 0.8);
     const cls = isHazard ? hazardClasses[Math.floor(rng() * hazardClasses.length)] : propClasses[Math.floor(rng() * propClasses.length)];
     const radius =
-      cls === 'vehicle' || cls === 'machinery' ? 2.4 :
+      cls === 'vehicle' || cls === 'tractor' || cls === 'machinery' ? 2.4 :
       cls === 'human' ? 0.55 :
       cls === 'animal' ? 0.9 :
-      cls === 'post' ? 0.35 :
+      cls === 'post' || cls === 'pole' ? 0.35 :
+      cls === 'fence-line' || cls === 'field-boundary' ? 1.8 :
       cls === 'hay-bale' ? 1.15 :
       cls === 'tree' ? 1.65 :
       1.0;
@@ -52,7 +53,7 @@ export function generateChunk(
       cls,
       x,
       z,
-      y: sampleTerrainHeight(x, z, seed, scenario.terrainRoughness) + (cls === 'post' ? 0.6 : 0.2),
+      y: sampleTerrainHeight(x, z, seed, scenario.terrainRoughness) + (cls === 'post' || cls === 'pole' ? 0.6 : 0.2),
       radius,
       hazard: isHazard,
     });

@@ -1,11 +1,13 @@
 import { useSyncExternalStore } from 'react';
 
-import { defaultSettings, type SimulatorSettings } from '@/lib/sim/config';
+import { defaultSettings, type SimulatorSettings, type VehicleType, type DroneMissionMode } from '@/lib/sim/config';
 import type { ObstacleClass } from '@/lib/sim/world/props';
 import type { RiskLevel } from '@/lib/sim/lidar/hazards';
 
 export interface TelemetrySnapshot {
   speed: number;
+  altitude: number;
+  headingDeg: number;
   nearestHazard: number;
   risk: RiskLevel;
   pointCount: number;
@@ -15,6 +17,11 @@ export interface TelemetrySnapshot {
   scenarioLabel: string;
   cameraMode: string;
   frameRate: number;
+  vehicle: VehicleType;
+  droneMission: DroneMissionMode;
+  payloadPct: number;
+  coveragePct: number;
+  routeProgressPct: number;
 }
 
 interface SimStore {
@@ -28,6 +35,8 @@ const state: SimStore = {
   settings: defaultSettings,
   telemetry: {
     speed: 0,
+    altitude: 0,
+    headingDeg: 0,
     nearestHazard: Infinity,
     risk: 'SAFE',
     pointCount: 0,
@@ -37,6 +46,11 @@ const state: SimStore = {
     scenarioLabel: 'Farm Road',
     cameraMode: defaultSettings.cameraMode,
     frameRate: 0,
+    vehicle: defaultSettings.vehicle,
+    droneMission: defaultSettings.droneMission,
+    payloadPct: 100,
+    coveragePct: 0,
+    routeProgressPct: 0,
   },
 };
 

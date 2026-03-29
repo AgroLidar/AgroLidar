@@ -81,7 +81,7 @@ export function sampleLidarPoints(
         const hit = intersectObstacleRay(pose.x, pose.z, dirX, dirZ, obstacle);
         if (hit === null || hit > hitDistance || hit > config.range) continue;
         const heightAtRay = pose.y + hit * vertical;
-        const maxHeight = obstacle.y + obstacle.radius * (obstacle.cls === 'post' ? 3.2 : 1.8);
+        const maxHeight = obstacle.y + obstacle.radius * (obstacle.cls === 'post' || obstacle.cls === 'pole' ? 3.2 : obstacle.cls === 'tree' ? 2.4 : 1.8);
         if (heightAtRay < obstacle.y - 0.4 || heightAtRay > maxHeight) continue;
         hitDistance = hit;
         hitClass = obstacle.cls;
