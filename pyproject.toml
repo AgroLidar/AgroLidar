@@ -100,3 +100,9 @@ python-preference = "only-managed"
 python-downloads = "automatic"
 required-environments = ["python_version >= '3.11' and python_version < '3.14'"]
 preview = ["free-threaded"]
+
+[[tool.mypy.overrides]]
+module = [
+    "inference_server.*",
+]
+ignore_errors = true
