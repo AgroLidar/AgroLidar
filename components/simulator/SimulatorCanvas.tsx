@@ -48,18 +48,22 @@ function resolveVehicleCollisions(
     const dx = nx - obstacle.x;
     const dz = nz - obstacle.z;
     const distance = Math.hypot(dx, dz);
-    const vehicleRadius = 1.45;
-    const buffer = obstacle.collision === 'soft' ? 0.2 : 0.5;
+    const vehicleRadius = 1.08;
+    const buffer = obstacle.collision === 'soft' ? 0.02 : 0.08;
     const minDistance = obstacle.radius + vehicleRadius + buffer;
     if (distance <= 0 || distance >= minDistance) continue;
     const penetration = minDistance - distance;
-    const pushStrength = obstacle.collision === 'soft' ? 0.45 : 0.72;
-    const push = Math.min(0.4, penetration * pushStrength);
+    const contactWindow = obstacle.collision === 'soft' ? 0.06 : 0.12;
+    if (penetration < contactWindow) continue;
+    const resolvedPenetration = penetration - contactWindow;
+    const pushStrength = obstacle.collision === 'soft' ? 0.18 : 0.34;
+    const push = Math.min(obstacle.collision === 'soft' ? 0.1 : 0.22, resolvedPenetration * pushStrength);
     nx += (dx / distance) * push;
     nz += (dz / distance) * push;
-    const speedLoss = obstacle.collision === 'soft' ? 0.35 : obstacle.hazard ? 0.7 : 0.52;
-    speed *= Math.max(0.28, 1 - penetration * speedLoss * (0.9 + dt));
-    heading += (dx * 0.02 - dz * 0.02) * penetration;
+    const speedLoss =
+      obstacle.collision === 'soft' ? 0.04 : obstacle.hazard ? 0.18 : 0.12;
+    speed *= Math.max(0.62, 1 - resolvedPenetration * speedLoss * (0.8 + dt));
+    heading += (dx * 0.007 - dz * 0.007) * resolvedPenetration;
   }
   return { ...state, x: nx, z: nz, speed, heading };
 }

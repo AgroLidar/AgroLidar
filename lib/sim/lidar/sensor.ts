@@ -46,7 +46,8 @@ function intersectObstacleRay(ox: number, oz: number, dx: number, dz: number, ob
   const proj = cx * dx + cz * dz;
   if (proj < 0) return null;
   const perpSq = cx * cx + cz * cz - proj * proj;
-  const radiusSq = obstacle.radius * obstacle.radius;
+  const sensingRadius = obstacle.sensingRadius ?? obstacle.radius;
+  const radiusSq = sensingRadius * sensingRadius;
   if (perpSq > radiusSq) return null;
   const hit = proj - Math.sqrt(Math.max(0, radiusSq - perpSq));
   return hit >= 0 ? hit : null;
@@ -54,7 +55,8 @@ function intersectObstacleRay(ox: number, oz: number, dx: number, dz: number, ob
 
 function resolveObstacleHit(pose: LidarPose, beamVertical: number, hit: number, obstacle: WorldObstacle): HitResult | null {
   const hitY = pose.y + hit * beamVertical;
-  const obstacleTop = obstacle.y + (obstacle.height ?? obstacle.radius * 2.2);
+  const sensingRadius = obstacle.sensingRadius ?? obstacle.radius;
+  const obstacleTop = obstacle.y + (obstacle.height ?? sensingRadius * 2.2);
   if (hitY < obstacle.y - 0.2 || hitY > obstacleTop + 0.1) return null;
 
   return {

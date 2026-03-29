@@ -79,6 +79,7 @@ function Ground({ seed, terrainRoughness, wetness, dimmed }: { seed: number; ter
 }
 
 function ObstacleMesh({ obstacle, muted }: { obstacle: WorldObstacle; muted: boolean }) {
+  const visualRadius = obstacle.sensingRadius ?? obstacle.radius;
   const color =
     obstacle.cls === 'human' ? '#ffb2a4' :
     obstacle.cls === 'animal' ? '#f7c45c' :
@@ -98,7 +99,7 @@ function ObstacleMesh({ obstacle, muted }: { obstacle: WorldObstacle; muted: boo
 
   if (obstacle.cls === 'tree') {
     const treeHeight = obstacle.height ?? 6.2;
-    const crown = obstacle.radius * (1.4 + ((obstacle.variant ?? 0) % 3) * 0.22);
+    const crown = visualRadius * (1.4 + ((obstacle.variant ?? 0) % 3) * 0.22);
     return (
       <group position={[obstacle.x, obstacle.y, obstacle.z]}>
         <mesh castShadow position={[0, treeHeight * 0.22, 0]}>
@@ -200,8 +201,8 @@ function ObstacleMesh({ obstacle, muted }: { obstacle: WorldObstacle; muted: boo
   }
 
   return (
-    <mesh position={[obstacle.x, obstacle.y + obstacle.radius * 0.5, obstacle.z]} castShadow>
-      <dodecahedronGeometry args={[obstacle.radius, 0]} />
+    <mesh position={[obstacle.x, obstacle.y + visualRadius * 0.5, obstacle.z]} castShadow>
+      <dodecahedronGeometry args={[visualRadius, 0]} />
       {material}
     </mesh>
   );
