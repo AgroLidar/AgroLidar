@@ -46,10 +46,11 @@ export function computeHazards(obstacles: WorldObstacle[], px: number, pz: numbe
     .map((obstacle) => {
       const ox = obstacle.x - px;
       const oz = obstacle.z - pz;
+      const sensingRadius = obstacle.sensingRadius ?? obstacle.radius;
       const distance = Math.hypot(ox, oz);
       const forwardDistance = ox * fx + oz * fz;
       const lateralOffset = Math.abs(ox * fz - oz * fx);
-      const inForwardZone = forwardDistance > -2 && forwardDistance < range * 0.85 && lateralOffset < Math.max(3.1, obstacle.radius + 2.4);
+      const inForwardZone = forwardDistance > -2 && forwardDistance < range * 0.85 && lateralOffset < Math.max(2.6, sensingRadius + 1.8);
       return { obstacle, distance, forwardDistance, lateralOffset, inForwardZone, risk: classifyRisk(distance, inForwardZone, obstacle) };
     })
     .filter((item) => item.distance <= range)

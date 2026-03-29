@@ -21,6 +21,7 @@ export interface WorldObstacle {
   y: number;
   z: number;
   radius: number;
+  sensingRadius?: number;
   hazard: boolean;
   height?: number;
   variant?: number;

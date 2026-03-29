@@ -57,34 +57,18 @@ export function TractorVehicle({ stateRef }: { stateRef: MutableRefObject<Vehicl
 
   return (
     <group ref={rootRef}>
-      <group position={[0, 1.04, -0.05]}>
+      <group position={[0, 1.02, -0.06]}>
         <mesh castShadow receiveShadow geometry={tractorGeometry}>
-          <meshStandardMaterial color="#1c7430" metalness={0.22} roughness={0.46} />
+          <meshStandardMaterial color="#1d7f33" metalness={0.2} roughness={0.4} />
         </mesh>
 
-        <mesh castShadow position={[0, 0.42, 1.82]}>
-          <boxGeometry args={[1.58, 0.48, 1.6]} />
-          <meshStandardMaterial color="#246b2b" metalness={0.24} roughness={0.45} />
-        </mesh>
-
-        <group position={[0, 1.05, -0.88]}>
-          <mesh castShadow>
-            <boxGeometry args={[1.36, 0.85, 1.5]} />
-            <meshStandardMaterial color="#1c262f" metalness={0.38} roughness={0.2} />
-          </mesh>
-          <mesh position={[0, 0.02, 0.03]}>
-            <boxGeometry args={[1.2, 0.72, 1.26]} />
-            <meshStandardMaterial color="#95aab8" metalness={0.08} roughness={0.08} transparent opacity={0.44} />
-          </mesh>
-        </group>
-
-        <mesh castShadow position={[0, -0.02, -2.42]}>
-          <boxGeometry args={[1.62, 0.2, 0.42]} />
-          <meshStandardMaterial color="#3a3f46" roughness={0.68} metalness={0.24} />
+        <mesh castShadow position={[0.62, 1.42, 0.34]} rotation={[0, 0, 0.08]}>
+          <cylinderGeometry args={[0.07, 0.1, 1.06, 12]} />
+          <meshStandardMaterial color="#27323b" roughness={0.52} metalness={0.45} />
         </mesh>
       </group>
 
-      <group position={[0, 2.22, 0.95]}>
+      <group position={[0.04, 2.16, 0.98]}>
         <mesh castShadow>
           <cylinderGeometry args={[0.048, 0.048, 0.5, 10]} />
           <meshStandardMaterial color="#e9bf2e" roughness={0.3} metalness={0.64} />
@@ -95,7 +79,7 @@ export function TractorVehicle({ stateRef }: { stateRef: MutableRefObject<Vehicl
         </mesh>
       </group>
 
-      <group position={[0, 0.92, -2.28]}>
+      <group position={[0, 0.9, -2.18]}>
         <mesh castShadow>
           <boxGeometry args={[0.68, 0.18, 0.28]} />
           <meshStandardMaterial color="#454a51" roughness={0.66} metalness={0.3} />

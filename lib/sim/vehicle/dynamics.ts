@@ -55,13 +55,13 @@ export function stepVehicle(
   const maxForwardSpeed = clamp(16.8 * (0.8 + traction * 0.24), 10.2, 17.4);
   const maxReverseSpeed = -4.8;
 
-  const torque = 15.6 * (0.7 + traction * 0.48);
-  const lowSpeedBoost = 1 + clamp((4.5 - Math.abs(state.speed)) / 4.5, 0, 0.75);
+  const torque = 16.4 * (0.74 + traction * 0.5);
+  const lowSpeedBoost = 1 + clamp((5.2 - Math.abs(state.speed)) / 5.2, 0, 0.85);
   const throttleAccel = input.throttle * torque * lowSpeedBoost;
   const reverseAccel = input.brake * 9.2 * (state.speed < 0.8 ? 1 : 0.36);
   const gradePenalty = terrainPitch * 7.4;
-  const drag = (1.2 + Math.abs(state.speed) * 0.55) * (state.speed >= 0 ? 1 : -0.6);
-  const coastBrake = input.throttle < 0.02 && input.brake < 0.02 ? 2.6 * Math.sign(state.speed) : 0;
+  const drag = (0.86 + Math.abs(state.speed) * 0.46) * (state.speed >= 0 ? 1 : -0.56);
+  const coastBrake = input.throttle < 0.02 && input.brake < 0.02 ? 1.8 * Math.sign(state.speed) : 0;
   const handbrake = input.handbrake ? 16 : 0;
 
   const acceleration = throttleAccel - reverseAccel - drag - gradePenalty - coastBrake - handbrake;

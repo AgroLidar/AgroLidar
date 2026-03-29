@@ -64,7 +64,7 @@ export const defaultSettings: SimulatorSettings = {
   quality: 'high',
   presentationMode: false,
   renderScale: 1,
-  hazardDensity: 0.5,
+  hazardDensity: 0.34,
   lidarRange: 70,
   lidarDensity: 0.68,
   sensorPreset: 'hazard-sweep',
