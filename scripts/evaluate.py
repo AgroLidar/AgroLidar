@@ -35,7 +35,10 @@ def _resolve_checkpoint(config: EvalConfig, checkpoint_arg: str | None) -> str:
         return str(config.checkpoint_path)
 
     output_dir = Path(config.output_dir)
-    for candidate in [output_dir / "checkpoints" / "best.pt", output_dir / "checkpoints" / "latest.pt"]:
+    for candidate in [
+        output_dir / "checkpoints" / "best.pt",
+        output_dir / "checkpoints" / "latest.pt",
+    ]:
         if candidate.exists():
             return str(candidate)
 
@@ -115,7 +118,9 @@ def main() -> int:
 
     split = args.split or str(config.evaluation.get("split", "test"))
     checkpoint = _resolve_checkpoint(config, args.checkpoint)
-    device = torch.device("cuda" if config.device == "cuda" and torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda" if config.device == "cuda" and torch.cuda.is_available() else "cpu"
+    )
     logger = setup_logger(str(config.output_dir))
 
     dataset = build_dataset(config.data, split=split)
@@ -162,10 +167,14 @@ def main() -> int:
         if latest_train_run:
             tracker.set_tag("train_run_id", latest_train_run)
         tracker.log_params(flatten_dict(runtime_config))
-        eval_metrics = {f"eval/{k}": float(v) for k, v in metrics.items() if isinstance(v, (int, float))}
+        eval_metrics = {
+            f"eval/{k}": float(v) for k, v in metrics.items() if isinstance(v, (int, float))
+        }
         tracker.log_metrics(eval_metrics)
         if "dangerous_fnr" in metrics:
-            tracker.log_metric("eval/dangerous_fnr", _metric_as_float(metrics, "dangerous_fnr", 0.0))
+            tracker.log_metric(
+                "eval/dangerous_fnr", _metric_as_float(metrics, "dangerous_fnr", 0.0)
+            )
         tracker.log_eval_report(json_path)
         tracker.log_eval_report(md_path)
         model_tag = str(config.evaluation.get("model_tag", "candidate"))

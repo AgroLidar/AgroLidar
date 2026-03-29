@@ -4,7 +4,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -51,9 +51,7 @@ def _load_yaml_recursive(path: Path, stack: tuple[Path, ...]) -> dict[str, Any]:
     with resolved.open(encoding="utf-8") as handle:
         config = yaml.safe_load(handle) or {}
     if not isinstance(config, dict):
-        raise TypeError(
-            f"Config root must be a mapping in {resolved}, got {type(config).__name__}"
-        )
+        raise TypeError(f"Config root must be a mapping in {resolved}, got {type(config).__name__}")
 
     base_config = config.pop("base_config", None)
     if base_config:

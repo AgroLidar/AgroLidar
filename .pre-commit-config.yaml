@@ -26,7 +26,15 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        args: ["--config-file=pyproject.toml"]
+        args:
+          - "--config-file=pyproject.toml"
+          - "lidar_perception/config.py"
+          - "lidar_perception/utils/config.py"
+          - "lidar_perception/utils/checkpoint.py"
+          - "lidar_perception/registry/model_registry.py"
+          - "lidar_perception/training/metrics.py"
+          - "lidar_perception/training/pipeline.py"
+          - "lidar_perception/api/main.py"
         pass_filenames: false
         additional_dependencies:
           - "pydantic>=2.0"
