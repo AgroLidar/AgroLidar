@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
-import { Providers } from "@/app/providers";
+import { Providers } from '@/app/providers';
 
 export const metadata: Metadata = {
-  title: "AgroLidar — Perception for the Field",
-  description: "LiDAR-based safety perception system for agricultural machines."
+  title: 'AgroLidar — Flagship LiDAR Simulator',
+  description: 'Premium browser-native tractor and agricultural LiDAR hazard simulator for field safety demos.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

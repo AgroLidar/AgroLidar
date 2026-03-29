@@ -72,7 +72,7 @@ make safety-check
 
 ## Web Simulator
 
-AgroLidar now includes a browser-native, procedural simulator at `/simulator` focused on replayable agricultural driving with live LiDAR-style perception overlays.
+AgroLidar now uses the simulator as the default web entrypoint: `/` redirects to `/simulator` in production (including Vercel), while the previous marketing landing page moved to `/legacy`.
 
 ### Controls
 
@@ -81,16 +81,19 @@ AgroLidar now includes a browser-native, procedural simulator at `/simulator` fo
 - `A` / `ArrowLeft`: steer left
 - `D` / `ArrowRight`: steer right
 - `Space`: emergency stop
-- `R`: reset vehicle
-- `C`: cycle camera (chase, hood, top-down, lidar)
+- `R`: reset tractor
+- `C`: cycle camera (chase, hood, cinematic, top-down, lidar)
 - `P`: pause/resume
+- `H`: show/hide HUD
+- `L`: cycle LiDAR modes
+- `M`: toggle BEV/minimap
 
 ### Run locally
 
 ```bash
 npm ci
 npm run dev
-# open http://localhost:3000/simulator
+# open http://localhost:3000 (auto-redirects to /simulator)
 ```
 
 ### Production build
