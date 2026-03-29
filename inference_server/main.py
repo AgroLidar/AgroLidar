@@ -5,12 +5,14 @@ import binascii
 import logging
 import traceback
 from collections import Counter
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal, cast
 
 import numpy as np
 import torch
+from numpy.typing import NDArray
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -34,9 +36,11 @@ from lidar_perception.embedding import compute_pointcloud_embedding
 
 logger = logging.getLogger("inference_server")
 TorchError = getattr(torch, "TorchError", RuntimeError)
+HealthStatus = Literal["healthy", "degraded", "unhealthy"]
+CollisionRisk = Literal["high", "medium", "low", "none"]
 
 
-def _decode_frame(frame_data_b64: str) -> np.ndarray:
+def _decode_frame(frame_data_b64: str) -> NDArray[np.float32]:
     try:
         raw = base64.b64decode(frame_data_b64)
     except (ValueError, binascii.Error) as exc:
@@ -54,7 +58,7 @@ def _dangerous_objects_count(detections: list[dict[str, Any]]) -> int:
     return sum(1 for item in detections if item["class_name"] in {"human", "animal"})
 
 
-def _status_from_predictor(predictor: BEVPredictor) -> str:
+def _status_from_predictor(predictor: BEVPredictor) -> HealthStatus:
     if not predictor.model_loaded:
         return "unhealthy"
     return "healthy" if predictor.is_healthy() else "degraded"
@@ -64,7 +68,7 @@ def _get_predictor_or_503(app: FastAPI) -> BEVPredictor:
     predictor = getattr(app.state, "predictor", None)
     if predictor is None:
         raise HTTPException(status_code=503, detail="Predictor not available")
-    return predictor
+    return cast(BEVPredictor, predictor)
 
 
 def _record_metrics(app: FastAPI, detections_data: list[dict[str, Any]], dangerous_objects: int) -> None:
@@ -77,13 +81,17 @@ def _record_metrics(app: FastAPI, detections_data: list[dict[str, Any]], dangero
         class_counter[det["class_name"]] += 1
 
 
-def _augment_with_vector_context(app: FastAPI, payload: BEVFrameInput, frame: np.ndarray) -> list[str]:
+def _augment_with_vector_context(
+    app: FastAPI,
+    payload: BEVFrameInput,
+    frame: NDArray[np.float32],
+) -> list[str]:
     if app.state.vector_db is None:
         return []
     embedding = compute_pointcloud_embedding(frame.reshape(-1, frame.shape[0]))
     app.state.vector_db.add_embedding(payload.frame_id, embedding, {"timestamp": payload.timestamp})
     app.state.metrics["vector_queries"] += 1
-    return app.state.vector_db.query(embedding, k=5)
+    return cast(list[str], app.state.vector_db.query(embedding, k=5))
 
 
 def _predict_one(app: FastAPI, payload: BEVFrameInput, request: Request) -> PredictionResponse:
@@ -96,7 +104,7 @@ def _predict_one(app: FastAPI, payload: BEVFrameInput, request: Request) -> Pred
         detections = predictor.predict(frame)
         detections_data = [item.model_dump() for item in detections]
         dangerous_objects = _dangerous_objects_count(detections_data)
-        collision_risk = predictor.last_collision_risk
+        collision_risk = cast(CollisionRisk, predictor.last_collision_risk)
 
         _record_metrics(app, detections_data, dangerous_objects)
 
@@ -129,7 +137,7 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
     )
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.config = runtime_config
         app.state.started_at = utc_now()
         app.state.metrics = {
@@ -177,9 +185,12 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
     app = FastAPI(title="AgroLidar Inference Server", version="1.0.0", lifespan=lifespan)
     app.state.limiter = limiter
     app.add_middleware(SlowAPIMiddleware)
+    async def rate_limit_handler(_: Request, __: Exception) -> JSONResponse:
+        return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+
     app.add_exception_handler(
         RateLimitExceeded,
-        lambda req, exc: JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"}),
+        rate_limit_handler,
     )
     app.add_middleware(
         CORSMiddleware,

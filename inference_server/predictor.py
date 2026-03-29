@@ -4,10 +4,11 @@ import json
 import time
 from collections import deque
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 import numpy as np
 import torch
+from numpy.typing import NDArray
 
 from inference_server.models import Detection
 from lidar_perception.models.factory import build_model
@@ -15,6 +16,8 @@ from lidar_perception.utils.checkpoint import load_checkpoint
 from lidar_perception.utils.config import load_config
 
 KNOWN_CLASSES = ["human", "animal", "rock", "post", "vehicle"]
+KnownClassName = Literal["human", "animal", "rock", "post", "vehicle"]
+RiskLevel = Literal["critical", "warning", "safe"]
 
 
 class BEVPredictor:
@@ -121,14 +124,14 @@ class BEVPredictor:
             except Exception:
                 self._recent_success.append(False)
 
-    def _validate_frame(self, frame_array: np.ndarray) -> np.ndarray:
+    def _validate_frame(self, frame_array: NDArray[np.float32]) -> NDArray[np.float32]:
         if frame_array.shape != self.EXPECTED_SHAPE:
             raise ValueError(f"Invalid frame shape {frame_array.shape}; expected {self.EXPECTED_SHAPE}")
         if frame_array.dtype != np.float32:
             frame_array = frame_array.astype(np.float32)
         return frame_array
 
-    def _normalize(self, frame_array: np.ndarray) -> np.ndarray:
+    def _normalize(self, frame_array: NDArray[np.float32]) -> NDArray[np.float32]:
         if frame_array.max(initial=0.0) > 1.0 or frame_array.min(initial=0.0) < 0.0:
             max_abs = float(np.abs(frame_array).max(initial=1.0))
             if max_abs > 0:
@@ -136,7 +139,7 @@ class BEVPredictor:
         return frame_array
 
     @staticmethod
-    def _risk_for_detection(class_name: str, distance_m: float) -> str:
+    def _risk_for_detection(class_name: KnownClassName, distance_m: float) -> RiskLevel:
         if class_name in {"human", "animal"}:
             if distance_m < 10.0:
                 return "critical"
@@ -170,13 +173,14 @@ class BEVPredictor:
             class_name = str(item.get("class_name", "vehicle"))
             if class_name not in KNOWN_CLASSES:
                 continue
+            typed_class_name = cast(KnownClassName, class_name)
             distance_m = float(item.get("distance_m", 999.0))
-            risk = self._risk_for_detection(class_name, distance_m)
+            risk = self._risk_for_detection(typed_class_name, distance_m)
             bbox = item.get("bbox_bev") or item.get("box") or [0.0, 0.0, 1.0, 1.0, 0.0]
             bbox = [float(v) for v in bbox[:5]] if len(bbox) >= 5 else [0.0, 0.0, 1.0, 1.0, 0.0]
             decoded.append(
                 Detection(
-                    class_name=class_name,
+                    class_name=typed_class_name,
                     confidence=float(item.get("confidence", item.get("score", 0.0))),
                     bbox_bev=bbox,
                     distance_m=distance_m,
@@ -185,7 +189,7 @@ class BEVPredictor:
             )
         return decoded
 
-    def _decode_onnx_outputs(self, outputs: list[np.ndarray]) -> list[Detection]:
+    def _decode_onnx_outputs(self, outputs: list[NDArray[np.float32]]) -> list[Detection]:
         if len(outputs) < 2:
             return []
 
@@ -207,19 +211,20 @@ class BEVPredictor:
             col = int(flat_index % width)
             class_idx = int(np.argmax(detections[0, :, row, col]))
             class_name = KNOWN_CLASSES[class_idx] if class_idx < len(KNOWN_CLASSES) else "vehicle"
+            typed_class_name = cast(KnownClassName, class_name)
             distance_m = max(1.0, float((detections.shape[-2] - row) * 0.25))
             decoded.append(
                 Detection(
-                    class_name=class_name,
+                    class_name=typed_class_name,
                     confidence=score,
                     bbox_bev=[float(col), float(row), 1.0, 1.0, 0.0],
                     distance_m=distance_m,
-                    risk_level=self._risk_for_detection(class_name, distance_m),
+                    risk_level=self._risk_for_detection(typed_class_name, distance_m),
                 )
             )
         return decoded
 
-    def predict(self, frame_array: np.ndarray) -> list[Detection]:
+    def predict(self, frame_array: NDArray[np.float32]) -> list[Detection]:
         started = time.perf_counter()
         try:
             frame_array = self._normalize(self._validate_frame(frame_array))

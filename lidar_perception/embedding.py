@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import numpy as np
+from numpy.typing import NDArray
 
 
-def compute_pointcloud_embedding(points: np.ndarray, embedding_dim: int = 128) -> np.ndarray:
+def compute_pointcloud_embedding(
+    points: NDArray[np.float32],
+    embedding_dim: int = 128,
+) -> NDArray[np.float32]:
     """Compute a deterministic embedding from LiDAR points.
 
     This lightweight baseline summarizes geometry and intensity statistics and
