@@ -9,22 +9,37 @@ export type ScenarioId =
   | 'mud-rain'
   | 'sunset-test';
 export type WeatherId = 'clear' | 'dusty' | 'wet-ground' | 'light-rain' | 'sunset' | 'dawn-haze';
-export type QualityPreset = 'low' | 'medium' | 'high';
-export type ViewMode = 'world' | 'pointcloud' | 'hybrid' | 'bev' | 'depth';
-export type PointColorMode = 'hazard' | 'depth' | 'class';
-export type CameraMode = 'chase' | 'hood' | 'cinematic' | 'top' | 'lidar';
+export type VehicleType = 'tractor' | 'drone';
+export type DroneMissionMode = 'spray' | 'spread' | 'lift' | 'survey';
+export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra';
+export type ViewMode = 'world' | 'pointcloud' | 'hybrid' | 'bev' | 'depth' | 'hazard';
+export type PointColorMode = 'hazard' | 'depth' | 'class' | 'coverage';
+export type CameraMode =
+  | 'chase'
+  | 'hood'
+  | 'cinematic'
+  | 'top'
+  | 'lidar'
+  | 'drone-follow'
+  | 'drone-mission'
+  | 'drone-survey';
 
 export interface SimulatorSettings {
   seedText: string;
   seed: number;
   scenario: ScenarioId;
   weather: WeatherId;
+  vehicle: VehicleType;
+  droneMission: DroneMissionMode;
   quality: QualityPreset;
+  presentationMode: boolean;
+  renderScale: number;
   hazardDensity: number;
   lidarRange: number;
   lidarDensity: number;
   paused: boolean;
   autopilot: boolean;
+  terrainFollow: boolean;
   viewMode: ViewMode;
   pointColorMode: PointColorMode;
   hudVisible: boolean;
@@ -38,12 +53,17 @@ export const defaultSettings: SimulatorSettings = {
   seed: hashStringToSeed('agrolidar-flagship'),
   scenario: 'farm-road',
   weather: 'clear',
+  vehicle: 'tractor',
+  droneMission: 'survey',
   quality: 'high',
+  presentationMode: false,
+  renderScale: 1,
   hazardDensity: 0.5,
   lidarRange: 70,
   lidarDensity: 0.68,
   paused: false,
   autopilot: false,
+  terrainFollow: true,
   viewMode: 'hybrid',
   pointColorMode: 'hazard',
   hudVisible: true,
@@ -51,3 +71,9 @@ export const defaultSettings: SimulatorSettings = {
   controlsOpen: false,
   cameraMode: 'chase',
 };
+
+export function cameraModesForVehicle(vehicle: VehicleType): CameraMode[] {
+  return vehicle === 'tractor'
+    ? ['chase', 'hood', 'cinematic', 'top', 'lidar']
+    : ['drone-follow', 'drone-mission', 'drone-survey', 'top', 'lidar', 'cinematic'];
+}

@@ -11,12 +11,12 @@ interface WorldProps {
   seed: number;
   terrainRoughness: number;
   wetness: number;
-  viewMode: 'world' | 'pointcloud' | 'hybrid' | 'bev' | 'depth';
+  viewMode: 'world' | 'pointcloud' | 'hybrid' | 'bev' | 'depth' | 'hazard';
 }
 
 export function World({ chunks, weatherSky, seed, terrainRoughness, wetness, viewMode }: WorldProps) {
   const obstacles = useMemo(() => chunks.flatMap((chunk) => chunk.obstacles), [chunks]);
-  const dimmed = viewMode === 'pointcloud' || viewMode === 'bev';
+  const dimmed = viewMode === 'pointcloud' || viewMode === 'bev' || viewMode === 'hazard';
 
   return (
     <>
@@ -74,13 +74,14 @@ function ObstacleMesh({ obstacle, muted }: { obstacle: ChunkData['obstacles'][nu
     obstacle.cls === 'human' ? '#fca5a5' :
     obstacle.cls === 'animal' ? '#fcd34d' :
     obstacle.cls === 'tree' ? '#3ba56a' :
-    obstacle.cls === 'post' ? '#d4d4d4' :
+    obstacle.cls === 'post' || obstacle.cls === 'pole' ? '#d4d4d4' :
+    obstacle.cls === 'fence-line' || obstacle.cls === 'field-boundary' ? '#d946ef' :
     obstacle.cls === 'hay-bale' ? '#dcbf58' :
-    obstacle.cls === 'vehicle' || obstacle.cls === 'machinery' ? '#38bdf8' : '#a8a29e';
+    obstacle.cls === 'vehicle' || obstacle.cls === 'tractor' || obstacle.cls === 'machinery' ? '#38bdf8' : '#a8a29e';
 
-  const material = <meshStandardMaterial color={muted ? '#1f2937' : color} roughness={0.72} metalness={obstacle.cls === 'vehicle' || obstacle.cls === 'machinery' ? 0.22 : 0.06} />;
+  const material = <meshStandardMaterial color={muted ? '#1f2937' : color} roughness={0.72} metalness={obstacle.cls === 'vehicle' || obstacle.cls === 'tractor' || obstacle.cls === 'machinery' ? 0.22 : 0.06} />;
 
-  if (obstacle.cls === 'post') {
+  if (obstacle.cls === 'post' || obstacle.cls === 'pole') {
     return <mesh position={[obstacle.x, obstacle.y + 0.55, obstacle.z]} castShadow><cylinderGeometry args={[0.1, 0.12, 1.2, 8]} />{material}</mesh>;
   }
   if (obstacle.cls === 'tree') {

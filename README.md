@@ -74,19 +74,52 @@ make safety-check
 
 AgroLidar now uses the simulator as the default web entrypoint: `/` redirects to `/simulator` in production (including Vercel), while the previous marketing landing page moved to `/legacy`.
 
+### Multi-vehicle flagship simulator
+
+The simulator now ships two selectable mission platforms in one shared world/state:
+
+- **Tractor**: ground hazard operations with close-range obstacle awareness
+- **Agro Drone**: heavy-lift aerial platform inspired by AGRAS-class agricultural aircraft
+
+Switch vehicles via the top segmented selector or `V`. Seed/scenario/weather continuity is preserved during vehicle swaps.
+
+### Drone mission modes
+
+Press `1`–`4` (or use the control panel) to switch drone mission profile:
+
+1. `Spray` (swath-oriented crop treatment)
+2. `Spread` (granular distribution behavior)
+3. `Lift` (heavier handling + sling payload)
+4. `LiDAR Survey` (mapping/coverage hero mode)
+
 ### Controls
 
-- `W` / `ArrowUp`: accelerate
-- `S` / `ArrowDown`: brake / reverse
-- `A` / `ArrowLeft`: steer left
-- `D` / `ArrowRight`: steer right
-- `Space`: emergency stop
-- `R`: reset tractor
-- `C`: cycle camera (chase, hood, cinematic, top-down, lidar)
+- `W` / `ArrowUp`: forward
+- `S` / `ArrowDown`: backward
+- `A` / `ArrowLeft`: steer (tractor) / strafe (drone) left
+- `D` / `ArrowRight`: steer (tractor) / strafe (drone) right
+- `Space`: drone ascend
+- `Shift`: drone descend
+- `Q` / `E`: drone yaw left/right
+- `R`: reset active vehicle
+- `C`: cycle vehicle-specific cameras
 - `P`: pause/resume
 - `H`: show/hide HUD
-- `L`: cycle LiDAR modes
-- `M`: toggle BEV/minimap
+- `L`: cycle LiDAR rendering modes
+- `M`: toggle minimap/mission map
+- `V`: switch vehicle
+
+### 4K / presentation mode
+
+- Toggle `4K` in the quick controls for premium demos.
+- Uses DPR clamping + adjustable render scale for browser-stable high-resolution output.
+- Quality presets now include `Ultra / Presentation` with graceful fallback (no forced full native 4K render load).
+
+### Browser compatibility
+
+- Browser-native WebGL path (Vercel friendly)
+- Tuned for modern **Chrome**, **Safari**, **Opera**, and Chromium/WebKit browsers
+- Dynamic rendering controls to keep frame pacing stable across desktop/mobile hardware
 
 ### Run locally
 

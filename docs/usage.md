@@ -47,3 +47,26 @@ make pipeline
 ```
 
 This runs train/retrain/evaluate/safety-check/compare/promote in sequence for controlled local validation.
+
+## Web simulator (multi-vehicle)
+
+```bash
+npm ci
+npm run dev
+# open http://localhost:3000/simulator
+```
+
+### Vehicle and mission controls
+
+- `V`: switch active platform (`Tractor` / `Agro Drone`)
+- `1..4`: drone mission modes (`Spray`, `Spread`, `Lift`, `LiDAR Survey`)
+- `C`: cycle camera modes (vehicle-aware)
+- `L`: cycle LiDAR visualization modes
+- `M`: toggle BEV/minimap mission map
+- `4K` quick button: presentation mode with clamped DPR + dynamic render scale
+
+### Browser/deployment notes
+
+- Browser-native WebGL rendering path for Vercel deployment.
+- Validated against modern Chrome, Safari, Opera, and Chromium/WebKit derivatives.
+- Use `Ultra / Presentation` quality on high-end desktops; drop render scale for thermally constrained laptops.
