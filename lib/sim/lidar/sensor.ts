@@ -27,11 +27,18 @@ export interface LidarPose {
   y: number;
   z: number;
   heading: number;
-  pitch: number;
-  roll: number;
+  pitch?: number;
+  roll?: number;
 }
 
-const verticalSpread = [-0.24, -0.2, -0.16, -0.12, -0.08, -0.04, -0.02, 0.01, 0.04, 0.08, 0.11, 0.15];
+const verticalSpread = [-0.29, -0.24, -0.2, -0.16, -0.12, -0.08, -0.04, -0.01, 0.02, 0.06, 0.1, 0.14, 0.18];
+
+interface HitResult {
+  distance: number;
+  cls: LidarPoint['cls'];
+  y: number;
+  hazard: boolean;
+}
 
 function intersectObstacleRay(ox: number, oz: number, dx: number, dz: number, obstacle: WorldObstacle): number | null {
   const cx = obstacle.x - ox;
@@ -45,6 +52,48 @@ function intersectObstacleRay(ox: number, oz: number, dx: number, dz: number, ob
   return hit >= 0 ? hit : null;
 }
 
+function resolveObstacleHit(pose: LidarPose, beamVertical: number, hit: number, obstacle: WorldObstacle): HitResult | null {
+  const hitY = pose.y + hit * beamVertical;
+  const obstacleTop = obstacle.y + (obstacle.height ?? obstacle.radius * 2.2);
+  if (hitY < obstacle.y - 0.2 || hitY > obstacleTop + 0.1) return null;
+
+  return {
+    distance: hit,
+    cls: obstacle.cls,
+    hazard: obstacle.hazard,
+    y: clamp(hitY, obstacle.y, obstacleTop),
+  };
+}
+
+function resolveGroundHit(
+  pose: LidarPose,
+  dirX: number,
+  dirZ: number,
+  seed: number,
+  range: number,
+  beamVertical: number,
+): HitResult {
+  const stride = range > 65 ? 2.6 : 1.8;
+  for (let d = 3.2; d <= range; d += stride) {
+    const tx = pose.x + dirX * d;
+    const tz = pose.z + dirZ * d;
+    const terrainY = sampleTerrainHeight(tx, tz, seed, 0.24);
+    const rayY = pose.y + d * beamVertical;
+    if (rayY <= terrainY + 0.06) {
+      return { distance: d, y: terrainY, cls: 'ground', hazard: false };
+    }
+  }
+
+  const edgeX = pose.x + dirX * range;
+  const edgeZ = pose.z + dirZ * range;
+  return {
+    distance: range,
+    y: sampleTerrainHeight(edgeX, edgeZ, seed, 0.24),
+    cls: 'ground',
+    hazard: false,
+  };
+}
+
 export function sampleLidarPoints(
   nearbyObstacles: WorldObstacle[],
   config: LidarConfig,
@@ -56,59 +105,58 @@ export function sampleLidarPoints(
 ): LidarPoint[] {
   const points: LidarPoint[] = [];
   spatialIndex.reset(nearbyObstacles);
-  const azimuthCount = Math.max(110, Math.floor(config.pointBudget / Math.max(4, config.channels)));
+  const channels = Math.max(8, config.channels);
+  const azimuthCount = Math.max(140, Math.floor(config.pointBudget / Math.max(6, channels)));
 
   for (let az = 0; az < azimuthCount; az += 1) {
-    const sweep = (az / azimuthCount + scanPhase * 0.22) % 1;
+    const sweep = (az / azimuthCount + scanPhase * 0.26) % 1;
     const yaw = (sweep - 0.5) * (config.horizontalFovDeg * Math.PI / 180) + pose.heading;
     const dirX = Math.sin(yaw);
     const dirZ = Math.cos(yaw);
-    const candidates = spatialIndex.queryCircle(pose.x + dirX * config.range * 0.45, pose.z + dirZ * config.range * 0.45, config.range * 0.72);
 
-    for (let ch = 0; ch < config.channels; ch += 1) {
+    const aheadBias = 0.45 + Math.abs(sweep - 0.5) * 0.35;
+    const candidates = spatialIndex.queryCircle(
+      pose.x + dirX * config.range * aheadBias,
+      pose.z + dirZ * config.range * aheadBias,
+      config.range * 0.7,
+    );
+
+    for (let ch = 0; ch < channels; ch += 1) {
       if (points.length >= config.pointBudget) return points;
-      const beamVertical = verticalSpread[ch % verticalSpread.length] + Math.floor(ch / verticalSpread.length) * 0.01 + pose.pitch * 0.45;
-      let hitDistance = config.range;
-      let hitClass: LidarPoint['cls'] = 'ground';
-      let hazard = false;
-      let hitY = sampleTerrainHeight(pose.x + dirX * hitDistance, pose.z + dirZ * hitDistance, seed, 0.2);
+      const channelBand = ch % verticalSpread.length;
+      const upperBank = Math.floor(ch / verticalSpread.length);
+      const beamVertical = verticalSpread[channelBand] + upperBank * 0.015 + (pose.pitch ?? 0) * 0.42;
+
+      let bestHit: HitResult = resolveGroundHit(pose, dirX, dirZ, seed, config.range, beamVertical);
 
       for (const obstacle of candidates) {
-        const hit = intersectObstacleRay(pose.x, pose.z, dirX, dirZ, obstacle);
-        if (hit === null || hit > hitDistance || hit > config.range) continue;
-        const heightAtRay = pose.y + hit * beamVertical;
-        const maxHeight = obstacle.y + obstacle.radius * (obstacle.cls === 'post' || obstacle.cls === 'pole' ? 3.3 : obstacle.cls === 'tree' ? 2.7 : 2.1);
-        if (heightAtRay < obstacle.y - 0.45 || heightAtRay > maxHeight) continue;
-        hitDistance = hit;
-        hitClass = obstacle.cls;
-        hazard = obstacle.hazard;
-        hitY = clamp(heightAtRay, obstacle.y - 0.35, maxHeight);
+        const hitDistance = intersectObstacleRay(pose.x, pose.z, dirX, dirZ, obstacle);
+        if (hitDistance === null || hitDistance > bestHit.distance || hitDistance > config.range) continue;
+
+        const candidate = resolveObstacleHit(pose, beamVertical, hitDistance, obstacle);
+        if (!candidate) continue;
+        bestHit = candidate;
       }
 
-      if (hitClass === 'ground') {
-        const step = config.range > 40 ? 2.8 : 2.2;
-        for (let d = 4; d <= config.range; d += step) {
-          const tx = pose.x + dirX * d;
-          const tz = pose.z + dirZ * d;
-          const terrainY = sampleTerrainHeight(tx, tz, seed, 0.24);
-          const rayY = pose.y + d * beamVertical;
-          if (rayY <= terrainY + 0.05) {
-            hitDistance = d;
-            hitY = terrainY;
-            break;
-          }
-        }
-      }
+      const dropoutPhase = Math.sin((az + 1) * 0.2 + ch * 0.35 + scanPhase * 6.4) * 0.5 + 0.5;
+      if (dropoutPhase < config.dropout + weather.lidarNoise * (bestHit.cls === 'ground' ? 0.65 : 1.05)) continue;
 
-      const dropoutPhase = Math.sin((az + 1) * 0.19 + ch * 0.33 + scanPhase * 6.1) * 0.5 + 0.5;
-      if (dropoutPhase < config.dropout + weather.lidarNoise * 0.9) continue;
-
-      const wobble = Math.sin(az * 0.72 + ch * 1.13 + scanPhase * 10.5 + pose.roll) * 0.08;
-      const distance = hitDistance + wobble;
+      const jitter = Math.sin(az * 0.74 + ch * 1.21 + scanPhase * 11.2 + (pose.roll ?? 0)) * 0.05;
+      const distance = clamp(bestHit.distance + jitter, 0, config.range);
       const px = pose.x + dirX * distance;
       const pz = pose.z + dirZ * distance;
-      const intensity = clamp(1 - distance / config.range + (hitClass === 'ground' ? 0.06 : 0.18), 0.06, 1);
-      points.push({ x: px, y: hitY, z: pz, hazard, distance, cls: hitClass, intensity });
+      const intensityBase = bestHit.cls === 'ground' ? 0.06 : bestHit.hazard ? 0.24 : 0.16;
+      const intensity = clamp(1 - distance / config.range + intensityBase, 0.06, 1);
+
+      points.push({
+        x: px,
+        y: bestHit.y,
+        z: pz,
+        hazard: bestHit.hazard,
+        distance,
+        cls: bestHit.cls,
+        intensity,
+      });
     }
   }
 
