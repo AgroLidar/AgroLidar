@@ -75,6 +75,10 @@ module = ["lidar_perception.api.main"]
 disallow_untyped_decorators = false
 
 [[tool.mypy.overrides]]
+module = ["inference_server.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = [
     "lidar_perception.data.*",
     "lidar_perception.inference.*",

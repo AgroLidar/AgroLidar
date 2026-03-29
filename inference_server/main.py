@@ -12,11 +12,11 @@ from typing import Any, Literal, cast
 
 import numpy as np
 import torch
-from numpy.typing import NDArray
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from numpy.typing import NDArray
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -71,7 +71,9 @@ def _get_predictor_or_503(app: FastAPI) -> BEVPredictor:
     return cast(BEVPredictor, predictor)
 
 
-def _record_metrics(app: FastAPI, detections_data: list[dict[str, Any]], dangerous_objects: int) -> None:
+def _record_metrics(
+    app: FastAPI, detections_data: list[dict[str, Any]], dangerous_objects: int
+) -> None:
     meta = app.state.metrics
     meta["successful_requests"] += 1
     meta["last_inference_timestamp"] = utc_now().isoformat()
@@ -185,6 +187,7 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
     app = FastAPI(title="AgroLidar Inference Server", version="1.0.0", lifespan=lifespan)
     app.state.limiter = limiter
     app.add_middleware(SlowAPIMiddleware)
+
     async def rate_limit_handler(_: Request, __: Exception) -> JSONResponse:
         return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
 
@@ -274,7 +277,9 @@ def create_app(config: InferenceServerConfig | None = None) -> FastAPI:
             "device": str(predictor.device),
             "backend": predictor.backend,
             "onnx_path": predictor.onnx_path if predictor.backend == "onnx" else None,
-            "loaded_at": datetime.fromtimestamp(predictor.model_loaded_at, tz=timezone.utc).isoformat(),
+            "loaded_at": datetime.fromtimestamp(
+                predictor.model_loaded_at, tz=timezone.utc
+            ).isoformat(),
         }
 
     @limiter.limit(f"{runtime_config.limits.rate_limit_per_second}/second")
